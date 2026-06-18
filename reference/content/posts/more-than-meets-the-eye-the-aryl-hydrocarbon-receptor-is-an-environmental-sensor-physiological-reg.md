@@ -1,0 +1,18 @@
+# More than Meets the Eye: The Aryl Hydrocarbon Receptor is an Environmental Sensor, Physiological Regulator and a Therapeutic Target in Ocular Disease
+
+> Source: https://www.rphope.org/post/more-than-meets-the-eye-the-aryl-hydrocarbon-receptor-is-an-environmental-sensor-physiological-reg
+>
+> Meta description: Highlights the role of AhR in the ocular system, as an environmental sensor, normal physiological regulator and potential therapeutic target
+
+---
+
+More than Meets the Eye: The Aryl Hydrocarbon Receptor is an Environmental Sensor, Physiological Regulator and a Therapeutic Target in Ocular Disease
+- Mar 3, 2022
+- 2 min read
+Updated: Sep 29, 2024
+Christine L. Hammond, Elisa Roztocil, Vardaan Gupta, Steven E. Feldon, Collynn F. Woeller | Frontiers in Toxicology | 2022 Mar 3 | doi [10.3389/ftox.2022.791082](https://doi.org/10.3389%2Fftox.2022.791082)
+Abstract
+The aryl hydrocarbon receptor (AHR) is a ligand activated transcription factor originally identified as an environmental sensor of xenobiotic chemicals. However, studies have revealed that the AHR regulates crucial aspects of cell growth and metabolism, development and the immune system. The importance of the AHR and AHR signaling in eye development, toxicology and disease is now being uncovered. The AHR is expressed in many ocular tissues including the retina, choroid, cornea and the orbit. A significant role for the AHR in age-related macular degeneration (AMD), autoimmune uveitis, and other ocular diseases has been identified. Ligands for the AHR are structurally diverse organic molecules from exogenous and endogenous sources. Natural AHR ligands include metabolites of tryptophan and byproducts of the microbiome. Xenobiotic AHR ligands include persistent environmental pollutants such as dioxins, benzo (a) pyrene [B (a) P] and polychlorinated biphenyls (PCBs). Pharmaceutical agents including the proton pump inhibitors, esomeprazole and lansoprazole, and the immunosuppressive drug, leflunomide, activate the AHR. In this review, we highlight the role of the AHR in the eye and discuss how AHR signaling is involved in responding to endogenous and environmental stimuli. We also present the emerging concept that the AHR is a promising therapeutic target for eye disease.
+Introduction
+Nearly one billion people in the world have a form of visual impairment ([GBD 2019 Blindness and Vision Impairment Collaborators and Vision Loss Expert Group of the Global Burden of Disease Study, 2021](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8915869/#B40)). Furthermore, as the population expands and continues to age, this number is expected to increase. A more complete understanding of how the eye and ocular system regulate physiological function and respond to the environment will allow us to better treat or possibly prevent vision impairment. The ocular system is in constant defense against light-induced damage, locally generated reactive oxygen species (ROSs), and toxicants through both direct exposure and the blood stream. Furthermore, the retina is in frequent and direct exposure to light, leading to the formation of photooxidized lipids that are toxic to retinal pigmented epithelial (RPE) cells ([Simó et al., 2010](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8915869/#B105)). Not surprisingly, since the retina is one of the highest oxygen-consuming tissues in the body, it is also an area of high oxidative stress ([Simó et al., 2010](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8915869/#B105)).
+Keywords AHR (aryl hydrocarbon agonist), eye, retina, thyroid eye disease (TED), FICZ, 6-formylindolo (3, 2-b) carbazole, TCDD (2, 8-tetrachlorodibenzo- p-dioxin), cigarette

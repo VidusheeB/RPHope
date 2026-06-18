@@ -1,0 +1,35 @@
+# Novel variants in PDE6A and PDE6B genes and its phenotypes in patients with retinitis pigmentosa in Chinese families
+
+> Source: https://www.rphope.org/post/novel-variants-in-pde6a-and-pde6b-genes-and-its-phenotypes-in-patients-with-retinitis-pigmentosa-in
+>
+> Meta description: Purpose: identify novel variants in PDE6A and PDE6B genes and present its phenotypes in patients with RP in Chinese families.
+
+---
+
+Novel variants in PDE6A and PDE6B genes and its phenotypes in patients with retinitis pigmentosa in Chinese families
+- Jan 15, 2022
+- 3 min read
+Updated: Feb 3, 2025
+Yuyu Li, [Ruyi Li](https://bmcophthalmol.biomedcentral.com/articles/10.1186/s12886-021-02242-5#auth-Ruyi-Li), [Hehua Dai, and ](https://bmcophthalmol.biomedcentral.com/articles/10.1186/s12886-021-02242-5#auth-Hehua-Dai)[Genlin Li ](https://bmcophthalmol.biomedcentral.com/articles/10.1186/s12886-021-02242-5#auth-Genlin-Li)| BMC Ophthalmoly  | 15 2022 Jan | 22, 27 | [doi.org/10.1186/s12886-021-02242-5](http://doi.org/10.1186/s12886-021-02242-5)
+Abstract
+Background
+Retinitis pigmentosa (RP) is a genetically heterogeneous disease with 89 causative genes identified to date. However, only approximately 60% of RP cases genetically solved to date, predicating that many novel disease-causing variants are yet to be identified. The purpose of this study is to identify novel variants in PDE6A and PDE6B genes and present its phenotypes in patients with retinitis pigmentosa in Chinese families.
+Methods
+Five retinitis pigmentosa patients with PDE6A variants and three with PDE6B variants were identified through a hereditary eye disease enrichment panel (HEDEP), all patients’ medical and ophthalmic histories were collected, and ophthalmological examinations were performed, followed by an analysis of the possible causative variants. Sanger sequencing was used to verify the variants.
+Results
+We identified 20 variants in eight patients: 16 of them were identified in either PDE6A or PDE6B in a compound heterozygous state. Additional four heterozygous variants were identified in the genes ADGRA3, CA4, OPTN, RHO. Two novel genetic changes in PDE6A were identified (c.1246G > A and c.1747 T > A), three novel genetic changes in PDE6B were identified (c.401 T > C, c.2293G > C and c.1610-1612del), out of the novel identified variants one was most probably non-pathogenic (c.2293G > C), all other novel variants are pathogenic. Additional variant was identified in CA4 and RHO, which can cause ADRP (c.243G > A, c.688G > A). In addition, a novel variant in ADGRA3 was identified (c.921-1G > A).
+Conclusions
+This study reveals novel and known variants in PDE6A and PDE6B genes in Chinese families with autosomal recessive RP, and expands the clinical and genetic findings of photoreceptor-specific enzyme deficiencies.
+Background
+Retinitis pigmentosa (RP, OMIM 268000) is a heterogeneous group of inherited retinal dystrophy (IRD) characterized by night blindness, retinal degeneration with bone spicule pigmentation, constricted visual fields, and progressive disease course. The prevalence of RP is approximately 1 per 4000 persons [[1](https://bmcophthalmol.biomedcentral.com/articles/10.1186/s12886-021-02242-5#ref-CR1)].
+Retinitis pigmentosa (RP) is a genetically heterogeneous disease with 89 causative genes identified to date. However, only approximately 60% of RP cases genetically solved to date, predicating that many novel disease-causing variants are yet to be identified ([https://sph.uth.edu/retnet/sum-dis.htm](https://sph.uth.edu/retnet/sum-dis.htm) 2021.04.28). The gene therapy and stem cell therapy for retinitis pigmentosa has a promising future, so the identification of novel causative variants is becoming increasingly important.
+Phosphodiesterase 6(PDE6) enzyme is a heterotetrameric protein consisting of alpha (PDE6A;180,071), beta (PDE6B; 180072), and 2 gamma subunits (PDE6G; 180,073) [[2](https://bmcophthalmol.biomedcentral.com/articles/10.1186/s12886-021-02242-5#ref-CR2)]. Both alpha and beta subunits are required for full phosphodiesterase activity, and mutations in genes encoding those subunits are known to cause autosomal recessive RP. The mechanisms by which PDE6A and PDE6B mutations lead to RP are probably similar because PDE6A and PDE6B subunits are enzymatically equivalent [[3](https://bmcophthalmol.biomedcentral.com/articles/10.1186/s12886-021-02242-5#ref-CR3)] and may lead to rod followed by cone death [[4](https://bmcophthalmol.biomedcentral.com/articles/10.1186/s12886-021-02242-5#ref-CR4)].
+Mutations in PDE6A are found in a very low percentage of patients with RP as showed first in a study by Huang and coworkers, suggesting a frequency of < 1% [[3](https://bmcophthalmol.biomedcentral.com/articles/10.1186/s12886-021-02242-5#ref-CR3)]. Screening of about 160 patients with recessive RP in North America in a subsequent study found a frequency of mutations of approximately 3–4% [[4](https://bmcophthalmol.biomedcentral.com/articles/10.1186/s12886-021-02242-5#ref-CR4)]. Mutations in PDE6B are found in a frequency of about 4% in patients from North America [[1](https://bmcophthalmol.biomedcentral.com/articles/10.1186/s12886-021-02242-5#ref-CR1), [5](https://bmcophthalmol.biomedcentral.com/articles/10.1186/s12886-021-02242-5#ref-CR5),[6](https://bmcophthalmol.biomedcentral.com/articles/10.1186/s12886-021-02242-5#ref-CR6),[7](https://bmcophthalmol.biomedcentral.com/articles/10.1186/s12886-021-02242-5#ref-CR7)]. There is no statistics date about incidence rate in Chinese family. Because of the low incidence, many novel disease-causing variants are yet to be identified. The purpose of this study is to report the causative variants of Chinese RP families with PDE6A and PDE6B variants, expanding the clinical and genetic findings of photoreceptor-specific enzyme deficiencies.
+References
+- Hartong DT, Berson EL, Dryja TP. Retinitis pigmentosa. Lancet. 2006;368:1795–809. 
+- Khramtsov NV, Feshchenko EA, Suslova VA, Shmukler BE, Terpugov BE, Rakitina TV, et al. The human rod photoreceptor cGMP phosphodiesterase β-subunit: Structural studies of its cDNA and gene. FEBS Lett. 1993;327:275–8. 
+- Huang SH, Pittler SJ, Huang X, Oliveira L, Berson EL, Dryja TP. Autosomal recessive retinitis pigmentosa caused by mutations in the alpha subunit of rod cGMP phosphodiesterase. Nat Genet. 1995;11:468–71. 
+- Dryja TP, Rucinski DE, Chen SH, Berson EL. Frequency of mutations in the gene encoding the alpha subunit of rod cGMP-phosphodiesterase in autosomal recessive retinitis pigmentosa. Invest Ophthalmol Vis Sci. 1999;40:1859–65. 
+- Daiger SP, Bowne SJ, Sullivan LS. Perspective on genes and mutations causing retinitis pigmentosa. Arch Ophthalmol. 2007;125:151–8. 
+- Tsang SH, Tsui I, Chou CL, Zernant J, Haamer E, Iranmanesh R, et al. A novel mutation and phenotypes in phosphodiesterase 6 deficiency. Am J Ophthalmol. 2008;146:780–8. 
+- McLaughlin ME, Ehrhart TL, Berson EL, Dryja TP. Mutation spectrum of the gene encoding the beta subunit of rod phosphodiesterase among patients with autosomal recessive retinitis pigmentosa. Proc Natl Acad Sci U S A. 1995;92:3249–53.

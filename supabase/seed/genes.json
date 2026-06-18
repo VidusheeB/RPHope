@@ -1,0 +1,504 @@
+[
+  {
+    "slug": "abca4",
+    "gene_name": "ABCA4",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "abgl5",
+    "gene_name": "ABGL5",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "adgra3",
+    "gene_name": "ADGRA3",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "adipor1",
+    "gene_name": "ADIPOR1",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "ahr",
+    "gene_name": "AhR",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "arhgef18",
+    "gene_name": "ARHGEF18",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "arl2bp",
+    "gene_name": "ARL2BP",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "arl3",
+    "gene_name": "ARL3",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "arl6",
+    "gene_name": "ARL6",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "bbs1",
+    "gene_name": "BBS1",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "bbs2",
+    "gene_name": "BBS2",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "bbs3",
+    "gene_name": "BBS3",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "best1",
+    "gene_name": "BEST1",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "best2",
+    "gene_name": "BEST2",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "ca4",
+    "gene_name": "CA4",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "cerkl",
+    "gene_name": "CERKL",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "clcc1",
+    "gene_name": "CLCC1",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "clrn1",
+    "gene_name": "CLRN1",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "cnga1",
+    "gene_name": "CNGA1",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "cngb1",
+    "gene_name": "CNGB1",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "crb1",
+    "gene_name": "CRB1",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published",
+    "full_name": "Crumbs homolog 1",
+    "patient_population": "Unknown",
+    "treatment_status": "No cure; medications can help treat complications.",
+    "eye_health_strategies": "—",
+    "plain_english_summary": "CRB1 mutations cause a severe, early-onset form of retinitis pigmentosa known as RP12, typically marked by significant vision loss before age 20. The CRB1 protein is important for cell-to-cell contact and the proper structure of photoreceptors. CRB1 mutations can also cause Leber Congenital Amaurosis (LCA), the most severe early-onset retinal degeneration."
+  },
+  {
+    "slug": "crx",
+    "gene_name": "CRX",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "cwc27",
+    "gene_name": "CWC27",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "cyp4v2",
+    "gene_name": "CYP4V2",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "c8orf37",
+    "gene_name": "C8ORF37",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "dhdds",
+    "gene_name": "DHDDS",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "dhx38",
+    "gene_name": "DHX38",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "emc1",
+    "gene_name": "EMC1",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "ensa",
+    "gene_name": "ENSA",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "eys",
+    "gene_name": "EYS",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "fam161a",
+    "gene_name": "FAM161A",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "fscn2",
+    "gene_name": "FSCN2",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "guca1b",
+    "gene_name": "GUCA1B",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "hgsnat",
+    "gene_name": "HGSNAT",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "hk1",
+    "gene_name": "HK1",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "idh3b",
+    "gene_name": "IDH3B",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "ift140",
+    "gene_name": "IFT140",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "ift172",
+    "gene_name": "IFT172",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "impdh1",
+    "gene_name": "IMPDH1",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "impg1",
+    "gene_name": "IMPG1",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "impg2",
+    "gene_name": "IMPG2",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "inpp5e",
+    "gene_name": "INPP5E",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published",
+    "full_name": "Inositol polyphosphate-5-phosphatase E",
+    "patient_population": "Rare",
+    "treatment_status": "No gene-specific treatment yet; supportive care.",
+    "eye_health_strategies": "Low-vision aids, rehabilitation programs; vitamins/supplements have been suggested but efficacy is debated.",
+    "plain_english_summary": "Mutations in INPP5E (a cilia-enriched phosphoinositide modulator) contribute to a range of retinal ciliopathies, including Joubert Syndrome, retinitis pigmentosa, and MORM syndrome — reflecting the gene's critical role in keeping photoreceptors healthy. Symptoms of RP include difficulty adapting between bright and dim light and a gradual narrowing of vision. There is no cure, but low-vision aids and rehabilitation can help. Most people with RP retain some vision but may be considered legally blind due to limited peripheral vision."
+  },
+  {
+    "slug": "kiaa1549",
+    "gene_name": "KIAA1549",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "kif3b",
+    "gene_name": "KIF3B",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "kiz",
+    "gene_name": "KIZ",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "klhl7",
+    "gene_name": "KLHL7",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "lca",
+    "gene_name": "LCA",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "lrat",
+    "gene_name": "LRAT",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published",
+    "full_name": "Lecithin retinol acyltransferase",
+    "patient_population": "Fewer than 100 known",
+    "treatment_status": "Clinical trial of drug intervention.",
+    "eye_health_strategies": "—",
+    "plain_english_summary": "Mutations in LRAT can cause juvenile retinitis pigmentosa and other early-onset retinal dystrophies. LRAT is an enzyme central to the retinoid (visual) cycle that regenerates the light-sensing chromophore in the eye. When LRAT function is impaired, the eye cannot produce enough functional chromophore, leading to retinal degeneration. Because the pathway is well understood, LRAT has been a target for drug and gene therapies."
+  },
+  {
+    "slug": "mak",
+    "gene_name": "MAK",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "mertk",
+    "gene_name": "MERTK",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "pde6a",
+    "gene_name": "PDE6A",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "pde6b",
+    "gene_name": "PDE6B",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published",
+    "full_name": "Phosphodiesterase 6B",
+    "patient_population": "Unknown",
+    "treatment_status": "—",
+    "eye_health_strategies": "Lutein.",
+    "plain_english_summary": "The PDE6B gene carries instructions for making part of a protein complex called cGMP-PDE, found in the light-sensing tissue at the back of the eye. PDE6B is part of the phototransduction cascade that converts light into the visual signals sent to the brain, which is especially important for low-light vision. Mutations disrupt this process and lead to progressive retinal degeneration."
+  },
+  {
+    "slug": "prom1",
+    "gene_name": "PROM1",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "prpf3",
+    "gene_name": "PRPF3",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "prpf4",
+    "gene_name": "PRPF4",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "prpf6",
+    "gene_name": "PRPF6",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "prpf8",
+    "gene_name": "PRPF8",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "prpf31",
+    "gene_name": "PRPF31",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published",
+    "full_name": "Pre-mRNA processing factor 31",
+    "patient_population": "Unknown",
+    "treatment_status": "No current treatment; complications can be managed.",
+    "eye_health_strategies": "—",
+    "plain_english_summary": "PRPF31 is part of the spliceosome, the cellular machinery that processes mRNA. It is a common cause of autosomal dominant RP and is notable for 'incomplete penetrance' — some people who carry a disease-causing mutation never develop symptoms, which is why symptom-free carriers are often found within affected families."
+  },
+  {
+    "slug": "rho",
+    "gene_name": "RHO",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published",
+    "full_name": "Rhodopsin",
+    "patient_population": "Unknown",
+    "treatment_status": "None known.",
+    "eye_health_strategies": "None known.",
+    "plain_english_summary": "RHO encodes rhodopsin, the light-sensitive pigment in the rod photoreceptors responsible for vision in dim light. It was the first gene linked to retinitis pigmentosa and is a common cause of the autosomal dominant form. Mutations cause rods to degenerate, leading to night blindness followed by progressive loss of peripheral vision."
+  },
+  {
+    "slug": "rp2",
+    "gene_name": "RP2",
+    "inheritance_pattern": "x-linked",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "rpe65",
+    "gene_name": "RPE65",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "rpgr",
+    "gene_name": "RPGR",
+    "inheritance_pattern": "x-linked",
+    "disease_category": null,
+    "status": "published",
+    "full_name": "Retinitis pigmentosa GTPase regulator",
+    "patient_population": "A leading cause of X-linked RP",
+    "treatment_status": "Clinical trials underway (gene therapy).",
+    "eye_health_strategies": "Protection from UV exposure; vitamin supplements in some cases.",
+    "plain_english_summary": "RPGR is the most common cause of X-linked retinitis pigmentosa, a form that primarily affects males and often progresses faster than other types. The gene is essential for the health of the photoreceptor cilium. RPGR is one of the most active areas of gene-therapy research, with several recruiting clinical trials."
+  },
+  {
+    "slug": "sag",
+    "gene_name": "SAG",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "snrnp200",
+    "gene_name": "SNRNP200",
+    "inheritance_pattern": "autosomal dominant",
+    "disease_category": null,
+    "status": "published"
+  },
+  {
+    "slug": "ush2a",
+    "gene_name": "USH2A",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published",
+    "full_name": "Usherin",
+    "patient_population": "One of the most common causes of RP and Usher syndrome",
+    "treatment_status": "Cochlear implants (for associated hearing loss).",
+    "eye_health_strategies": "Lutein.",
+    "plain_english_summary": "USH2A is one of the most common genes linked to retinitis pigmentosa, and is also the leading cause of Usher syndrome, in which RP occurs alongside hearing loss. Vision loss is gradual, typically beginning with night blindness and loss of peripheral vision. Research and clinical trials targeting USH2A are actively underway."
+  },
+  {
+    "slug": "ush3a",
+    "gene_name": "USH3A",
+    "inheritance_pattern": "autosomal recessive",
+    "disease_category": null,
+    "status": "published"
+  }
+]

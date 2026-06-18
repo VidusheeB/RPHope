@@ -1,0 +1,18 @@
+# “Plug and Play” mRNA technology works fast, updating vaccines in months
+
+> Source: https://www.rphope.org/post/plug-and-play-mrna-technology-works-fast-updating-vaccines-in-months
+>
+> Meta description: This lightning-fast turnaround is made possible by the speed of “plug and play” mRNA technology. mRNA is a genetic material that tells our cells how to make specific proteins.
+
+---
+
+“Plug and Play” mRNA technology works fast, updating vaccines in months
+- Aug 4, 2022
+- 2 min read
+The COVID-19 vaccines made by Pfizer and Moderna use messenger RNA (mRNA) technology, which allows scientists to test, deliver and modify the vaccines quickly. The ability to adapt quickly is on full display this summer.
+On June 28, as Omicron BA.5 [became the predominant COVID-19 variant](https://covid.cdc.gov/covid-data-tracker/#variant-proportions) in the United States, the U.S. Food and Drug Administration (FDA) recommended that Pfizer and Moderna [update their mRNA booster shots](https://www.fda.gov/news-events/press-announcements/coronavirus-covid-19-update-fda-recommends-inclusion-omicron-ba45-component-covid-19-vaccine-booster) to target the Omicron BA.4/BA.5 variants for a potential fall rollout. The updated vaccine is called a “bivalent” vaccine, meaning it would target both the original coronavirus strain and the latest Omicron subvariants.
+A month later, on July 29, the federal government announced plans to purchase [66 million doses](https://www.hhs.gov/about/news/2022/07/29/biden-harris-administration-secures-66-million-doses-modernas-variant-specific-covid-19-vaccine-booster-for-potential-use-in-fall-winter-2022.html) of a bivalent COVID-19 vaccine from Moderna, and [105 million doses](https://www.hhs.gov/about/news/2022/06/29/biden-harris-administration-secures-105-million-doses-of-pfizers-latest-covid-19-vaccine-for-fall-vaccination-campaign.html) from Pfizer. If the FDA and Centers for Disease Control and Prevention (CDC) review and authorize the updated vaccines, the bivalent vaccines could be available as soon as late September.
+This lightning-fast turnaround is made possible by the speed of “plug and play” mRNA technology. [mRNA is a genetic material](https://www.cdc.gov/coronavirus/2019-ncov/vaccines/different-vaccines/mRNA.html?s_cid=11344:what%20is%20mrna%20vaccine:sem.ga:p:RG:GM:gen:PTN:FY21) that tells our cells how to make specific proteins. After [decades of research](https://www.nature.com/articles/d41586-021-02483-w), scientists have learned to mimic this process to create vaccines that teach our cells how to make a specific protein from a virus. Once our body identifies a foreign protein (for example, COVID-19’s “spike” protein) it mounts an immune response, creating antibodies to fight off the foreign protein. Our immune system cells remember the invading foreign protein if they see it again in the future.
+mRNA speed
+Many laboratories can now rapidly determine the genetic makeup of a virus, called the “genome.” Once the genome is identified, scientists can plug it into the vaccine-making process and quickly produce a new or updated mRNA vaccine. On Jan. 11, 2020, scientists in China made the genome of SARS-CoV-2 (the virus that causes COVID-19) publicly available. Within two days, Moderna designed an mRNA vaccine that would tell our cells to make the spike protein found in the virus. Within 26 days Moderna had its first batch of vaccine. And March 16—just 65 days after the virus’ genome became known, Moderna started clinical trials.
+To continue reading the original source, [click here](https://oregonhealthnews.oregon.gov/plug-and-play-mrna-technology-works-fast-updating-vaccines-in-months/)

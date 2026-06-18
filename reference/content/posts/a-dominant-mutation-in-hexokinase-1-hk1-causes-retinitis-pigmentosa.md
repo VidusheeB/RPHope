@@ -1,0 +1,32 @@
+# A dominant mutation in hexokinase 1 (HK1) causes retinitis pigmentosa
+
+> Source: https://www.rphope.org/post/a-dominant-mutation-in-hexokinase-1-hk1-causes-retinitis-pigmentosa
+>
+> Meta description: To identify the cause of retinitis pigmentosa (RP) in UTAD003, a large, six-generation Louisiana family with autosomal dominant RP.
+
+---
+
+A dominant mutation in hexokinase 1 (HK1) causes retinitis pigmentosa
+- Sep 4, 2014
+- 4 min read
+Lori S Sullivan, Daniel C Koboldt, Sara J Bowne, Steven Lang, Susan H Blanton, Elizabeth Cadena, Cheryl E Avery, Richard A Lewis, Kaylie Webb-Jones, Dianna H Wheaton, David G Birch, Razck Coussa, Huanan Ren, Irma Lopez, Christina Chakarova, Robert K Koenekoop, Charles A Garcia, [Robert S Fulton](https://pubmed.ncbi.nlm.nih.gov/?term=Fulton+RS&cauthor_id=25190649), Richard K Wilson, George M Weinstock, Stephen P Daiger | Investigative Ophthalmology & Visual Science | 2014 Sep 4 | 55 (11) | Pgs. 7147-58 | [doi: 10.1167/iovs.14-15419](https://iovs.arvojournals.org/article.aspx?articleid=2265968)
+Abstract
+Purpose: To identify the cause of retinitis pigmentosa (RP) in UTAD003, a large, six-generation Louisiana family with autosomal dominant retinitis pigmentosa (adRP).
+Methods: A series of strategies, including candidate gene screening, linkage exclusion, genome-wide linkage mapping, and whole-exome next-generation sequencing, was used to identify a mutation in a novel disease gene on chromosome 10q22.1. Probands from an additional 404 retinal degeneration families were subsequently screened for mutations in this gene.
+Results: Exome sequencing in UTAD003 led to identification of a single, novel coding variant (c.2539G>A, p.Glu847Lys) in hexokinase 1 (HK1) present in all affected individuals and absent from normal controls. One affected family member carries two copies of the mutation and has an unusually severe form of disease, consistent with homozygosity for this mutation. Screening of additional adRP probands identified four other families (American, Canadian, and Sicilian) with the same mutation and a similar range of phenotypes. The families share a rare 450-kilobase haplotype containing the mutation, suggesting a founder mutation among otherwise unrelated families.
+Conclusions: We identified an HK1 mutation in five adRP families. Hexokinase 1 catalyzes phosphorylation of glucose to glucose-6-phosphate. HK1 is expressed in retina, with two abundant isoforms expressed at similar levels. The Glu847Lys mutation is located at a highly conserved position in the protein, outside the catalytic domains. We hypothesize that the effect of this mutation is limited to the retina, as no systemic abnormalities in glycolysis were detected. Prevalence of the HK1 mutation in our cohort of RP families is 1%.
+Introduction
+Retinitis pigmentosa (RP) is a group of inherited dystrophic disorders of the retina leading to profound loss of vision or blindness. The clinical hallmarks of RP are night blindness, followed by progressive loss of peripheral vision, often culminating in complete blindness. Clinical findings of RP include “bone spicule” pigmentary deposits, retinal vessel attenuation, and characteristic changes in the electroretinograms (ERG).1
+Retinitis pigmentosa affects approximately 1 in 4000 people in the United States, Europe, and Japan. Retinitis pigmentosa is exceptionally heterogeneous with many different genes implicated, many different disease-causing mutations in each gene, and varying clinical presentations even among members of the same family.2 For nonsyndromic RP, mutations in 24 genes are known to cause autosomal dominant RP (adRP); 45 genes cause recessive RP (arRP), and 3 genes cause X-linked RP (summarized in RetNet, [https://sph.uth.edu/retnet/](https://sph.uth.edu/retnet/) [in the public domain]). 
+The genes found to date as causes of adRP do not fall into a single functional category but include a diverse range of retinal functions, including components of the phototransduction cycle (RHO, GUCA1A, RDH12); pre-mRNA processing factors (PRPF3, PRPF4, PRPF6, PRPF8, PRPF31, SNRNP200); structural proteins (PRPH2, ROM1); ciliary proteins (RP1, TOPORS); transcription factors (NRL, CRX, NR2E3); and a seemingly random assortment of other genes (BEST1, CA4, FSCN2, IMPDH1, KLHL7, RPE65, SEMA4A). With current techniques, we can identify likely disease-causing mutations in approximately 75% of patients with adRP (Daiger SP, manuscript in preparation, 2014). While mutations in some known genes may be missed, a number of additional adRP genes remain to be identified. In our University of Texas (UT) adRP cohort, mutations have been found in 205 of 265 families, leaving 60 (23%) with potentially novel adRP genes.
+References
+- Heckenlively JR. Retinitis Pigmentosa. London: J.B. Lippincott; 1988. 
+- Daiger SP. Identifying retinal disease genes: how far have we come, how far do we have to go? Novartis Found Symp. 2004; 255: 17–27, discussion 27–36, 177–178. 
+- Sullivan LS Bowne SJ Birch DG Prevalence of disease-causing mutations in families with autosomal dominant retinitis pigmentosa: a screen of known genes in 200 families. Invest Ophthalmol Vis Sci. 2006; 47: 3052–3064. 
+- Churchill JD Bowne SJ Sullivan LS Mutations in the X-linked retinitis pigmentosa genes RPGR and RP2 found in 8.5% of families with a provisional diagnosis of autosomal dominant retinitis pigmentosa. Invest Ophthalmol Vis Sci. 2013; 54: 1411–1416. 
+- Bowne SJ Sullivan LS Avery CE Mutations in the small nuclear riboprotein 200 kDa gene (SNRNP200) cause 1.6% of autosomal dominant retinitis pigmentosa. Mol Vis. 2013; 19: 2407–2417. 
+- Bowne SJ Sullivan LS Mortimer SE Spectrum and frequency of mutations in IMPDH1 associated with autosomal dominant retinitis pigmentosa and Leber congenital amaurosis. Invest Ophthalmol Vis Sci. 2006; 47: 34–42. 
+- Sullivan LS Bowne SJ Reeves MJ Prevalence of mutations in eyeGENE probands with a diagnosis of autosomal dominant retinitis pigmentosa. Invest Ophthalmol Vis Sci. 2013; 54: 6255–6261. 
+- Sullivan LS Bowne SJ Seaman CR Genomic rearrangements of the PRPF31 gene account for 2.5% of autosomal dominant retinitis pigmentosa. Invest Ophthalmol Vis Sci. 2006; 47: 4579–4588. 
+- Gire AI Sullivan LS Bowne SJ The Gly56Arg mutation in NR2E3 accounts for 1-2% of autosomal dominant retinitis pigmentosa. Mol Vis. 2007; 13: 1970–1975. 
+- Bowne SJ Sullivan LS Gire AI Mutations in the TOPORS gene cause 1% of autosomal dominant retinitis pigmentosa. Mol Vis. 2008; 14: 922–927.
