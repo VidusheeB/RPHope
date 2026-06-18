@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function GeneticInsightsPage() {
-  const { items, source } = await getGeneGrid();
+  const { items } = await getGeneGrid();
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -27,10 +27,6 @@ export default async function GeneticInsightsPage() {
         and personal stories for each gene mutation identified as a possible
         cause of non-syndromic retinitis pigmentosa.
       </p>
-      <p className="mt-2 text-xs text-teal-dark/50">
-        Data source: {source === "supabase" ? "Supabase (live)" : "local fallback"}
-      </p>
-
       <ul className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {items.map((g) => (
           <li key={g.slug}>
