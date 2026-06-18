@@ -1,0 +1,860 @@
+[
+ {
+  "gene": "ADGRA3",
+  "diseaseCategory": "autosomal recessive",
+  "clinicalTrials": {
+   "label": "None known",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=ADGRA3"
+  },
+  "treatmentOptions": "None known",
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "tbd"
+  },
+  "summary": "ADGRA3 retinitis pigmentosa is a type of RP caused by mutations in the ADGRA3 gene. ADGRA3 stands for Adhesion G Protein-Coupled Receptor A3. RP is a chronic condition that causes progressive vision loss. Symptoms include difficulty seeing in low light or at night, tunnel vision, or loss of side vision, difficulty adjusting to light changes, difficulty seeing colors, especially blue, and clumsiness due to poor vision . At this time, there is no cure for RP, but medications can help with complications. Genetic testing can help identify the cause of RP, and potentially lead to personalized treatment. (Source: general summary) Formerly known as GPR125 (Source https://www.deciphergenomics.org/gene/adgra3/overview/clinical-info) This is for informational purposes only. For medical advice or diagnosis, consult a professional.",
+  "slug": "adgra3"
+ },
+ {
+  "gene": "ADIPOR1",
+  "diseaseCategory": "autosomal dominant",
+  "clinicalTrials": {
+   "label": "None at this time",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=ADIPORI"
+  },
+  "treatmentOptions": "None known",
+  "eyeHealthStrategies": "None",
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "TBD"
+  },
+  "summary": "ADIPOR1 is a gene that codes for a receptor for adiponectin, a hormone produced by fat cells. Adiponectin helps regulate blood sugar levels and fat metabolism. Mutations in the ADIPOR1 gene can cause a condition called autosomal dominant retinitis pigmentosa (adRP). Autosomal dominant inheritance means that a person only needs one copy of the mutated gene to develop the condition. The mutated gene can be inherited from either parent. adRP is a genetic disorder that causes progressive vision loss. Symptoms typically begin in childhood or young adulthood and can worsen over time. People with adRP may experience night blindness, tunnel vision, and difficulty seeing in low light. There is currently no cure for adRP, but there are treatments that can help slow the progression of the disease.",
+  "slug": "adipor1"
+ },
+ {
+  "gene": "ARHGEF18",
+  "diseaseCategory": "autosomal recessive",
+  "treatmentOptions": "None known",
+  "patientPopulation": "less than",
+  "eyeHealthStrategies": "None known",
+  "clinicalTrials": {
+   "label": "None known",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=ARHGEF18"
+  },
+  "institutions": [
+   "None known"
+  ],
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "tbd"
+  },
+  "summary": "ARHGEF18 (Rho/Rac Guanine Nucleotide Exchange Factor 18) is a Protein Coding gene. Diseases associated with ARHGEF18 include Retinitis Pigmentosa 78 and Retinitis Pigmentosa. Among its related pathways are p75 NTR receptor-mediated signalling and Signaling by Rho GTPases. ARHGEF18 is involved in the formation of tight junctions and barriers in epithelial cells. It also helps determine apicobasal polarity in epithelia. Mutations in ARHGEF18 are associated with retinitis pigmentosa and inherited retinal dystrophy (IRD).  ARHGEF18 is expressed in several tissues, including lymphoid tissues. ARHGEF18 is localized to the cytosol and the plasma membrane.",
+  "slug": "arhgef18"
+ },
+ {
+  "gene": "BBS2",
+  "diseaseCategory": "autosomal recessive",
+  "clinicalTrials": {
+   "label": "none found",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=BBS2"
+  },
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "TBD"
+  },
+  "summary": "Retinitis pigmentosa (RP) is a symptom of Bardet-Biedl syndrome type 2 (BBS2), an inherited disorder that affects the retina and other parts of the body. People with BBS2-related RP experience a gradual decline in vision, often starting with night blindness. Other symptoms include decreased peripheral vision, loss of visual acuity, and reduced color discrimination. BBS2 is characterized by a number of other features, including polydactyly, renal disease, hypogonadism, obesity, dysmorphic features, and variable degrees of cognitive impairment. At present, there's no cure for RP, but treatments can help people make the most of their vision. These include low vision aids, rehabilitation programs, vitamins, and supplements. Gene-specific therapies may also be an option, but patients need to know the specific genetic cause of their disease. The majority of reported BBS cases are linked to mutations found in BBS1 and BBS10 genes.",
+  "slug": "bbs2"
+ },
+ {
+  "gene": "BEST1",
+  "diseaseCategory": "autosomal dominant",
+  "eyeHealthStrategies": "Clinical Trials:",
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "TBD"
+  },
+  "summary": "Mutations in the BEST1 gene can cause retinal degenerative disorders called bestrophinopathies. These mutations can cause eye abnormalities similar to retinitis pigmentosa, but it's not clear if BEST1 gene mutations are a major cause of retinitis pigmentosa. The BEST1 gene provides instructions for making the protein bestrophin-1, which is found in the retinal pigment epithelium (RPE) cells of the eye. Bestrophin-1 helps regulate calcium signaling and allows chloride ions to flow in and out of RPE cells. Retinitis pigmentosa is a group of eye disorders that cause vision loss by gradually deteriorating the photoreceptors in the retina. Symptoms include reduced vision in low light, difficulty seeing objects in the periphery, and a gradual narrowing of the area of good vision. The most common inheritance pattern for retinitis pigmentosa is autosomal recessive, which affects about 20% of cases. Autosomal dominant inheritance affects 10–20% of cases, and X-linked recessive inheritance affects 10%. At present, there's no cure for retinitis pigmentosa, but some treatments can slow vision loss or restore some sight.",
+  "slug": "best1"
+ },
+ {
+  "gene": "BEST2",
+  "diseaseCategory": "inconclusive cause",
+  "patientPopulation": "N/A",
+  "treatmentOptions": "N/a",
+  "eyeHealthStrategies": "N/A",
+  "clinicalTrials": {
+   "label": "N/A",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=BEST2"
+  },
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "TBD"
+  },
+  "summary": "The BEST2 gene is associated with the Best2 protein, which is involved in the physiology of intraocular pressure. \"Some patients with a concentric RP-like retinal dystrophy, have been found to carry missense mutations in BEST1, three of which appeared autosomal dominant while the other appeared autosomal recessive. Among the bestrophin proteins, only Best1 mutations have been linked to human eye disease. Interestingly, evidence from Best2 knockout mice suggests that Best2 protein plays a role in aqueous humor dynamics, as an antagonist of aqueous humor production, and possibly as a modulator of the outflow pathway.\" (Click here to read source EyeWiki.org) Retinitis pigmentosa (RP) is a group of inherited eye disorders that cause the retina's photoreceptor cells to degenerate, leading to vision loss. While there is no cure for RP, treatments can help manage the condition and improve symptoms. While there is no current cure for RP, treatments can help manage the condition and improve symptoms. Genetic testing is recommended. Symptoms typically include bight blindness, loss of side vision, and difficulty with peripheral vision. The common cause across all forms of RP is a mutation in one of the many genes that maintain the health of photoreceptor cells. Treatments may include low-vision aids, orientation and mobility training, medications, eye drops, and sunglasses can help protect against bright sunlight Symptoms usually begin in childhood or adolescence. The disease progresses over years or decades. In adulthood, many people with RP become legally blind. Some forms of RP can also be associated with deafness, obesity, kidney disease, and other conditions.",
+  "slug": "best2"
+ },
+ {
+  "gene": "C8ORF37",
+  "diseaseCategory": "autosomal recessive",
+  "clinicalTrials": {
+   "label": "None known",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=C8ORF37"
+  },
+  "treatmentOptions": "None known",
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "tbd"
+  },
+  "summary": "C8ORF37 retinitis pigmentosa (RP) is a rare, inherited eye disease caused by mutations in the C8ORF37 gene. It's a type of autosomal recessive retinal dystrophy, which means it's passed down through generations in pairs of chromosomes. Mutations in C8orf37 can also cause cone-rod dystrophy (CRD) and Bardet–Biedl syndrome (BBS). Symptoms include early loss of night vision - usually in childhood, loss of peripheral vision - making it difficult to see things in the corners of your eyes, and early and severe involvement of the macula, leading to early central vision loss. At this time, there are no standard treatments for RP, but therapies being investigated by researchers include: vitamin A supplements, gene therapy, stem cell therapy, neuroprotective approaches, retinal implants, and refraction and glasses to improve central visual acuity. This is for informational purposes only. For medical advice or diagnosis, consult a professional.",
+  "slug": "c8orf37"
+ },
+ {
+  "gene": "CA4",
+  "diseaseCategory": "autosomal dominant",
+  "patientPopulation": "Unknown",
+  "clinicalTrials": {
+   "label": "None known",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=CA4"
+  },
+  "institutions": [
+   "Unknown"
+  ],
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "tbd"
+  },
+  "summary": "CA4 retinitis pigmentosa is a type of retinitis pigmentosa (RP) caused by a mutation in the carbonic anhydrase IV (CA4) gene, also known as the RP17 locus. A mutation in the CA4 gene can cause RP. The CA4 gene encodes a protein that's expressed in the choriocapillaris of the eye. One mutation identified in a patient with RP is R69H, which impairs the pH recovery of the retina. As mentioned many times on this site, RP is a group of inherited eye diseases that cause the retina's light-sensing cells to gradually deteriorate, leading to vision loss. CA4 Disease Category: autosomal dominant Patient Population: Unknown Known Clinical Trials: None known Check clinicaltrials.gov for updates Treatment Options: Strategies to Preserve Eye Health: Institution(s) Conducting Research: Unknown A FACE OF RP tbd tbd",
+  "slug": "ca4"
+ },
+ {
+  "gene": "CERKL",
+  "diseaseCategory": "autosomal recessive",
+  "patientPopulation": "Unknown",
+  "clinicalTrials": {
+   "label": "None known",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=CERKL"
+  },
+  "institutions": [
+   "Unknown"
+  ],
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "tbd"
+  },
+  "summary": "Mutations in the ceramide kinase-like gene (CERKL) are a common cause of retinitis pigmentosa and cone-rod dystrophy. Two potential causes reasons CERKL causes RP. #1) CERKL deficiency may make retinal cells more sensitive to apoptotic stimuli, which can lead to cell death and #2.) without CERKL, retinal cells may have trouble fighting oxidative stress from light, which can lead to cell death. In most cases, RP caused by CERKL mutations is inherited in an autosomal recessive pattern. This means that a person must inherit a mutated copy of the gene from both parents. In some cases, RP caused by CERKL mutations is inherited in a dominant or X-linked pattern. This means that a person only needs to inherit a mutated copy of the gene from one parent. Researchers are developing gene therapies to improve vision for people with RP. Researchers are studying how CERKL mutations affect the retina and how to develop treatments. CERKL Disease Category: autosomal recessive Patient Population: Unknown Known Clinical Trials: None known Check clinicaltrials.gov for updates Treatment Options: Strategies to Preserve Eye Health: Institution(s) Conducting Research: Unknown A FACE OF RP tbd tbd",
+  "slug": "cerkl"
+ },
+ {
+  "gene": "CLRN1",
+  "diseaseCategory": "autosomal recessive",
+  "clinicalTrials": {
+   "label": "None known",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=CLRN1"
+  },
+  "eyeHealthStrategies": "lutein",
+  "institutions": [
+   "Univ of Edinburgh",
+   "Royal Free Hospital (London)",
+   "Univ of Michigan",
+   "MRC Institute of Genetics and Molecular Medicine (Edinburgh)",
+   "Princess Alexandra Eye Pavilion (Edinburgh)"
+  ],
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "tbd"
+  },
+  "summary": "CLRN1 is a type of retinitis pigmentosa (RP) caused by mutations in the CLRN1 gene. The CLRN1 gene is thought to play a role in communication between nerve cells in the retina and inner ear. It may also be involved in the development and function of synapses, the junctions between neurons. The CLRN1 gene produces the clarin 1 protein, which is associated with hair cells in the inner ear and photoreceptors in the retina. Mutations in CLRN1 can alter the clarin 1 protein, causing it to be abnormally short or nonfunctional. This can lead to a loss of hair cells in the inner ear, which are responsible for transmitting sound and signals to the brain. Mutations in the CLRN1 gene are a primary cause of Usher syndrome type III (USH3), a condition that leads to progressive hearing loss and vision loss. In addition to hearing and vision loss, people with Usher syndrome may also have balance and coordination problems. The prevalence of Usher syndrome varies by country, but it's a significant cause of hearing loss in children. In the United States, it affects up to 16.7 per 100,000 children. At present, t here's no cure for this form of retinitis pigmentosa. For some forms of RP, medications can help treat complications. A medical professional can diagnose and manage the condition to address symptoms. CLRN1 Disease Category: autosomal recessive Patient Population: Known Clinical Trials: None known Check clinicaltrials.gov for updates Treatment Optio ns: Cochlear Implants (hearing) Strategies to Preserve Eye Health: lutein Institution(s) Conducting Research: Univ of Edinburgh, Royal Free Hospital (London), Univ of Michigan, MRC Institute of Genetics and Molecular Medicine (Edinburgh), Princess Alexandra Eye Pavilion (Edinburgh) A FACE OF RP tbd tbd",
+  "slug": "clrn1"
+ },
+ {
+  "gene": "CNGA1",
+  "diseaseCategory": "autosomal recessive",
+  "clinicalTrials": {
+   "label": "one (1)",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=CNGA1"
+  },
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "tbd"
+  },
+  "summary": "CNGA1 retinitis pigmentosa (RP) is a progressive, inherited eye disease that affects the rod and cone cells of the retina. It's caused by mutations in the CNGA1 gene, which encodes the alpha subunit of the rod CNG channel. The rod CNG channel is a molecular switch that converts light into electrical signals. Symptoms include loss of night vision, Loss of peripheral vision, Difficulty moving around in the dark, and difficulty adjusting to dim light. Many people with RP are legally blind by age 40 but the rate of progression varies from person to person. There's no cure for RP, but medications can help treat complications. Gene therapy clinical trials are underway. CNGA1 Disease Category: autosomal recessive Patient Population: Known Clinical Trials: one (1) Check clinicaltrials.gov for updates Treatment Optio ns: Strategies to Preserve Eye Health: Institution(s) Conducting Research: A FACE OF RP tbd tbd",
+  "slug": "cnga1"
+ },
+ {
+  "gene": "CNGB1",
+  "diseaseCategory": "autosomal recessive",
+  "clinicalTrials": {
+   "label": "None known",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=CNGB1"
+  },
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "tbd"
+  },
+  "summary": "Retinitis pigmentosa (RP) caused by mutations in the cyclic nucleotide-gated channel β1 (CNGB1) gene is a type of inherited eye disease that causes progressive vision loss. RP is a major cause of blindness. Mutations in the CNGB1 gene cause about 4% of autosomal recessive RP cases. CNGB1 encodes the beta-subunit of the rod cGMP-gated channel. RP is progressive, but it's slow, and most patients never completely lose their vision. Due to limited peripheral vision, many patients are considered \"legally blind\". Symptoms include night blindness, reduced peripheral vision, loss of central vision, which can affect reading, loss of color vision, sensitivity to bright light. At this time, there are very limited treatment options for RP, but vision aids and rehabilitation programs can help. Gene augmentation therapy shows promise for treating inherited retinal degenerations",
+  "slug": "cngb1"
+ },
+ {
+  "gene": "CRB1",
+  "diseaseCategory": "autosomal recessive",
+  "patientPopulation": "unknown",
+  "clinicalTrials": {
+   "label": "1 study recruiting",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=CRB1"
+  },
+  "treatmentOptions": "none known",
+  "institutions": [
+   "Sanford Health Sioux Falls",
+   "UMC Utrecht"
+  ],
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "tbd"
+  },
+  "summary": "Retinitis pigmentosa (RP) due to mutations in the crumbs homologue 1 (CRB1) gene. It's a specific form of RP known as RP12, and is characterized by severe vision loss before age 20 and preserved para-arteriolar retinal pigment epithelium (PPRPE). CRB1 retinitis pigmentosa include the typical symptoms of retinitis pigmentosa (i.e., night blindness, gradual loss of peripheral vision, and progressive degeneration of photoreceptors). CRB1 mutations can also cause other retinal dystrophies, including Leber Congenital Amaurosis (LCA), which is the most severe case of early-onset retinal degeneration. The CRB1 gene encodes the Crumbs homolog-1 protein, this process is important for cell-to-cell contact, photoreceptor morphogenesis, and polarization of epithelial cells. At present, there's no cure for retinitis pigmentosa, but medications can help treat complications. A medical professional can diagnose and manage the condition to improve symptoms.",
+  "slug": "crb1"
+ },
+ {
+  "gene": "CRX",
+  "diseaseCategory": "autosomal dominant",
+  "clinicalTrials": {
+   "label": "none found",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=CRX"
+  },
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "TBD"
+  },
+  "summary": "CRX retinitis pigmentosa (RP) is a blinding disease caused by mutations in the CRX gene. It's a type of retinal degeneration that causes progressive vision loss. CRX is a transcription factor that activates genes in photoreceptor neurons. CRX mutations are inherited in an autosomal dominant pattern. The age of onset and severity of the disease varies widely. At this time, there are no treatments for retinitis pigmentosa. The prognosis for CRX retinitis pigmentosa varies widely. Some people with CRX retinitis pigmentosa retain 20/40 or better vision in at least one eye. Others eventually lose all useful central vision. Other diseases associated with CRX mutations: Cone-rod dystrophy (CoRD), Leber congenital amaurosis (LCA), and Macular dystrophy.",
+  "slug": "crx"
+ },
+ {
+  "gene": "CYP4V2",
+  "diseaseCategory": "autosomal recessive",
+  "patientPopulation": "12+",
+  "clinicalTrials": {
+   "label": "None known",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=CYP4V2"
+  },
+  "treatmentOptions": "None known",
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "tbd"
+  },
+  "summary": "This compound heterozygous variant was found to be absent from other unaffected family members and 400 ethnically-matched healthy control individuals. In addition, this compound variant was co-segregated with the RP phenotype in an autosomal recessive manner. In silico analysis revealed that both c.C958T (p.R320X) and c.G1355A (p.R452H) could compromise the protein function of CYP4V2. These results strongly suggest this compound variant to be a disease-causing variant, which expands upon the spectrum of currently known CYP4V2 genetic variants associated with retinal diseases. (Source: https://pmc.ncbi.nlm.nih.gov/articles/PMC8972287/ ) This is for informational purposes only. For medical advice or diagnosis, consult a professional.",
+  "slug": "cyp4v2"
+ },
+ {
+  "gene": "DHDDS",
+  "diseaseCategory": "autosomal recessive",
+  "clinicalTrials": {
+   "label": "None known",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=DHDDS"
+  },
+  "treatmentOptions": "None known",
+  "institutions": [
+   "UAB",
+   "SUNY-Buffalo and the Polish Academy of Sciences"
+  ],
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "tbd"
+  },
+  "summary": "DHDDS-related retinitis pigmentosa (RP) 59 is a rare genetic disorder that causes the retina to degenerate. DHDDS stands for dehydrodolichyl diphosphate synthase, a gene that encodes a subunit of the enzyme cis-prenyltransferase (CPT). CPT is required for the synthesis of dolichol, which is a protein glycosylation cofactor. RP59 is caused by a recessive mutation in the DHDDS gene, which changes the 42nd amino acid of the DHDDS enzyme from lysine to glutamic acid. This change is known as a K42E point mutation. RP59 causes the rod cells in the retina to break down first, which typically leads to loss of night vision in childhood. As the disease progresses, blind spots develop in peripheral vision, which eventually merge to create tunnel vision. Finally, central vision gradually declines. RP59 affects one in 100 Ashkenazi Jewish people and one in 2,009 people worldwide. At present, there is no cure for RP, but medications can help treat complications. A medical professional can diagnose and manage RP to improve symptoms.",
+  "slug": "dhdds"
+ },
+ {
+  "gene": "FAM161A",
+  "diseaseCategory": "autosomal recessive",
+  "clinicalTrials": {
+   "label": "Check clinicaltrials.gov for updates",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=FAM161A"
+  },
+  "treatmentOptions": "None known",
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "tbd"
+  },
+  "summary": "FAM161A is a protein that is a component of the cilia-basal body complex and is involved in microtubule-based cellular processes in the retina. It's expressed mainly in the retina and is localized to the connecting cilium, basal body, and adjacent centriole in mammalian photoreceptors. Mutations in the FAM161A gene cause autosomal recessive RP-28, which is characterized by disorganized cilia, outer segment collapses, and vision impairment. An eye doctor can diagnose RP with an ophthalmoscope, which involves putting drops in your eyes to widen your pupil so they can examine your retina. There's no cure for RP, but low vision aids, rehabilitation programs, and vitamins and supplements can help. Defects in FAM161A are a common cause of hereditary blindness in Israel and the Palestinian territories, but are rare in Germany.",
+  "slug": "fam161a"
+ },
+ {
+  "gene": "INPP5E",
+  "diseaseCategory": "autosomal recessive",
+  "patientPopulation": "<20 known",
+  "clinicalTrials": {
+   "label": "None known",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=INPP5E"
+  },
+  "treatmentOptions": "None known",
+  "eyeHealthStrategies": "Lutein",
+  "institutions": [
+   "Radboud Univ Med Center"
+  ],
+  "faceOfRP": {
+   "name": "Cate",
+   "location": "Pennsylvania"
+  },
+  "summary": "\"Mutations in the cilia-enriched phosphoinositide modulator Inpp5e (Inositol polyphosphate-5-phosphatase E) are key contributors to a range of retinal ciliopathies. These include Joubert Syndrome, Retinitis Pigmentosa, and MORM syndrome, highlighting Inpp5e's critical role in maintaining retinal photoreceptor health.\" (Source: https://iovs.arvojournals.org/article.aspx?articleid=2798447) \"INPP5E belongs to a family of inositol polyphosphate 5-phosphatases, which dephosphorylate the D5 position of the inositol ring. There are 10 mammalian members of the 5-phosphatase family, which play critical yet distinct roles in a number of biological processes, such as the regulation of insulin signaling, vesicular trafficking, synaptic vesicle formation, and hematopoietic cell proliferation.\" (Source: https://www.sciencedirect.com/science/article/pii/S0042698912003021) Symptoms of RP include difficulty adapting to dim light after being in bright light, difficulty seeing in dim light, and vision narrowing. Progression of these symptoms vary.  While there's no cure for RP, there are ways to help with vision loss. These include low vision aids, rehabilitation programs, vitamins and supplements have been recommended but efficacy has been debated. Most people with RP don't completely lose their vision, but they may be considered legally blind due to limited peripheral vision.",
+  "slug": "inpp5e"
+ },
+ {
+  "gene": "LRAT",
+  "diseaseCategory": "autosomal recessive",
+  "patientPopulation": "<100",
+  "clinicalTrials": {
+   "label": "3 complete studies",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=LRAT"
+  },
+  "treatmentOptions": "clinical trial of drug intervention",
+  "institutions": [
+   "Wilmer Eye Institute",
+   "Casey Eye Institute",
+   "Hospital for Sick Children",
+   "Ophthalmology and Vision Sciences",
+   "Montreal Children's Hospital",
+   "Moorfield Eye Institute",
+   "Rotterdam Ophthalmic Institute",
+   "Jules Gonin Eye Hospital",
+   "Glostrup Hospital & National Eye Clinic",
+   "Scheie Eye Institute",
+   "Chicago LightHouse"
+  ],
+  "faceOfRP": {
+   "name": "Chad E. Foster",
+   "location": "Georgia U.S."
+  },
+  "summary": "Mutations in the lecithin retinol acyltransferase (LRAT) gene can cause juvenile retinitis pigmentosa (RP) and other retinal dystrophies. LRAT is an enzyme that plays a key role in the retinoid cycle, which is essential for normal vision. LRAT catalyzes the formation of fatty acid retinyl esters, which are a crucial step in the retinoid cycle. In the eye, LRAT is expressed in the retinal pigmented epithelium (RPE). When LRAT function is impaired, it leads to a lack of functional chromophore production and eventual retinal degeneration. Other retinal dystrophies caused by mutations in genes that affect the retinoid cycle include Leber congenital amaurosis (LCA) and retinitis punctata albescens (RPA).",
+  "slug": "lrat"
+ },
+ {
+  "gene": "MAK",
+  "diseaseCategory": "autosomal recessive",
+  "patientPopulation": "unknown",
+  "clinicalTrials": {
+   "label": "Check clinicaltrials.gov for updates",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=MAK"
+  },
+  "eyeHealthStrategies": "Institution(s) Supporting Research:",
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "tbd"
+  },
+  "summary": "The male germ cell-associated kinase (MAK) gene is responsible for about one third of cases of autosomal recessive retinitis pigmentosa (RP) in people of Jewish ancestry. MAK is a protein that regulates the length of primary cilia in many cell types. Mutations in the MAK gene cause a relatively mild form of RP that primarily affects the light-sensing cells in the retina. Although there is no current cure for RP, medications may help treat complications. Gene therapy approaches may also be able to slow or prevent vision loss. For example, researchers at the University of Iowa Institute for Vision Research (IVR) have developed viral vectors that can deliver the MAK gene to photoreceptor cells. RP symptoms include l oss of side vision (tunnel vision) and d ecreased vision in low light or at night. The severity of RP can vary considerably, even among family members. Some people with RP may go blind by age 30, while others may retain useful vision into their 80s or later.",
+  "slug": "mak"
+ },
+ {
+  "gene": "PDE6A",
+  "diseaseCategory": "autosomal recessive",
+  "patientPopulation": "unknown",
+  "institutions": [
+   "FACES OF RP"
+  ],
+  "summary": "PDE6A-associated RP is a rare inherited retinal degeneration that causes vision loss, including night blindness and visual field defects. It's caused by mutations in the PDE6A gene, which encodes the alpha subunit of the cyclic guanosine monophosphate phosphodiesterase. RP is one of the most common forms of inherited retinal degeneration, affecting about 1 in 4,000 people. At this time, there's no cure for RP, but there are treatments that can help with symptoms. These include low vision aids, rehabilitation programs , vitamins and supplements. Clinical trials are underway for gene therapy. The trial involves injecting a vector under the retina.",
+  "slug": "pde6a"
+ },
+ {
+  "gene": "PDE6B",
+  "diseaseCategory": "autosomal recessive",
+  "patientPopulation": "unknown",
+  "clinicalTrials": {
+   "label": "None currently active",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=PDE6B"
+  },
+  "eyeHealthStrategies": "Lutein",
+  "institutions": [
+   "Jules Stein Eye Institute",
+   "UPMC Scheie Eye Institute",
+   "Clinique Ophtalmologique",
+   "Quinze-Vingts (XV-XX) National Ophthalmology Hospital"
+  ],
+  "slug": "pde6b"
+ },
+ {
+  "gene": "PROM1",
+  "diseaseCategory": "autosomal recessive",
+  "clinicalTrials": {
+   "label": "none found",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=PROM1"
+  },
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "TBD"
+  },
+  "summary": "Mutations in the prominin 1 (PROM1) gene can cause retinitis pigmentosa (RP), a progressive disease that leads to vision loss. The PROM1 gene encodes a protein that plays a structural role in the retina and mediates autophagy in the retinal pigment epithelium (RPE). Mutations in PROM1 can cause a variety of other conditions, such as c one-rod dystrophy, Stargardt disease, and another form of RP called Leber congenital amaurosis (LCA). Genetic testing and counseling are important for people diagnosed with RP. The most common early symptom is loss of night vision, usually in childhood. RP also causes loss of peripheral vision, making it difficult to see things out of the corners of your eyes. RP is slow, but most patients eventually lose some vision. There are no standard treatments for RP, but future therapies may include vitamin supplements, gene therapy, stem cell therapy, neuroprotective approaches, and retinal implants. Glasses can also help improve central visual acuity.",
+  "slug": "prom1"
+ },
+ {
+  "gene": "PRPF3",
+  "diseaseCategory": "autosomal dominant",
+  "clinicalTrials": {
+   "label": "none found",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=PRPF3"
+  },
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "TBD"
+  },
+  "summary": "Mutations in the pre-mRNA processing factor 3 (PRPF3) gene are associated with autosomal dominant retinitis pigmentosa (adRP), a hereditary retinal disease that causes progressive vision loss and eventually blindness. Pre-mRNA processing factor. Mutations in PRPF3 cause mis-splicing of genes involved in retina-specific functions. Mutations in PRPF3 are linked to 15–20% of adRP cases.",
+  "slug": "prpf3"
+ },
+ {
+  "gene": "PRPF31",
+  "diseaseCategory": "autosomal dominant",
+  "clinicalTrials": {
+   "label": "1",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=PRPF31"
+  },
+  "institutions": [
+   "Oslo University Hospital"
+  ],
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "tbd"
+  },
+  "summary": "PRPF31 retinitis pigmentosa is a hereditary form of retinal degeneration caused by mutations in the PRPF31 gene. A protein that is part of the spliceosome, a complex that removes introns and produces mature mRNAs. Some characteristics of PRPF31 mutations include incomplete penetrance, meaning that a.) some people with a disease-causing mutation in PRPF31 will not experience RP symptoms and b.) symptomatic carriers are often observed in affected families. Retinitis pigmentosa is a progressive disease that causes photoreceptor cells in the retina to degenerate. Symptoms of include loss of night vision, loss of side vision, s ensitivity to bright light, l oss of color vision, very low vision, and sensation of flashing or twinkling light. While there is no current treatment for retinitis pigmentosa, medications can help treat complications. A medical professional can diagnose the condition and manage it to improve symptoms.",
+  "slug": "prpf31"
+ },
+ {
+  "gene": "PRPF4",
+  "diseaseCategory": "autosomal dominant",
+  "clinicalTrials": {
+   "label": "none found",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=PRPF4"
+  },
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "TBD"
+  },
+  "summary": "Mutations in the pre-mRNA processing factor 4 (PRPF4) gene are a cause of retinitis pigmentosa (RP), an inherited disease that leads to blindness. PRPF4 is a key component of the spliceosome, which is responsible for pre-mRNA splicing. Mutations in PRPF4 cause mis-splicing of genes that are important for the retina, including those involved in phototransduction and photoreceptor disk morphogenesis.  RP is characterized by progressive loss of photoreceptors and retinal pigment epithelium. Symptoms include difficulty seeing in dim light or at dusk, reduced peripheral vision, gradual narrowing of the area of good vision, and stumbling or tripping over objects in the periphery.",
+  "slug": "prpf4"
+ },
+ {
+  "gene": "PRPF6",
+  "diseaseCategory": "autosomal dominant",
+  "clinicalTrials": {
+   "label": "none found",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=PRPF6"
+  },
+  "institutions": [
+   "INSERM"
+  ],
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "TBD"
+  },
+  "summary": "Mutations in the pre-mRNA processing factor 6 (PRPF6) gene are a cause of retinitis pigmentosa (RP), an inherited disease that leads to blindness. \"We identified two novel causative mutations in PRPF6, responsible for autosomal dominant retinitis pigmentosa with variation of penetrance. Presence of asymptomatic carriers is common among patients with adRP, especially when the cause of the disease is due to a mutation in splicing factors’ genes. The two mutations identified lead to a mislocalization of the PRPF6 protein within the nucleus, which could indicate a possible alteration in the assembly or recycling of the tri-snRNP complex of the spliceosome.\" ( Guillaume OLIVIER, Beatrice BOCQUET, Carlo Rivolta, Ervann Andre, Agnes Muller, Christian Hamel, Alice MASUREL, Catherine P Creuzot Garcher, Laurence FAIVRE, Isabelle Anne Meunier, Gael Manes, Investigative Ophthalmology & Visual Science, June 2020, Vol.61, 2401) RP is characterized by progressive loss of photoreceptors and retinal pigment epithelium. Symptoms include difficulty seeing in dim light or at dusk, reduced peripheral vision, gradual narrowing of the area of good vision.",
+  "slug": "prpf6"
+ },
+ {
+  "gene": "PRPF8",
+  "diseaseCategory": "autosomal dominant",
+  "clinicalTrials": {
+   "label": "Check clinicaltrials.gov for updates",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=PRPF8"
+  },
+  "eyeHealthStrategies": "Institution(s) Conducting Research: National Basic Research Program of China, National Natural Science Foundation of China, International S&T Cooperation Program of China, Beijing Nova Program",
+  "institutions": [
+   "National Basic Research Program of China",
+   "National Natural Science Foundation of China",
+   "International S&T Cooperation Program of China",
+   "Beijing Nova Program"
+  ],
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "TBD"
+  },
+  "summary": "Mutations in PRPF8 cause progressive degeneration of the retina and finally autosomal dominant retinitis pigmentosa (adRP). Autosomal dominant retinitis pigmentosa is a hereditary degenerative eye disease due to progressive cell death in rod-type and cone-type photoreceptor cells. Mutations in several core spliceosomal components such as PRPF8, SNRNP200, PRPF6 and PRPF31 have been reported to be closely related to adRP. However, the precise mechanism by which these gene mutations lead to adRP remains unknown.",
+  "slug": "prpf8"
+ },
+ {
+  "gene": "RHO",
+  "diseaseCategory": "autosomal dominant",
+  "patientPopulation": "unknown",
+  "clinicalTrials": {
+   "label": "3 recruiting",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=RHO"
+  },
+  "treatmentOptions": "None known",
+  "eyeHealthStrategies": "None known",
+  "institutions": [
+   "University of Michigan",
+   "UPMC Eye Center Pittsburgh",
+   "UCSD",
+   "ue Anschutz-Rogers Eye Center",
+   "University of Colorado",
+   "Duke Eye Center"
+  ],
+  "faceOfRP": {
+   "name": "Michael",
+   "location": "Naugatuck, CT"
+  },
+  "summary": "Rhodopsin-mediated autosomal dominant retinitis pigmentosa (RHO-adRP) is a hereditary disease that causes a gradual loss of vision in the retina. It's caused by mutations in the rhodopsin (RHO) gene, which encodes a light-sensitive protein that helps with vision in dim light. RHO-adRP is the most common type of autosomal dominant retinitis pigmentosa (adRP), accounting for 25–30% of cases. Symptoms of RHO-adRP include difficulty seeing in dim light or at night, difficulty adjusting to dim light after being in bright light, and loss of side vision, also known as tunnel vision. There's no cure for RHO-adRP, but medications can help treat complications. Gene therapy and genome surgery strategies are also being developed to treat RHO-adRP. One study used CRISPR/Cas9 to selectively target a variant of the RHO gene, which resulted in partial recovery of photoreceptor function in a mouse model. Retinitis pigmentosa (RP) is a group of hereditary retinal diseases that cause blindness. It's characterized by the degeneration of photoreceptors, including rod and cone cells. Symptoms usually begin in childhood.",
+  "slug": "rho"
+ },
+ {
+  "gene": "RP17",
+  "diseaseCategory": "autosomal dominant",
+  "patientPopulation": "300+",
+  "clinicalTrials": {
+   "label": "None known",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=RP17"
+  },
+  "treatmentOptions": "none known",
+  "institutions": [
+   "Radboud UMC & Donders Institute"
+  ],
+  "faceOfRP": {
+   "name": "TBD",
+   "location": "tbd"
+  },
+  "summary": "Retinitis pigmentosa type 17 (RP17) is a hereditary eye disease that causes gradual vision loss. RP17 is a form of dominantly inherited retinitis pigmentosa caused by pathogenic structural abnormalities affecting the chr17q22 region. The genetic cause of RP17 was only recently discovered, yet already over 300 affected individuals have been genetically diagnosed with this disease. Symptoms include decreased visual acuity, visual field constriction, and night blindness. Many people with RP17 retain central vision until their sixth or seventh decade of life. RP17 is caused by a DNA duplication on chromosome 17q22. The duplication contains the genetic code for several genes. RP17 can onset as early as age 15, but the mean age of onset is between 20 and 30 years. At present, there's no treatment for RP, but low vision aids, rehabilitation programs, and vitamins and supplements can help some types of RP. RP doesn't follow a set schedule of progression because there are many different genes that can be involved. Different types of RP progress differently in different people.",
+  "slug": "rp17"
+ },
+ {
+  "gene": "RP2",
+  "diseaseCategory": "x-linked",
+  "patientPopulation": "10-15% all XLRP",
+  "clinicalTrials": {
+   "label": "1 complete",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=RP2"
+  },
+  "treatmentOptions": "None known",
+  "eyeHealthStrategies": "Vitamin A part of clinical trial",
+  "institutions": [
+   "National Eye Institute (NEI)"
+  ],
+  "faceOfRP": {
+   "name": "tbd",
+   "location": "TBD"
+  },
+  "summary": "Retinitis pigmentosa 2 (RP2) is a gene that causes a type of retinal degeneration called X-linked retinitis pigmentosa (XLRP). RP is an inherited degenerative disease that affects the photoreceptors and retinal pigmented epithelium. RP2 is a GTPase-activating protein that plays a key role in the development and maintenance of photoreceptors. RP2 mutations account for 10–15% of all XLRP cases. At this time, there is no cure for RP, but low vision aids, rehabilitation programs, and vitamins and supplements can help. A clinical trial in 2017 looked at Vitamin A as a supplement to aid in slowing the progression of the vision loss. RP2 mutations cause night blindness in early childhood, followed by progressive vision loss during the day. People with RP2-XLRP often present at a younger age and progress more rapidly than other forms of RP.",
+  "slug": "rp2"
+ },
+ {
+  "gene": "RPE65",
+  "diseaseCategory": "a",
+  "patientPopulation": "1,000 - 2,000",
+  "clinicalTrials": {
+   "label": "yes, 3 recruiting",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=RPE65"
+  },
+  "eyeHealthStrategies": "Lutein",
+  "institutions": [
+   "Perelman School of Medicine"
+  ],
+  "faceOfRP": {
+   "name": "Jack",
+   "location": "U.S.A."
+  },
+  "slug": "rpe65"
+ },
+ {
+  "gene": "RPGR",
+  "diseaseCategory": "x-linked",
+  "patientPopulation": "click here",
+  "clinicalTrials": {
+   "label": "7 Recruiting",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=RPGR"
+  },
+  "treatmentOptions": "clinical trials underway",
+  "eyeHealthStrategies": "Protection from UV exposure; vitamin supplements, in some cases",
+  "institutions": [
+   "Children's Hospital L.A.",
+   "Vitreo Retinal Associates",
+   "Emory Eye Center",
+   "Univ of Florida",
+   "Boston Children's Hospital",
+   "Columbia Univ",
+   "Shiley Eye Institute",
+   "Mass Eye & Ear",
+   "Tokyo Med Center",
+   "Duke Eye Center",
+   "Casey Eye Center",
+   "Retina Foundation Southwest",
+   "Univ of Colorado",
+   "Kellogg Eye Center"
+  ],
+  "faceOfRP": {
+   "name": "Steve",
+   "location": "United Kingdom"
+  },
+  "summary": "RPGR retinitis pigmentosa (RPGR-RP) is a severe, inherited retinal disease that causes progressive vision loss and blindness. It's caused by mutations in the RPGR gene, which is located on the X-chromosome. RPGR-RP is the most common cause of X-linked retinitis pigmentosa (XLRP), accounting for about 70% of cases. It is characterized by severe disease, phenotypic variability, and degeneration. The disease progresses with the loss of rod photoreceptors, pigmentary retinopathy, and perivascular changes. X-linked retinitis pigmentosa and affects men and women differently.",
+  "slug": "rpgr"
+ },
+ {
+  "gene": "USH2A",
+  "diseaseCategory": "autosomal recessive",
+  "clinicalTrials": {
+   "label": "3 Recruiting",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=USH2A"
+  },
+  "treatmentOptions": "Cochlear Implants (hearing)",
+  "eyeHealthStrategies": "lutein",
+  "institutions": [
+   "ProQR",
+   "Retina Foundation Southwest",
+   "Univ Wisconsin",
+   "Moorfields Eye Hospital London"
+  ],
+  "faceOfRP": {
+   "name": "Stephanie",
+   "location": "Louisiana, U.S."
+  },
+  "summary": "USH2A retinitis pigmentosa is a genetic disorder that causes vision loss due to mutations in the USH2A gene. The USH2A gene encodes usherin, a protein in the retina and inner ear. Mutations in the USH2A gene cause the breakdown of photoreceptors, the light-sensing cells in the retina. This leads to progressive vision loss. Early symptoms include night blindness and loss of side vision, also known as tunnel vision. Symptoms usually develop between the ages of 10 and 30, but can start in childhood. USH2A retinitis pigmentosa can be non-syndromic or syndromic, known as Usher syndrome type 2. Non-syndromic RP is not associated with other signs and symptoms. A medical professional can diagnose retinitis pigmentosa with lab tests. Retinal function can be assessed with an electroretinogram (ERG), and optical coherence tomography (OCT) can assess structural alterations. At this time, there's no cure for retinitis pigmentosa, but medications can help treat complications.",
+  "slug": "ush2a"
+ },
+ {
+  "gene": "USH3A",
+  "diseaseCategory": "autosomal recessive",
+  "clinicalTrials": {
+   "label": "One, completed",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=USH3A"
+  },
+  "treatmentOptions": "Cochlear Implants (hearing)",
+  "eyeHealthStrategies": "lutein",
+  "institutions": [
+   "University of San Francisco",
+   "Centre Hospitalier Régional Universitaire de Lille",
+   "Doheny Eye Institute",
+   "Institut de la Vision",
+   "Institut de l'Audition"
+  ],
+  "faceOfRP": {
+   "name": "Rebecca",
+   "location": "New York, U.S."
+  },
+  "summary": "Usher syndrome, a group of genetic disorders that cause progressive hearing loss and vision loss. USH3A retinitis pigmentosa is also characterized by progressive eye disease (night blindness and loss of peripheral vision) and progressive hearing loss and variable vestibular dysfunction. USH3A retinitis pigmentosa is caused by a mutation in the CLRN1 gene on chromosome 3q25. The gene encodes clarin-1, a protein that helps maintain retinal photoreceptors. Usher syndrome is the most common cause of inherited visual loss, excluding age-related macular degeneration and glaucoma. At present, there's no cure for Usher syndrome, but early treatment can help people make the most of their hearing and vision. Medications can help treat complications of the disease. This is for informational purposes only. For medical advice or diagnosis, consult a professional.",
+  "slug": "ush3a"
+ },
+ {
+  "slug": "abca4",
+  "gene": "ABCA4",
+  "diseaseCategory": "autosomal dominant",
+  "treatmentOptions": "None known",
+  "eyeHealthStrategies": "None known",
+  "clinicalTrials": {
+   "label": "Check ClinicalTrials.gov for updates",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=ABCA4"
+  },
+  "summary": "Stargardt-like diseases are retinal diseases that are similar to Stargardt disease (STGD1) but are inherited in an autosomal dominant pattern. Mutations in the ABCA4 gene can cause a wide range of retinal diseases, including STGD, with varying degrees of severity: Cone-rod dystrophy — a vision disorder that can cause loss of visual sharpness, increased sensitivity to light, and impaired color vision, which can worsen over time; Retinitis pigmentosa — a disease with a severe phenotype that can include a flat electroretinogram and absent ABCA4 function; Bull's eye maculopathy — a phenotype associated with ABCA4-associated retinopathies."
+ },
+ {
+  "slug": "agbl5",
+  "gene": "AGBL5",
+  "diseaseCategory": "autosomal recessive",
+  "treatmentOptions": "None known",
+  "eyeHealthStrategies": "None known",
+  "clinicalTrials": {
+   "label": "None found",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=AGBL5"
+  },
+  "institutions": [
+   "University of California San Diego",
+   "Kellogg Eye Center",
+   "University of Michigan",
+   "University of Rochester"
+  ],
+  "summary": "The AGBL5 gene provides instructions for making a protein that is involved in a process called deglutamylation. Deglutamylation is the removal of glutamate residues from proteins. Glutamate is an amino acid, a building block of proteins. It is thought that mutations in the AGBL5 gene disrupt the process of deglutamylation, which can lead to problems with the structure and function of proteins in the retina. This can ultimately lead to the degeneration of photoreceptor cells and vision loss. Researchers are still learning about the role of the AGBL5 gene in arRP. However, the identification of this gene has provided new insights into the causes of this condition and may lead to the development of new treatments in the future."
+ },
+ {
+  "slug": "ahr",
+  "gene": "AHR",
+  "diseaseCategory": "autosomal recessive",
+  "treatmentOptions": "None known",
+  "eyeHealthStrategies": "None known",
+  "clinicalTrials": {
+   "label": "None found",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=AHR"
+  },
+  "summary": "Aryl hydrocarbon receptor (AhR) mutations have been associated with retinitis pigmentosa (RP). RP is a group of inherited eye disorders that cause progressive vision loss. Symptoms include night blindness and loss of peripheral vision. RP is the leading cause of visual disability and blindness in people under 60 years old. There's no cure for RP, but treatments can help with complications. Therapy can also help patients cope with the psychosocial impact of the disease."
+ },
+ {
+  "slug": "arl2bp",
+  "gene": "ARL2BP",
+  "diseaseCategory": "autosomal recessive",
+  "clinicalTrials": {
+   "label": "None found",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=ARL2BP"
+  },
+  "institutions": [
+   "Transgenic Core at West Virginia University"
+  ],
+  "summary": "Mutations in ARL2 binding protein (ARL2BP) can cause autosomal-recessive retinitis pigmentosa (RP). ARL2BP is a protein that's linked to ciliary defects, which can lead to blinding diseases like RP. ADP-ribosylation factor-like 2 (ARL2) is a protein that's associated with the formation of the outer segment (OS) of photoreceptor cells. ARL2 is thought to be important for recruiting or anchoring ARL2BP at the base of the cilium. ARL2BP is an effector of small GTPases ARL2 and ARL3. In the mouse retina, ARL2BP is found in the basal body, cilium-associated centriole, and periciliary extension of the inner segment. Mutations in ARL2BP can also cause situs inversus, a condition where organs are reversed."
+ },
+ {
+  "slug": "arl3",
+  "gene": "ARL3",
+  "diseaseCategory": "autosomal dominant",
+  "treatmentOptions": "None known",
+  "eyeHealthStrategies": "None known",
+  "clinicalTrials": {
+   "label": "None found",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=ARL3"
+  },
+  "summary": "A mutation in the ADP ribosylation factor-like GTPase 3 (ARL3) gene can cause retinitis pigmentosa (RP), a disease that leads to vision loss. A missense variant in ARL3 can cause non-syndromic autosomal dominant RP. For example, the c.269A>G (p.Tyr90Cys) variant has been found in two unrelated families. ARL3 is found in the photoreceptor cilium of the retina. It helps transport cargo complexes through the cilium, which contain proteins like rhodopsin kinase and transducin. ARL3 is regulated by retinitis pigmentosa 2 (RP2) and ARL13b. RP2 is a GTPase activating protein (GAP) for ARL3, while ARL13b is a GTP-exchange factor (GEF)."
+ },
+ {
+  "slug": "arl6",
+  "gene": "ARL6",
+  "diseaseCategory": "autosomal dominant",
+  "treatmentOptions": "None known",
+  "eyeHealthStrategies": "None known",
+  "clinicalTrials": {
+   "label": "None found",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=ARL6"
+  },
+  "summary": "ARL6 retinitis pigmentosa (RP) is a type of RP caused by a mutation in the ARL6 gene. ARL6, or ADP-ribosylation factor-like GTPase 6, is a protein that's part of the ARF family of proteins, which regulate cellular functions. RP is an inherited retinal dystrophy that causes a gradual loss of photoreceptors and retinal pigment epithelium, leading to blindness over several decades. Symptoms usually begin in childhood and include a narrowing of the visual field, or tunnel vision. In some cases, RP can progress to affect central vision. At present, there is no cure for RP, but treatments can help slow vision loss and restore some sight. RP can also cause other eye problems that can be treated, such as cataracts or swelling in the retina."
+ },
+ {
+  "slug": "bbs1",
+  "gene": "BBS1",
+  "diseaseCategory": "autosomal recessive",
+  "clinicalTrials": {
+   "label": "None found",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=BBS1"
+  },
+  "summary": "Retinitis pigmentosa (RP) is a symptom of Bardet-Biedl syndrome (BBS1), an inherited disease that causes progressive vision loss. RP is the primary cause of vision loss in BBS, affecting about 90% of patients. Other symptoms include obesity, extra fingers and toes, kidney disease, and developmental disabilities. The BBS1 gene provides instructions for making a protein that's part of a complex that helps form cilia, cell structures. BBS is often diagnosed in childhood or adolescence. Patients typically develop RP symptoms in their first decade of life, and often reach legal blindness in their second or third decade. Night blindness is the most common initial symptom, usually first noticed around age 8.5. There's no cure for RP, but treatments can help patients make the most of their vision. Treatments may include low vision aids, rehabilitation programs, vitamins and supplements, glasses to improve central visual acuity."
+ },
+ {
+  "slug": "bbs3",
+  "gene": "BBS3",
+  "diseaseCategory": "autosomal recessive",
+  "treatmentOptions": "None known",
+  "eyeHealthStrategies": "None known",
+  "clinicalTrials": {
+   "label": "None found",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=BBS3"
+  },
+  "summary": "Bardet-Biedl syndrome (BBS) is a rare, inherited disease that causes retinitis pigmentosa (RP), a progressive eye condition that leads to visual impairment. Night blindness is usually the first symptom, typically occurring between the ages of 5 and 10. Over time, patients experience enlarging blind spots in their peripheral vision, which can lead to tunnel vision. In the late stages, patients lose their central vision. BBS can also cause obesity, extra fingers and toes, kidney disease, and developmental disabilities. BBS can be diagnosed clinically, but genetic analysis is required for confirmation. There's no effective treatment for BBS-associated retinal degeneration and vision loss. However, gene therapy may be a possible treatment in the future. BBS appears to be more common in Newfoundland and Kuwait due to high consanguinity in those populations."
+ },
+ {
+  "slug": "clcc1",
+  "gene": "CLCC1",
+  "diseaseCategory": "autosomal recessive",
+  "patientPopulation": "unknown",
+  "treatmentOptions": "None known",
+  "eyeHealthStrategies": "typical of RP",
+  "clinicalTrials": {
+   "label": "None found",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=CLCC1"
+  },
+  "summary": "Not enough is written about this gene mutation to summarize findings. Symptoms of RP include difficulty adapting to dim light after being in bright light, difficulty seeing in dim light, and vision narrowing. Progression of these symptoms vary. While there's no cure for RP, there are ways to help with vision loss. These include low vision aids, rehabilitation programs, vitamins and supplements have been recommended but efficacy has been debated. Most people with RP don't completely lose their vision, but they may be considered legally blind due to limited peripheral vision."
+ },
+ {
+  "slug": "cwc27",
+  "gene": "CWC27",
+  "diseaseCategory": "autosomal recessive",
+  "patientPopulation": "unknown",
+  "treatmentOptions": "None known",
+  "clinicalTrials": {
+   "label": "None at this time",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=CWC27"
+  },
+  "summary": "Retinitis pigmentosa (RP) with or without skeletal abnormalities (RPSKA) is a rare genetic disorder caused by mutations in the CWC27 gene. CWC27 is a protein associated with spliceosomes, which catalyze the splicing of pre-mRNA. Symptoms include decreased vision, especially at night or in low light, loss of side vision or tunnel vision, short stature, short finger deformities, peculiar facial features, neurological abnormalities, and skeletal dysplasia. Early diagnosis is important for prognosis. RP is a progressive disease but onset can be slow, with most patients never completely losing their vision. However, many patients are considered legally blind due to limited peripheral vision. At this time, there are no cures for the variants of RP, but medications can help treat complications."
+ },
+ {
+  "slug": "eys",
+  "gene": "EYS",
+  "diseaseCategory": "autosomal recessive",
+  "patientPopulation": "5% of autosomal recessive RP",
+  "clinicalTrials": {
+   "label": "1 active, not recruiting",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=EYS"
+  },
+  "summary": "The Eyes Shut Homolog (EYS) gene is a major cause of retinitis pigmentosa (RP), an inherited retinal disease that can lead to blindness. The EYS gene is located on chromosome 6 and is the largest gene in the human eye. The EYS gene is complex because it's divided into two halves, which may have different roles and interactors. Symptoms of RP include night blindness and loss of side vision, and often begin in childhood. At this time, there's no cure for RP, but medications can help treat complications. RP is the most common form of inherited retinal degeneration (IRD) and affects more than one million people worldwide. The age of onset for RP can vary widely, from under 20 to well into the 50s."
+ },
+ {
+  "slug": "hk1",
+  "gene": "HK1",
+  "diseaseCategory": "autosomal dominant",
+  "treatmentOptions": "None known",
+  "clinicalTrials": {
+   "label": "None known",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=HK1"
+  },
+  "summary": "The hexokinase 1 (HK1) gene encodes one of the four human hexokinases that play essential roles in glucose metabolism. Recently, several cases of E847K mutation in the HK1 gene were reported to cause inherited retinal dystrophy. (Source: https://www.tandfonline.com/doi/full/10.1080/13816810.2020.1810284)"
+ },
+ {
+  "slug": "ift140",
+  "gene": "IFT140",
+  "diseaseCategory": "autosomal recessive",
+  "patientPopulation": "eight+",
+  "treatmentOptions": "None known",
+  "eyeHealthStrategies": "None known",
+  "clinicalTrials": {
+   "label": "None at this time",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=IFT140"
+  },
+  "faceOfRP": {
+   "name": "Lizzi",
+   "location": "USA"
+  },
+  "summary": "A publication broke ground in early 2022, suggesting that loss-of-function variants in IFT140 were associated with Autosomal Dominant Polycystic Kidney Disease (ADPKD) (Senum, 2022). Months later, another publication confirmed this association (Chang, 2022). Unlike the most common causes of ADPKD (PKD1, PKD2), those with ADPKD-IFT140 tend to have fewer kidney and liver cysts and better kidney function over a longer period of time, meaning they are less likely to require dialysis and transplant. Prior to this, IFT140 was only associated with two recessive conditions: Short-Rib Thoracic Dysplasia (SRTD9) and non-syndromic Retinitis Pigmentosa (RP80). SRTD9 is characterized by progressive kidney disease, bone abnormalities (like constricted ribcage or polydactyly), and vision loss. (Source: https://perspectives.nsgc.org/Article/ift140-new-horizons-in-cystic-kidney-disease)"
+ },
+ {
+  "slug": "lca",
+  "gene": "LCA",
+  "diseaseCategory": "autosomal recessive",
+  "patientPopulation": "<50,000",
+  "treatmentOptions": "None known",
+  "eyeHealthStrategies": "None known",
+  "clinicalTrials": {
+   "label": "None at this time",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=LCA"
+  },
+  "institutions": [
+   "Beijing Tongren Hospital",
+   "Casey Eye Institute",
+   "Emory University",
+   "Wills Eye Hospital",
+   "Retina Foundation of the Southwest",
+   "Bascom Palmer Eye Institute",
+   "Shiley Eye Institute (UCSD)",
+   "University of Illinois at Chicago",
+   "Wilmer Eye Institute (Johns Hopkins University)",
+   "McGill University",
+   "Rotterdam Eye Hospital",
+   "Moorfields Eye Hospital",
+   "University of Tubingen"
+  ],
+  "summary": "Leber congenital amaurosis (LCA) is a group of inherited retinal diseases characterized by severe impaired vision or blindness at birth. LCA occurs when photoreceptors in the retina degenerate or malfunction. Photoreceptors are cells that capture light and convert it into electrical signals that the brain uses to create images. LCA causes abnormal vision in early childhood that worsens over time. Symptoms include nystagmus, poorly responsive pupils, and severe vision loss. LCA is usually inherited in an autosomal recessive pattern, meaning both parents must carry a defective gene to pass it on to their children. Each child has a 25% chance of inheriting the condition. There is no cure for LCA, but eye care specialists can treat symptoms to improve vision. Treatments include eyeglasses and other low vision aids. LCA is the second most common inherited retinal dystrophy, accounting for about 5% of all retinal dystrophies. It's estimated to affect around 1 in 80,000 people."
+ },
+ {
+  "slug": "mertk",
+  "gene": "MERTK",
+  "diseaseCategory": "autosomal recessive",
+  "clinicalTrials": {
+   "label": "Check ClinicalTrials.gov for updates",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=MERTK"
+  },
+  "summary": "MERTK retinitis pigmentosa is caused by mutations in the MERTK gene. A mutation in the MERTK gene reduces the ability of retinal pigment epithelial (RPE) cells to remove shed photoreceptor outer segments. This leads to a buildup of debris that separates the photoreceptors from the RPE cells, causing them to degenerate. RP is a hereditary retinal dystrophy that causes progressive vision loss. Symptoms of MERTK retinitis pigmentosa include difficulty seeing in the dark, progressive loss of peripheral vision, progressive loss of central vision, reduced vision, constricted visual fields, and early macular atrophy. The RPE cells play a critical role in photoreceptor homeostasis. When the RPE cells are dysfunctional, the photoreceptors degenerate and die, leading to vision loss. Treatments for this gene mutation are under investigation."
+ },
+ {
+  "slug": "sag",
+  "gene": "SAG",
+  "diseaseCategory": "autosomal dominant",
+  "treatmentOptions": "None known",
+  "eyeHealthStrategies": "None known",
+  "clinicalTrials": {
+   "label": "None at this time",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=SAG"
+  },
+  "summary": "SAG retinitis pigmentosa is a type of retinitis pigmentosa (RP) that's caused by a mutation in the SAG gene. SAG stands for S-antigen gene, which is located on chromosome 2q37. A mutation in the SAG gene can also cause Oguchi disease-1, a type of congenital stationary night blindness. RP is a progressive disorder that typically begins in childhood. The rate of progression and degree of visual loss varies from person to person. Many people with RP are legally blind by age 40. Symptoms include difficulty seeing at night, difficulty adjusting to light changes, difficulty seeing in poor weather, tunnel vision, difficulty seeing colors (especially blue), gradual vision loss, clumsiness due to poor vision, sensation of twinkling or flashing light, and sensitivity to bright light (photophobia)."
+ },
+ {
+  "slug": "snrnp200",
+  "gene": "SNRNP200",
+  "diseaseCategory": "autosomal dominant",
+  "treatmentOptions": "None known",
+  "eyeHealthStrategies": "None",
+  "clinicalTrials": {
+   "label": "None",
+   "url": "https://clinicaltrials.gov/search?cond=retinitis%20pigmentosa&term=SNRNP200"
+  },
+  "faceOfRP": {
+   "name": "Lance",
+   "location": "Brooklyn, NY"
+  },
+  "summary": "SNRNP200 retinitis pigmentosa (RP) is a type of autosomal dominant retinitis pigmentosa (adRP) caused by mutations in the SNRNP200 gene. SNRNP200 is a gene that encodes a protein called hBrr2, which is a component of the U4/U6-U5 small nuclear ribonucleoprotein (snRNP) complex. This complex is essential for pre-mRNA splicing, a process that removes introns and connects exons together. At this time, there is no treatment for RP, but medications can help treat complications. A medical professional can manage the condition to improve symptoms. There is support available for people living with RP and their families."
+ }
+]

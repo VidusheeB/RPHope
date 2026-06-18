@@ -4,7 +4,7 @@ export type GeneGridItem = { display: string; slug: string; label: string };
 
 export const geneGrid: GeneGridItem[] = [
   { display: "ABCA4", slug: "abca4", label: "autosomal dominant" },
-  { display: "ABGL5", slug: "abgl5", label: "autosomal recessive" },
+  { display: "AGBL5", slug: "agbl5", label: "autosomal recessive" },
   { display: "ADGRA3", slug: "adgra3", label: "autosomal recessive" },
   { display: "ADIPOR1", slug: "adipor1", label: "autosomal dominant" },
   { display: "AhR", slug: "ahr", label: "autosomal recessive" },
