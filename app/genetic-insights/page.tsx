@@ -1,71 +1,36 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import FillerBox from "@/components/FillerBox";
-import { geneImages } from "@/lib/geneImages";
 import { getGeneGrid } from "@/lib/genesRepo";
+import GeneLibrary from "./GeneLibrary";
 
 export const metadata: Metadata = {
-  title: "GENETIC INSIGHTS | RP Hope",
+  title: "Genetic Insights — RP Hope",
   description:
-    "Over time, RP Hope will post academic papers, articles and personal stories for each gene mutation identified as a possible cause of non-syndromic retinitis pigmentosa.",
+    "Search 80+ RP-linked genes for plain-English summaries, inheritance, and where research stands today.",
 };
 
-// Re-read on each request so newly published genes appear without a rebuild.
 export const dynamic = "force-dynamic";
 
 export default async function GeneticInsightsPage() {
   const { items } = await getGeneGrid();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-12">
-      <h1 className="font-display text-4xl font-bold uppercase tracking-tight text-teal-dark">
-        Genetic Insights
-      </h1>
-      <p className="mt-4 max-w-4xl leading-relaxed text-teal-dark/90">
-        <span className="font-semibold">Gene Insights Project.</span> RP Hope is
-        starting a new project. Over time, we will post academic papers, articles
-        and personal stories for each gene mutation identified as a possible
-        cause of non-syndromic retinitis pigmentosa.
-      </p>
-      <ul className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {items.map((g) => (
-          <li key={g.slug}>
-            <Link
-              href={`/genetic-insights/${g.slug}`}
-              className="block rounded-lg border border-teal/15 bg-white p-3 text-center shadow-sm transition hover:border-link hover:shadow-md"
-            >
-              {geneImages.has(g.slug) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={`/genes/${g.slug}.jpg`}
-                  alt={`${g.display} — Face of RP`}
-                  className="aspect-square w-full rounded-md object-cover"
-                />
-              ) : (
-                <FillerBox
-                  label={`${g.display} eye`}
-                  rounded="rounded-md"
-                  className="aspect-square w-full"
-                />
-              )}
-              <span className="mt-3 block font-display text-lg font-bold text-link">
-                {g.display}
-              </span>
-              <span className="block text-xs italic text-teal-dark/70">
-                {g.label}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+    <div className="bg-cream">
+      <div className="mx-auto max-w-7xl px-5 py-16">
+        <span className="inline-flex items-center gap-2 rounded-full bg-forest/10 px-4 py-1.5 text-sm font-semibold text-forest">
+          <span aria-hidden="true">⚛</span> Genetic Insights
+        </span>
+        <h1 className="mt-4 font-display text-5xl font-bold text-ink">
+          Explore genes linked to RP
+        </h1>
+        <p className="mt-4 max-w-2xl text-lg text-ink/70">
+          Plain-English summaries of what each gene means, what research exists,
+          and where trials stand today. Tell us what you&rsquo;re looking for, or
+          browse the full list below.
+        </p>
 
-      <div className="mt-8 text-center">
-        <button
-          type="button"
-          className="text-sm font-semibold text-teal-dark underline"
-        >
-          Show More
-        </button>
+        <div className="mt-8">
+          <GeneLibrary items={items} />
+        </div>
       </div>
     </div>
   );

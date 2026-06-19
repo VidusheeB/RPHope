@@ -50,7 +50,7 @@ function FaceOfRP({ name, location }: { name: string; location?: string }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="border-b border-ink/10 py-3">
-      <dt className="text-xs font-bold uppercase tracking-wide text-ink/50">
+      <dt className="text-xs font-bold uppercase tracking-wide text-ink/70">
         {label}
       </dt>
       <dd className="mt-1 font-medium text-ink">{children}</dd>
