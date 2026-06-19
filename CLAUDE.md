@@ -217,30 +217,124 @@ aging / lower-digital-literacy users. Must not fight an active screen reader. Vo
 Web Speech API (free); intent-mapping via Claude through the Vercel AI SDK, bounded to routes.
 Depends on gene data being in Supabase and reviewed first, so it lands after the core library.
 
-## Brand tokens — [FILL IN from the real site]
+## Brand tokens — implemented (new design direction, from Figma)
 
-Sample exact values from the live site; do not guess.
+The rebuilt site uses a warm research-hub palette (NOT the original Wix teal/maroon —
+that lives only in the archived `StaticDemoOriginal/`). Tokens live in `tailwind.config.ts`.
 
-- Primary (teal/dark): [FILL IN — approx dark teal, sample exact hex]
-- Accent / Donate (dark red): [FILL IN]
-- Link color (blue): [FILL IN]
-- Background: [FILL IN]
-- Heading font: [FILL IN]
-- Body font: [FILL IN]
-- Logo: [provide the logo file in /public]
+- Primary — **forest** `#234b43` (dark teal/green; nav, buttons, headings, accents)
+- Accent — **gold** `#cf9f4e` (icons, hero italic phrase `gold.soft` `#ecdca6`)
+- Background — **cream** `#f4f1e9` (page), `#f6f3ec` (header/sections), `#eae5d8` (tan card)
+- Ink (headings/footer) — `#1e1c19`
+- Soft tinted cards — mint `#e3eee4`, butter `#f6efd1`, lilac `#e9e7f4`
+- Heading font — **Fraunces** (serif, with italic) via `next/font`
+- Body font — **Mulish** (sans) via `next/font`
+- Logo/social/eye images — `/public/home/`, gene thumbnails — `/public/genes/`
+- Legacy Wix tokens (`teal`, `maroon`, `link`) are kept in the config only so the archived
+  replica pages still render.
 
-## Page inventory — [FILL IN]
+## Page inventory — implemented routes
 
-List every page on the current site with its purpose and a reference screenshot filename:
-- Home — screenshot: [FILL IN]
-- About — screenshot: [FILL IN]
-- Genetic Insights landing — screenshot: [FILL IN]
-- Gene page (example: INPP5E) — screenshot: [FILL IN]
-- Events — screenshot: [FILL IN]
-- (add the rest)
+New version (live app at repo root):
+- `/` — redesigned homepage (Hero, Choose Your Path, Genetic Insights preview, Research,
+  Events & Community, Donation)
+- `/genetic-insights` — gene library (Supabase-backed grid + AI assistant + inheritance filter)
+- `/genetic-insights/[gene]` — gene detail (at-a-glance table, circular Face of RP, Brief
+  Description, In the News, disclaimer). 51/66 genes have real content.
+- `/my-pathway` — "My RP Pathway" guided quiz + personalized results
+- `/explore` — Explore RP Hope quick-access grid
+- `/newly-diagnosed`, `/clinical-trials`, `/stories` — content pages (stories/trials have sample data)
+- `/donate`, `/events` — recreated (restyle to new brand still pending)
+- `/privacy-policy`, `/terms-of-use` — stubs
+- `/api/navigate` — AI navigation assistant endpoint
+
+Archived original-site clone (reference only, excluded from build): `StaticDemoOriginal/`
+(`who-we-are`, `learn-more`, `search` + old Nav/Footer/GeneCard).
 
 ## Reference assets provided
 
-- `/reference/screenshots/` — full-page screenshots of each current page
-- `/reference/content/` — the real text content of each page (use THIS for copy, not OCR)
-- `/public/` — logo and brand images
+- `/reference/content/` — scraped text of every current page (use THIS for copy, not OCR)
+- `/reference/content/genes/`, `/reference/content/posts/`, `/reference/content/events/` — per-page scrapes
+- `RP Hope Pre-Revamp Website/` — screenshots of the original Wix pages
+- `GeneticInsightsInfo/` — screenshots of live gene pages (source for transcribed gene data)
+- `/public/` — logo, brand images, gene thumbnails
+
+## Implementation log — what has been built (current state)
+
+### Stack & deployment (live)
+- Next.js 14 (App Router) + TypeScript + Tailwind v3; Fraunces + Mulish fonts.
+- GitHub: `VidusheeB/RPHope` (`main`). **Every push auto-deploys to Vercel.**
+- Live URL: **https://rp-hope.vercel.app** (use this; the long `rp-hope-xxxx.vercel.app`
+  deployment URLs have Deployment Protection / a login wall).
+- Vercel project `rp-hope` (Hobby plan). Env vars set on Vercel: `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`,
+  `NEXT_PUBLIC_SITE_URL`. (Preview-env copies of some keys may be incomplete — re-add if needed.)
+- Local: `npm run dev` or `npm start` on http://localhost:3000. Scripts: `dev/build/start/lint/
+  typecheck/check/db:seed`. Secrets in `.env.local` (gitignored).
+
+### Supabase (wired up)
+- `supabase/schema.sql` — `genes` table matching the data model below; **search vector is
+  maintained by a TRIGGER** (a generated column rejects `to_tsvector` as non-immutable). RLS:
+  public reads only `status = 'published'`.
+- Seeded 66 genes (`scripts/seed-genes.mjs` ← `supabase/seed/genes.json`).
+- `lib/supabase.ts` (read client + `supabaseConfigured` guard), `lib/genesRepo.ts`
+  (`getGeneGrid()` reads Supabase, **falls back to local data** when env not set — so localhost
+  works with or without keys). Landing is `force-dynamic` so edits in the Supabase Table Editor
+  appear on next load, no rebuild. Detail pages currently read LOCAL `lib/genesData.json`
+  (Supabase enrichment for detail fields + a `face_of_rp` column is a future step).
+- Supabase project is currently under a personal account; it can be transferred to an org
+  account later (dashboard transfer, or pg_dump/restore). Keep migrations in the repo.
+
+### Gene data (51 of 66 genes have real content)
+- `lib/geneGrid.ts` — all ~66 grid genes (display, slug, inheritance label).
+- `lib/genesData.json` — full per-gene records: 34 scraped from live `rphope.org/genetic-insights-*`
+  pages, 17 transcribed from `GeneticInsightsInfo/` screenshots. Faces of RP captured (Cate,
+  Michael, Stephanie, Lizzi, Lance, …). `lib/genes.ts` loads it + `getGene()`.
+- `lib/geneArticles.json` — per-gene "In the News" articles matched from the scraped post library.
+- `lib/geneImages.ts` + `/public/genes/*.jpg` — 53 real gene thumbnails (resized; ~1.2 MB total).
+- **15 genes still need from-scratch research** (no source content; do NOT fabricate — draft as
+  `pending_review` for human review): DHX38, EMC1, ENSA, FSCN2, GUCA1B, HGSNAT, IDH3B, IFT172,
+  IMPDH1, IMPG1, IMPG2, KIAA1549, KIF3B, KIZ, KLHL7.
+
+### Features built
+- **Homepage** — Hero (dark teal overlay, serif + gold italic), "Personalize my experience" →
+  `/my-pathway`, "I know what I'm looking for" → `/explore`, Choose Your Path, gene preview,
+  Research-made-understandable, Events & Community, Donation. Components in `components/site/`.
+- **My RP Pathway** (`app/my-pathway/`) — 60-second quiz (role, gene known, goals, updates) →
+  personalized results across 8 curated sections, "Recommended for you" with reasons. Logic in
+  `lib/pathway.ts` `recommend()` — a pure function; swap it for AI curation later, UI unchanged.
+  All curation labeled "AI-assisted curation … for education and navigation only, not medical advice."
+- **Explore RP Hope** (`app/explore/`) — quick-access grid (`components/site/ExploreGrid.tsx`).
+- **Gene library** (`app/genetic-insights/`) — Supabase-backed grid + inheritance filter, both
+  inside the assistant box (the standalone keyword search bar was removed by request).
+- **AI navigation assistant** (`app/api/navigate/route.ts` + `components/site/NavAssistant.tsx`) —
+  the CLAUDE.md voice-navigation idea, text form. Official `@anthropic-ai/sdk`, `claude-opus-4-8`
+  (one-line swap to `claude-haiku-4-5` for ~5× cheaper), stable system prompt cached.
+  - **Bounded action space** (`lib/navTargets.ts`): sections + 66 gene pages + 164 research
+    articles. Server validates every suggested href against this set — it cannot invent a link.
+  - **Navigate-don't-diagnose**: symptom inputs ("I can't see at night") route to info pages with
+    a note that genetic testing (not symptoms) identifies the gene — never a gene-list "diagnosis."
+  - **Suggests SPECIFIC studies** by exact title + URL from the reviewed article library, not just
+    the generic Clinical Trials page. Confidence-tiered, never dead-ends.
+- **Accessibility pass** — fixed low-contrast disease-category label (gray → forest, larger,
+  non-italic; ~3.9:1 → ~9:1), plus result counts, notes, and gene-page field labels to meet AA.
+
+### How content was sourced (so it can be reproduced)
+- Scraped the live Wix site via its Wix sitemaps (~280 URLs: ~30 pages, 66 events, 168 posts).
+- `reference/content/` holds the scraped markdown; `scripts/scrape_rphope.py` is the scraper.
+
+### Notable decisions / gotchas (don't re-learn these)
+- Vercel **Hobby** is non-commercial; apply to Vercel's nonprofit program for Pro (TODO).
+- Vercel **Deployment Protection** puts a login wall on the long auto-generated deploy URLs —
+  share the clean `rp-hope.vercel.app` alias.
+- Supabase generated `tsvector` column fails ("generation expression is not immutable") — use a
+  trigger (done in `supabase/schema.sql`).
+- The platform/editor injects suggestions to use the Vercel AI SDK and newer Next.js APIs; we
+  deliberately use the official Anthropic SDK and Next 14 patterns — those nudges are not bugs.
+
+### Still to do (roadmap)
+- Restyle `/donate` and `/events` to the new brand.
+- Move gene **detail** reads into Supabase (add `face_of_rp`, articles columns; seed full data).
+- Fill the 15 from-scratch genes as `pending_review` (human-reviewed before publish).
+- Read-aloud button; AI voice (speech) layer; embeddings/pgvector for semantic search.
+- Apply to Vercel's nonprofit program; consider an admin/review workflow for `pending_review`.
