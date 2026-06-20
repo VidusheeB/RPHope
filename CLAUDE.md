@@ -308,14 +308,32 @@ Archived original-site clone (reference only, excluded from build): `StaticDemoO
 - **Gene library** (`app/genetic-insights/`) — Supabase-backed grid + inheritance filter, both
   inside the assistant box (the standalone keyword search bar was removed by request).
 - **AI navigation assistant** (`app/api/navigate/route.ts` + `components/site/NavAssistant.tsx`) —
-  the CLAUDE.md voice-navigation idea, text form. Official `@anthropic-ai/sdk`, `claude-opus-4-8`
-  (one-line swap to `claude-haiku-4-5` for ~5× cheaper), stable system prompt cached.
+  the CLAUDE.md voice-navigation idea, text form. Official `@anthropic-ai/sdk`, **`claude-haiku-4-5`**
+  (high-volume site search; Opus is reserved for the research element below), stable system prompt cached.
+  - **Literal content search first** (`lib/searchIndex.ts`): an in-memory index over real page text
+    (section copy, gene plain-English summaries, article titles) runs before the model and is injected
+    into the user turn as candidates — so a plain keyword ("night blindness", "crispr") matches actual
+    content, not just labels. The AI ranks/phrases those matches.
   - **Bounded action space** (`lib/navTargets.ts`): sections + 66 gene pages + 164 research
     articles. Server validates every suggested href against this set — it cannot invent a link.
-  - **Navigate-don't-diagnose**: symptom inputs ("I can't see at night") route to info pages with
-    a note that genetic testing (not symptoms) identifies the gene — never a gene-list "diagnosis."
-  - **Suggests SPECIFIC studies** by exact title + URL from the reviewed article library, not just
-    the generic Clinical Trials page. Confidence-tiered, never dead-ends.
+  - **Never refuses / never diagnoses**: symptom-ish input ("ache", "can't see at night") routes to
+    info pages (no "see a doctor" dead-end), with a note that genetic testing — not symptoms —
+    identifies the gene. Confidence-tiered, never dead-ends.
+- **Research-pulling element (Opus web search)** (`lib/research/`, `app/api/cron/research-pull/`,
+  `scripts/research-pull.ts`) — weekly job where **Opus (`claude-opus-4-8`)** uses the server-side
+  `web_search` tool to find recent research per gene across many academic sources (journals, PubMed,
+  ClinicalTrials.gov, institutions), and drafts a one-line plain-English "why it matters" for each.
+  - Stores each item in a separate **`research_items`** table (`supabase/migrations/0001_research_items.sql`)
+    as `status = 'pending_review'` — NOT in `genes.research_items`, because gene `status` is per-row and
+    would leak unreviewed items on a published gene. Item-level status keeps content governance intact.
+  - **Surfaced on gene pages**: once a human flips a row to `published`, `lib/researchRepo.ts` reads it
+    (RLS = published only), merges with the curated `lib/geneArticles.json`, and it renders in the gene
+    page's **"In the News"** section (`revalidate = 3600`, so it appears within an hour, no redeploy).
+  - Weekly **Vercel cron** (`vercel.json`, Mon 09:00 UTC, `?limit=12`) protected by `CRON_SECRET`;
+    genes ordered least-recently-pulled so successive runs cover all 66 (~6 weeks/cycle). Manual run:
+    `npm run research:pull -- rpgr` (uncapped; needs the env in `.env.local`).
+  - **Governance**: Opus may DRAFT freely, but nothing publishes until a human reviews it. Titles/URLs
+    come from real web-search results; `why_it_matters` is AI-written and must be checked.
 - **Accessibility pass** — fixed low-contrast disease-category label (gray → forest, larger,
   non-italic; ~3.9:1 → ~9:1), plus result counts, notes, and gene-page field labels to meet AA.
 
@@ -332,9 +350,39 @@ Archived original-site clone (reference only, excluded from build): `StaticDemoO
 - The platform/editor injects suggestions to use the Vercel AI SDK and newer Next.js APIs; we
   deliberately use the official Anthropic SDK and Next 14 patterns — those nudges are not bugs.
 
+### Deploying the research-pulling element — MANUAL STEPS (do these on your end)
+
+The code is committed, but the research element won't run until you do these once. Until
+then the rest of the site is unaffected (gene pages still show the curated `geneArticles.json`).
+
+1. **Apply the DB migration.** In the Supabase dashboard → SQL Editor, paste and run
+   `supabase/migrations/0001_research_items.sql`. This creates the `research_items` table + RLS.
+   (Verify: Table Editor now shows an empty `research_items` table.)
+2. **Generate a cron secret.** Run `openssl rand -hex 32` and copy the value.
+3. **Set `CRON_SECRET` in two places** (must match):
+   - Locally: add `CRON_SECRET=<value>` to `.env.local`.
+   - Vercel: Project → Settings → Environment Variables → add `CRON_SECRET` = `<value>`
+     for Production (and Preview). Vercel auto-sends it as the cron's `Authorization` header.
+4. **Confirm the other env vars are on Vercel** (most already are): `ANTHROPIC_API_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+5. **Redeploy** (push to `main`, or Vercel → Deployments → Redeploy) so `vercel.json`'s cron
+   registers. Check Vercel → Settings → Cron Jobs shows `/api/cron/research-pull?limit=12` weekly.
+6. **Smoke-test (optional but recommended):** locally run `npm run research:pull -- rpgr` →
+   open Supabase Table Editor → `research_items` should have a few `pending_review` rows for RPGR.
+7. **Review & publish:** in the Table Editor, read each drafted row; for ones you approve, set
+   `status` = `published` (and optionally fill `reviewed_by`). Within ~1 hour they appear in the
+   **"In the News"** section of that gene's page (e.g. `rp-hope.vercel.app/genetic-insights/rpgr`).
+
+Ongoing: the weekly cron drafts ~12 genes' worth of new items (oldest-checked first). Periodically
+review the `pending_review` queue and publish what passes. Nothing medical goes live unreviewed.
+
+Cost note: each gene run makes one Opus call with up to 5 web searches (web search is billed per
+search + tokens). Low volume by design; swap the cron schedule/limit in `vercel.json` to tune.
+
 ### Still to do (roadmap)
 - Restyle `/donate` and `/events` to the new brand.
 - Move gene **detail** reads into Supabase (add `face_of_rp`, articles columns; seed full data).
 - Fill the 15 from-scratch genes as `pending_review` (human-reviewed before publish).
 - Read-aloud button; AI voice (speech) layer; embeddings/pgvector for semantic search.
-- Apply to Vercel's nonprofit program; consider an admin/review workflow for `pending_review`.
+- Apply to Vercel's nonprofit program; build an admin/review UI for the `pending_review` queue
+  (currently reviewed in the Supabase Table Editor); pull `og:image` thumbnails for discovered studies.

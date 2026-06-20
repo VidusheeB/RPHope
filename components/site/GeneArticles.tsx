@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 
-export type Article = { title: string; url: string; date?: string };
+export type Article = {
+  title: string;
+  url: string;
+  date?: string;
+  // Plain-English "why it matters" line (AI-drafted, human-reviewed) for items
+  // pulled from PubMed / ClinicalTrials.gov. Absent on legacy curated articles.
+  whyItMatters?: string;
+};
 
 export default function GeneArticles({ articles }: { articles: Article[] }) {
   const [expanded, setExpanded] = useState(false);
@@ -40,7 +47,13 @@ export default function GeneArticles({ articles }: { articles: Article[] }) {
               <span className="mt-1 font-semibold leading-snug text-ink">
                 {a.title}
               </span>
-              <span className="mt-3 text-sm font-bold text-forest">
+              {a.whyItMatters && (
+                <span className="mt-2 text-sm leading-snug text-ink/70">
+                  <span className="font-semibold text-forest">Why it matters:</span>{" "}
+                  {a.whyItMatters}
+                </span>
+              )}
+              <span className="mt-auto pt-3 text-sm font-bold text-forest">
                 Read →
               </span>
             </a>

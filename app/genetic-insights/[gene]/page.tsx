@@ -3,12 +3,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getGene } from "@/lib/genes";
 import { geneGrid } from "@/lib/geneGrid";
-import GeneArticles, { type Article } from "@/components/site/GeneArticles";
-import articlesByGene from "@/lib/geneArticles.json";
+import GeneArticles from "@/components/site/GeneArticles";
+import { getResearchItems } from "@/lib/researchRepo";
 
 export function generateStaticParams() {
   return geneGrid.map((g) => ({ gene: g.slug }));
 }
+
+// Re-render at most hourly so newly-approved (published) research items appear
+// without a redeploy, while pages still benefit from static generation.
+export const revalidate = 3600;
 
 export function generateMetadata({
   params,
@@ -21,11 +25,6 @@ export function generateMetadata({
   }
   const item = geneGrid.find((g) => g.slug === params.gene);
   return { title: item ? `${item.display} | RP Hope` : "Gene not found — RP Hope" };
-}
-
-function getArticles(slug: string): Article[] {
-  const map = articlesByGene as Record<string, Article[]>;
-  return map[slug] || [];
 }
 
 function FaceOfRP({ name, location }: { name: string; location?: string }) {
@@ -58,9 +57,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-export default function GenePage({ params }: { params: { gene: string } }) {
+export default async function GenePage({ params }: { params: { gene: string } }) {
   const gene = getGene(params.gene);
-  const articles = getArticles(params.gene);
+  const articles = await getResearchItems(params.gene);
 
   // Grid-only gene — minimal page.
   if (!gene) {
