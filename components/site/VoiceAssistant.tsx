@@ -17,7 +17,8 @@ import { useVoiceAgent, type AgentStatus } from "@/lib/useVoiceAgent";
  * NOT run one, per CLAUDE.md.
  */
 export default function VoiceAssistant() {
-  const { status, heard, message, enable, disable } = useVoiceAgent();
+  const { status, heard, message, enable, disable, pause, resume, stop } =
+    useVoiceAgent();
 
   if (status === "unsupported") return null; // typed assistant remains available
 
@@ -65,11 +66,42 @@ export default function VoiceAssistant() {
             </p>
           )}
 
+          {/* Reliable, keyboard-operable playback controls (WCAG: a spoken
+              answer must offer visible pause/stop). Shown while Claude speaks or
+              is paused; the spoken "stop"/"pause"/"continue" words do the same. */}
+          {(status === "speaking" || status === "paused") && (
+            <div className="mt-3 flex gap-2">
+              {status === "speaking" ? (
+                <button
+                  type="button"
+                  onClick={pause}
+                  className="flex-1 rounded-lg border border-forest/30 bg-forest/5 px-3 py-2 text-sm font-bold text-forest hover:bg-forest/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-forest"
+                >
+                  Pause
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={resume}
+                  className="flex-1 rounded-lg border border-forest/30 bg-forest/5 px-3 py-2 text-sm font-bold text-forest hover:bg-forest/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-forest"
+                >
+                  Continue
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={stop}
+                className="flex-1 rounded-lg bg-forest px-3 py-2 text-sm font-bold text-white hover:bg-forest/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-1"
+              >
+                Stop
+              </button>
+            </div>
+          )}
+
           <p className="mt-3 text-xs text-ink/50">
-            {status === "idle"
-              ? "Say “Hello Claude” to start. "
-              : "We’re talking — just speak, no wake word needed. "}
-            AI assistant grounded in this site — not medical advice.
+            Start every request with my name — e.g. “Claude, take me to the
+            stories page,” or “Claude, pause.” AI assistant grounded in this site
+            — not medical advice.
           </p>
         </div>
       )}
@@ -80,9 +112,9 @@ export default function VoiceAssistant() {
 function statusLabel(s: AgentStatus): string {
   switch (s) {
     case "idle":
-      return "Say “Hello Claude”";
+      return "Say “Claude, …”";
     case "listening":
-      return "Listening — just talk";
+      return "Say “Claude, …”";
     case "thinking":
       return "Finding it…";
     case "confirming":
@@ -90,7 +122,7 @@ function statusLabel(s: AgentStatus): string {
     case "speaking":
       return "Speaking…";
     case "paused":
-      return "Paused — say “continue”";
+      return "Paused — say “Claude, continue”";
     default:
       return "Voice on";
   }

@@ -43,6 +43,21 @@ export function resumeSpeech(): void {
   }
 }
 
+// Gene symbols and acronyms (e.g. "USH3A", "INPP5E", "RPGR", "RP") must be read
+// letter-by-letter, not pronounced as words ("ush-three-A"). We spell out any
+// all-caps alphanumeric token of 2+ chars by inserting a brief pause (". ")
+// between characters. Applied per-utterance, AFTER chunking, so the inserted
+// periods don't fragment the sentence-based chunker. Mixed-case words, single
+// letters ("I", "A"), and "I'm" are left alone.
+function spellOutSymbols(text: string): string {
+  return text.replace(/\b[0-9]*[A-Z][A-Z0-9]*\b/g, (tok) => {
+    if (tok.length < 2) return tok;
+    // A lone "A" gets read as the article "uh"; respell it as the letter "ay".
+    // Other letters and digits already say their own name correctly.
+    return tok.split("").map((c) => (c === "A" ? "ay" : c)).join(". ") + ".";
+  });
+}
+
 // Split long text into short, sentence-aligned chunks. Chrome silently stops
 // speaking after ~15s on a single long utterance, so we keep each chunk small
 // and queue them — the real fix for the "it froze" bug.
@@ -101,7 +116,7 @@ export function speak(
       opts.onEnd?.();
       return;
     }
-    const u = new SpeechSynthesisUtterance(chunks[i++]);
+    const u = new SpeechSynthesisUtterance(spellOutSymbols(chunks[i++]));
     u.rate = opts.rate ?? 1;
     u.onend = speakNext;
     u.onerror = speakNext; // skip a bad chunk rather than stall the whole read

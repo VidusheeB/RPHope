@@ -48,99 +48,94 @@ export type AgentStatus =
   | "speaking" // reading something aloud
   | "paused"; // speech paused mid-answer; say "continue" to resume
 
-const WAKE =
-  /\b(hello|hey|hi|ok|okay)\s+(claude|cloud|clod|claud|clawed|cloud's|clyde|claudia)\b/;
+// The visitor must ADDRESS the assistant by name before each command, so it
+// doesn't react to every passing remark. "Claude" plus its common mis-hears.
+const NAME = "(claude|cloud|clod|claud|clawed|cloud's|clyde|claudia|cloudy|cload|chlode)";
+const ADDRESS = new RegExp(`\\b${NAME}\\b`, "i");
 const INTRO =
-  "Say, Hello Claude, to start. Then just talk naturally — I'll keep listening until you say, turn off. You can also say, stop, to interrupt me, or, pause, and, continue.";
+  "To talk to me, start with my name. Say, Claude, then what you want — for example, Claude, take me to the stories page, or, Claude, pause. I'll only act when you begin with, Claude. Say, Claude, turn off, when you're done.";
+
+// Strip the address word (and any leading hello/hey) off a command, leaving the
+// actual request: "Claude, tell me Rosie's story" → "tell me Rosie's story".
+function stripAddress(text: string): string {
+  return text
+    .replace(/\b(hello|hey|hi|ok|okay)\b/gi, " ")
+    .replace(new RegExp(`\\b${NAME}\\b`, "gi"), " ")
+    .replace(/^[\s,.:;!?-]+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
 const TURN_OFF =
   /\bturn (it |the (voice|mic|assistant) )?off\b|\bturn off\b|\bshut (it |down|off)\b|\bdisable\b|\bclose (the )?(voice|mic|assistant)\b/;
 const GOODBYE =
   /\b(goodbye|good bye|bye|that's all|that is all|i'?m done|go to sleep|never mind|stop listening)\b/;
 
-// Advice-seeking ("what should we do", "is there a cure"). We never refuse or
-// dead-end (CLAUDE.md: "navigate, don't triage"): we read the REVIEWED options
-// verbatim, then hand the actual decision to a clinician. We never tell a
-// specific person what to do.
-const ADVICE =
-  /\bwhat should (i|we|they|my|he|she)\b|\bwhat (can|do|should) (i|we)\b|\bhow (do|can|should) (i|we) (treat|stop|slow|cure|manage|help|deal|fix)\b|\bis there (a cure|anything|any treatment|any way|something)\b|\bbest (treatment|option|course|thing|approach)\b|\bwhat are (my|our|the) options\b|\bwhat do (i|we) do\b/;
-
-const PROVIDER_HANDOFF =
-  "These are general options from the reviewed studies, not advice for your situation. Your healthcare provider or a genetic counselor can tell you the best course of action for you.";
-
-
 // ---------------------------------------------------------------------------
-// Section extraction. We read VERBATIM page content — the AI only decides which
-// section to read, never what it says. Sections come from explicit
-// data-readable hooks, definition lists (at-a-glance fields), and headings.
+// Page guide. On arrival we DESCRIBE the page and list what can be explored
+// (each story, each section) rather than auto-reading the whole thing. Pulled
+// generically from the DOM so it works on any page without per-page wiring; a
+// page may override the description with a [data-voice-intro] element.
 // ---------------------------------------------------------------------------
-type Section = { key: string; text: string };
+type PageItem = { label: string; text: string };
 
-// Synonyms map a fuzzy question to a section's label so "how rare is it",
-// "who's the face", "any trials" land on the right verbatim block.
-const SECTION_SYNONYMS: Record<string, string[]> = {
-  "face of rp": ["face", "person", "who is", "whose", "patient story", "behind", "story of"],
-  "treatment options": ["treatment", "therapy", "cure", "drug", "medication", "treat", "fix"],
-  "patient population": ["population", "how rare", "how common", "how many", "prevalence", "people affected", "rare"],
-  "strategies to preserve eye health": ["eye health", "preserve", "protect", "strateg", "supplement", "vitamin", "lutein", "diet", "slow"],
-  "clinical trials": ["trial", "trials", "recruiting", "enroll", "join a study", "join study"],
-  "institution(s) conducting research": ["institution", "universit", "lab", "researching", "who is studying", "research center", "conducting", "who studies"],
-  "disease category": ["category", "inheritance", "recessive", "dominant", "x-linked", "x linked", "inherit"],
-  "brief description": ["describe", "description", "what is", "tell me about", "summary", "overview", "explain", "more about", "what does"],
-  "in the news": ["news", "article", "studies", "recent", "latest", "what's new", "research that matters"],
-};
-
-function getSections(): Section[] {
+function getPageItems(): PageItem[] {
   const main = typeof document !== "undefined" ? document.getElementById("main") : null;
   if (!main) return [];
-  const out: Section[] = [];
-
-  main.querySelectorAll<HTMLElement>("[data-readable-key]").forEach((el) => {
-    const key = el.dataset.readableKey?.trim();
-    const text = el.dataset.readableText?.trim() || el.innerText.trim();
-    if (key && text) out.push({ key, text });
-  });
-
-  main.querySelectorAll("dt").forEach((dt) => {
-    const label = dt.textContent?.trim() ?? "";
-    const dd = dt.nextElementSibling as HTMLElement | null;
-    const value = dd?.textContent?.trim() ?? "";
-    if (label && value) out.push({ key: label, text: `${label}. ${value}.` });
-  });
-
-  main.querySelectorAll("h2, h3").forEach((h) => {
-    const key = h.textContent?.trim() ?? "";
-    if (!key) return;
-    let text = `${key}. `;
+  const items: PageItem[] = [];
+  main.querySelectorAll("h2").forEach((h) => {
+    const label = h.textContent?.trim() ?? "";
+    if (!label) return;
+    let text = `${label}. `;
     let n = h.nextElementSibling as HTMLElement | null;
-    while (n && !/^H[1-3]$/.test(n.tagName)) {
+    while (n && !/^H[12]$/.test(n.tagName)) {
       text += `${n.innerText} `;
       n = n.nextElementSibling as HTMLElement | null;
     }
-    out.push({ key, text: text.trim() });
+    items.push({ label, text: text.trim() });
   });
-
-  return out;
+  return items;
 }
 
-// Pick the section whose label/synonyms best overlap the question. Returns null
-// when nothing clearly matches (caller falls back to the brief description).
-function pickSection(query: string, sections: Section[]): Section | null {
-  const q = query.toLowerCase();
-  let best: Section | null = null;
-  let bestScore = 0;
-  for (const s of sections) {
-    const keyL = s.key.toLowerCase();
-    let score = 0;
-    if (q.includes(keyL)) score += 3;
-    const syns = SECTION_SYNONYMS[keyL];
-    if (syns) for (const term of syns) if (q.includes(term)) score += 1;
-    if (score > bestScore) {
-      bestScore = score;
-      best = s;
+function getPageIntro(): string {
+  const main = typeof document !== "undefined" ? document.getElementById("main") : null;
+  if (!main) return "";
+  const explicit = main.querySelector<HTMLElement>("[data-voice-intro]");
+  if (explicit?.innerText.trim()) return explicit.innerText.trim();
+  const h1 = main.querySelector("h1")?.textContent?.trim() ?? "";
+  let lead = ""; // first reasonably long paragraph = the page's lead description
+  for (const p of Array.from(main.querySelectorAll("p"))) {
+    const txt = (p as HTMLElement).innerText.trim();
+    if (txt.length > 80) {
+      lead = txt;
+      break;
     }
   }
-  return bestScore > 0 ? best : null;
+  return [h1, lead].filter(Boolean).join(". ");
+}
+
+// Match a spoken request to one of the page's items (a story, a section). Hits
+// on the full label or any distinctive word of it ("rosie", "lemay-pelletier").
+function matchPageItem(query: string, items: PageItem[]): PageItem | null {
+  const q = query.toLowerCase();
+  for (const it of items) {
+    if (q.includes(it.label.toLowerCase())) return it;
+  }
+  for (const it of items) {
+    const tokens = it.label
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length >= 4);
+    if (tokens.some((tok) => q.includes(tok))) return it;
+  }
+  return null;
+}
+
+// Join labels into a spoken list: "a, b, or c".
+function joinWithOr(labels: string[]): string {
+  if (labels.length <= 1) return labels[0] ?? "";
+  if (labels.length === 2) return `${labels[0]}, or ${labels[1]}`;
+  return `${labels.slice(0, -1).join(", ")}, or ${labels[labels.length - 1]}`;
 }
 
 export function useVoiceAgent() {
@@ -158,6 +153,17 @@ export function useVoiceAgent() {
   const historyRef = useRef<{ role: "user" | "assistant"; content: string }[]>([]);
   const sessionRef = useRef(false);
   const sessionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The words Claude is currently speaking. His intro and page guides include
+  // the word "Claude", so his TTS echoed into the mic would match the address
+  // gate — we reject any transcript that's mostly his own current words.
+  const spokenWordsRef = useRef<Set<string>>(new Set());
+  // The recognizer delivers a single spoken sentence as SEVERAL final results
+  // (it finalizes on every brief mid-sentence pause). We buffer those pieces and
+  // only act once the visitor has truly stopped talking — so a question isn't
+  // chopped in half and Claude doesn't answer before they've finished.
+  const utterBufferRef = useRef("");
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const END_OF_SPEECH_MS = 950;
 
   const setS = useCallback((s: AgentStatus) => {
     statusRef.current = s;
@@ -192,6 +198,7 @@ export function useVoiceAgent() {
   const say = useCallback(
     (text: string, opts: { caption?: string; after?: () => void } = {}) => {
       setMessage(opts.caption ?? text);
+      spokenWordsRef.current = new Set(text.toLowerCase().match(/[a-z']+/g) ?? []);
       speakingRef.current = true;
       // NOTE: we deliberately keep the mic LISTENING while Claude speaks so the
       // visitor can interrupt ("stop"). onFinalTranscript filters out Claude
@@ -203,6 +210,7 @@ export function useVoiceAgent() {
       speak(text.replace(/\bClaude\b/g, "Clawed"), {
         onEnd: () => {
           speakingRef.current = false;
+          spokenWordsRef.current = new Set();
           if (opts.after) opts.after();
           else settleAfterSpeech();
           restartRecognition();
@@ -229,64 +237,54 @@ export function useVoiceAgent() {
     return (main?.innerText ?? "").trim();
   }, []);
 
-  // Read the section that answers `query`, or the brief description, or the
-  // whole page. All content is verbatim from the reviewed page; only the
-  // advice-handoff framing is fixed wording.
-  const readRelevant = useCallback(
-    (query: string | null) => {
-      const sections = getSections();
-
-      // "What should we do?" → reviewed options + clinician handoff, never refuse.
-      if (query && ADVICE.test(query.toLowerCase())) {
-        const wanted = new Set([
-          "treatment options",
-          "strategies to preserve eye health",
-          "clinical trials",
-        ]);
-        const picked = sections.filter((s) => wanted.has(s.key.toLowerCase()) && s.text);
-        if (picked.length) {
-          readText(
-            `Here's what the reviewed information on this page says. ${picked
-              .map((s) => s.text)
-              .join(" ")} ${PROVIDER_HANDOFF}`,
-            "Reviewed options + ask your provider"
-          );
-        } else {
-          readText(
-            `I can point you to information on this. ${PROVIDER_HANDOFF}`,
-            "Ask your provider"
-          );
-        }
-        return;
+  // Try to read a specific thing the visitor named on the CURRENT page —
+  // VERBATIM (content governance: a story/section is reviewed page content, not
+  // an AI paraphrase). Matches a page item (a story card, a content block) or a
+  // labelled section. Returns true if it found something to read; false lets the
+  // caller fall back to the conversational brain.
+  const tryReadOnPage = useCallback(
+    (query: string): boolean => {
+      const item = matchPageItem(query, getPageItems());
+      if (item) {
+        readText(item.text, `Reading: ${item.label}`);
+        return true;
       }
-
-      if (query) {
-        const sec = pickSection(query, sections);
-        if (sec) {
-          readText(sec.text, `Reading: ${sec.key}`);
-          return;
-        }
-      }
-      const brief = sections.find((s) => /brief description|description/i.test(s.key));
-      readText(brief ? brief.text : mainText());
+      return false;
     },
-    [readText, mainText]
+    [readText]
   );
 
   const readCurrentPage = useCallback(() => {
-    readText(mainText(), "Reading this page aloud… (say “stop” to stop)");
+    readText(mainText(), "Reading this page aloud… (say “Claude, stop” to stop)");
   }, [readText, mainText]);
 
+  // On arrival, DESCRIBE the page and offer choices — never auto-read the whole
+  // thing. The visitor then picks ("Claude, tell me Rosie's story") or asks for
+  // the full page ("Claude, read the whole page").
+  const describeCurrentPage = useCallback(() => {
+    const intro = getPageIntro();
+    const labels = getPageItems().map((i) => i.label);
+    let speech = intro || "Here's the page.";
+    if (labels.length) {
+      speech += ` You can say, Claude, read the whole page — or pick one of these: ${joinWithOr(
+        labels
+      )}. Which would you like?`;
+    } else {
+      speech += ` Say, Claude, read the whole page, to hear it.`;
+    }
+    say(speech, { caption: "Say “Claude, read the whole page”, or pick one." });
+  }, [say]);
+
   // After a client-side navigation the new page isn't in <main> yet. Poll until
-  // the content actually changes, THEN read the relevant section — fixes reading
-  // the page you just left. Gives up after ~5s.
-  const readAfterNavigation = useCallback(
-    (prevText: string, query: string | null) => {
+  // the content actually changes, THEN describe it — fixes describing the page
+  // you just left. Gives up after ~5s.
+  const guideAfterNavigation = useCallback(
+    (prevText: string) => {
       let attempts = 0;
       const tick = () => {
         const now = mainText();
         if ((now.length > 40 && now !== prevText) || attempts >= 16) {
-          readRelevant(query);
+          describeCurrentPage();
           return;
         }
         attempts += 1;
@@ -294,7 +292,7 @@ export function useVoiceAgent() {
       };
       setTimeout(tick, 300);
     },
-    [mainText, readRelevant]
+    [mainText, describeCurrentPage]
   );
 
   // readQuery: undefined = don't read; null = read whole page; string = read the
@@ -311,18 +309,21 @@ export function useVoiceAgent() {
       router.push(href);
       if (readQuery !== undefined) {
         setS("thinking");
-        readAfterNavigation(prev, readQuery);
+        guideAfterNavigation(prev);
       } else {
         say("Here you go. Just tell me what's next.");
       }
     },
-    [router, say, mainText, readAfterNavigation, keepSessionAlive, setS]
+    [router, say, mainText, guideAfterNavigation, keepSessionAlive, setS]
   );
 
   const teardown = useCallback(() => {
     enabledRef.current = false;
     sessionRef.current = false;
     if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
+    if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+    flushTimerRef.current = null;
+    utterBufferRef.current = "";
     cancelSpeech();
     speakingRef.current = false;
     try {
@@ -424,9 +425,12 @@ export function useVoiceAgent() {
       if (GOODBYE.test(t)) {
         sessionRef.current = false;
         if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
+        if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+        flushTimerRef.current = null;
+        utterBufferRef.current = "";
         cancelSpeech();
         speakingRef.current = false;
-        say("Okay. Say Hello Claude when you need me.", { after: () => setS("idle") });
+        say("Okay. Say, Claude, when you need me.", { after: () => setS("idle") });
         return;
       }
       if (/\b(stop|quiet|shush|silence|pause|hush|enough)\b/.test(t)) {
@@ -441,10 +445,10 @@ export function useVoiceAgent() {
         const prev = mainText();
         router.back();
         setS("thinking");
-        readAfterNavigation(prev, null);
+        guideAfterNavigation(prev);
         return;
       }
-      if (/\bread (this|the|it|page|aloud)\b|\bread it\b|\bread the page\b/.test(t) || t === "read") {
+      if (/\bread (this|the|it|whole )?(page|aloud)\b|\bread it\b|\bread everything\b/.test(t) || t === "read") {
         readCurrentPage();
         return;
       }
@@ -453,6 +457,9 @@ export function useVoiceAgent() {
         void navigateByQuery(raw);
         return;
       }
+      // A specific thing named on THIS page (a story, a content block) → read it
+      // verbatim. Falls through to conversation when nothing on-page matches.
+      if (tryReadOnPage(raw)) return;
       // Everything else → the natural, website-grounded conversation.
       void converse(raw);
     },
@@ -464,84 +471,177 @@ export function useVoiceAgent() {
       restartRecognition,
       mainText,
       router,
-      readAfterNavigation,
+      guideAfterNavigation,
       readCurrentPage,
       navigateByQuery,
+      tryReadOnPage,
       converse,
     ]
+  );
+
+  // Pause/Resume/Stop the current spoken answer. Shared by the on-screen buttons
+  // (reliable, keyboard-operable — WCAG) and the spoken barge-in words below.
+  const pausePlayback = useCallback(() => {
+    if (!speakingRef.current || statusRef.current === "paused") return;
+    pauseSpeech();
+    setS("paused");
+    setMessage("Paused — say “continue” to resume.");
+  }, [setS]);
+
+  const resumePlayback = useCallback(() => {
+    if (statusRef.current !== "paused") return;
+    resumeSpeech();
+    setS("speaking");
+  }, [setS]);
+
+  const clearUtteranceBuffer = useCallback(() => {
+    if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+    flushTimerRef.current = null;
+    utterBufferRef.current = "";
+  }, []);
+
+  const stopPlayback = useCallback(() => {
+    cancelSpeech();
+    speakingRef.current = false;
+    clearUtteranceBuffer();
+    setMessage("");
+    setS("listening");
+    keepSessionAlive();
+    restartRecognition();
+  }, [setS, keepSessionAlive, restartRecognition, clearUtteranceBuffer]);
+
+  // Accumulate the pieces of one spoken sentence, then dispatch the WHOLE thing
+  // after a short silence — never a half-sentence, never an answer mid-thought.
+  const queueUserSpeech = useCallback(
+    (text: string) => {
+      keepSessionAlive();
+      utterBufferRef.current = `${utterBufferRef.current} ${text}`.trim();
+      setHeard(utterBufferRef.current);
+      setS("listening");
+      if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = setTimeout(() => {
+        const full = utterBufferRef.current.trim();
+        flushTimerRef.current = null;
+        utterBufferRef.current = "";
+        if (full) handleCommand(full);
+      }, END_OF_SPEECH_MS);
+    },
+    [keepSessionAlive, setS, handleCommand]
+  );
+
+  // BARGE-IN handling while Claude is speaking. The mic stays live during speech,
+  // so it may hear (a) the visitor interrupting or (b) Claude's own TTS echoed
+  // back. We only ACT on a SHORT utterance containing an interrupt word — that's
+  // a real interruption; long transcripts are almost always Claude hearing itself.
+  //
+  // Called for BOTH interim and final results: interim fires the instant a word
+  // is recognized (immediate "stop"/"pause"), so we don't wait for a final
+  // transcript that may never settle while TTS audio fills the mic. `maxWords` is
+  // tighter for interim (pure control words only); `runRest` lets a final
+  // "stop, tell me about X" also run the trailing command. Returns true if it
+  // consumed the input.
+  const tryInterrupt = useCallback(
+    (raw: string, maxWords: number, runRest: boolean): boolean => {
+      const text = raw.trim();
+      const t = text.toLowerCase();
+      if (t.split(/\s+/).length > maxWords) return false;
+
+      const isResume = /\b(continue|resume|keep going|carry on|go on|unpause|keep talking)\b/.test(t);
+      const isPause =
+        !isResume &&
+        /\b(pause|hold on|hang on|one moment|one second)\b/.test(t) &&
+        !/\bstop\b/.test(t);
+      const isStop =
+        /\b(stop|quiet|shush|enough|cancel|never mind|shut up|hey claude|hello claude|hi claude|okay stop)\b/.test(t);
+
+      // While paused: only "continue" (resume) or "stop" (cancel) apply.
+      if (statusRef.current === "paused") {
+        if (isResume) {
+          setHeard(text);
+          resumePlayback();
+          return true;
+        }
+        if (isStop) {
+          setHeard(text);
+          stopPlayback();
+          return true;
+        }
+        return false;
+      }
+
+      if (isPause) {
+        setHeard(text);
+        pausePlayback();
+        return true;
+      }
+      if (!isStop) return false;
+
+      setHeard(text);
+      stopPlayback();
+      // "stop, tell me about X" → also run the remainder as a fresh command.
+      if (runRest) {
+        const rest = text
+          .replace(/^.*?\b(stop|quiet|shush|enough|cancel|never mind|shut up|claude)\b[\s,.!]*/i, "")
+          .trim();
+        if (rest.length > 3) handleCommand(rest);
+      }
+      return true;
+    },
+    [pausePlayback, resumePlayback, stopPlayback, handleCommand]
+  );
+
+  // Interim results arrive mid-word, before the recognizer finalizes — this is
+  // what makes an addressed "Claude, pause/stop/continue" feel IMMEDIATE. Only
+  // while Claude is speaking/paused, and only if it's addressed to him (so his
+  // own echoed sentence is ignored).
+  // True when a transcript heard during speech is mostly Claude's own words
+  // echoed back through the mic (no hardware echo-cancellation on TTS output).
+  const isLikelyEcho = useCallback((transcript: string): boolean => {
+    const words = transcript.toLowerCase().match(/[a-z']+/g) ?? [];
+    if (words.length === 0) return true;
+    const fromClaude = words.filter((w) => spokenWordsRef.current.has(w)).length;
+    return fromClaude / words.length >= 0.6;
+  }, []);
+
+  const onInterimTranscript = useCallback(
+    (text: string) => {
+      if (!speakingRef.current && statusRef.current !== "paused") return;
+      if (!ADDRESS.test(text.toLowerCase()) || isLikelyEcho(text)) return;
+      tryInterrupt(stripAddress(text), 4, false);
+    },
+    [tryInterrupt, isLikelyEcho]
   );
 
   const onFinalTranscript = useCallback(
     (text: string) => {
       const t = text.toLowerCase();
 
-      // BARGE-IN: while Claude is speaking the mic is still on, so it may hear
-      // (a) the visitor interrupting, or (b) its own TTS echoed back. We only
-      // ACT on a SHORT utterance that contains an interrupt word — that's a real
-      // interruption; long transcripts are almost always Claude hearing itself.
-      if (speakingRef.current) {
-        const words = t.trim().split(/\s+/).length;
-        if (words > 8) return; // long transcript → Claude hearing itself; ignore
-
-        const isResume = /\b(continue|resume|keep going|carry on|go on|unpause|keep talking)\b/.test(t);
-        const isPause = !isResume && /\b(pause|hold on|hang on|one moment|one second)\b/.test(t) && !/\bstop\b/.test(t);
-        const isStop = /\b(stop|quiet|shush|enough|cancel|never mind|shut up|hey claude|hello claude|hi claude|okay stop)\b/.test(t);
-
-        // RESUME a paused answer where it left off — no reset.
-        if (statusRef.current === "paused") {
-          if (isResume) {
-            setHeard(text.trim());
-            resumeSpeech();
-            setS("speaking");
-          } else if (isStop) {
-            setHeard(text.trim());
-            cancelSpeech();
-            speakingRef.current = false;
-            setMessage("");
-            setS("listening");
-          }
-          return; // ignore anything else while paused
-        }
-
-        // PAUSE (hold the answer, keep it ready to resume).
-        if (isPause) {
-          setHeard(text.trim());
-          pauseSpeech();
-          setS("paused");
-          setMessage("Paused — say “continue” to resume.");
-          return;
-        }
-
-        if (!isStop) return; // not an interrupt → ignore (echo/background)
-
-        // STOP — cancel the answer.
-        setHeard(text.trim());
-        cancelSpeech();
-        speakingRef.current = false;
-        setMessage("");
-        setS("listening");
-        keepSessionAlive();
-        // "stop, tell me about X" → also run the remainder as a fresh command.
-        const rest = text
-          .replace(/^.*?\b(stop|quiet|shush|enough|cancel|never mind|shut up|claude)\b[\s,.!]*/i, "")
-          .trim();
-        if (rest.length > 3) handleCommand(rest);
+      // ---- While Claude is speaking or paused ----
+      // Only a request ADDRESSED to him acts (this also filters his own TTS
+      // echoed back into the mic — the echo never contains "Claude").
+      if (speakingRef.current || statusRef.current === "paused") {
+        if (!ADDRESS.test(t) || isLikelyEcho(text)) return;
+        const cmd = stripAddress(text);
+        // "Claude, pause/stop/continue" → handle playback immediately.
+        if (tryInterrupt(cmd, 8, true)) return;
+        if (statusRef.current === "paused") return;
+        // "Claude, <new request>" → silence him AT ONCE so he's not talking over
+        // them, but don't answer until they've finished the whole sentence.
+        stopPlayback();
+        queueUserSpeech(cmd);
         return;
       }
-      setHeard(text.trim());
 
       const s = statusRef.current;
 
+      // ---- Confirming a navigation offer: accept a bare yes/no (no address) ----
       if (s === "confirming") {
-        // Turn-off / goodbye take priority (so "no, turn off" still turns off).
+        setHeard(text.trim());
         if (TURN_OFF.test(t) || GOODBYE.test(t)) {
           pendingRef.current = null;
           handleCommand(text);
           return;
         }
-        // ONLY a clean affirmative navigates. "no", "no but tell me about X",
-        // "yes but actually…", or any new question all flow back into the
-        // natural conversation — Claude already has the offer in its history.
         const affirmative =
           /\b(yes|yeah|yep|yup|sure|okay|ok|go ahead|do it|please do|take me|sounds good)\b/.test(t) &&
           !/\b(no|not|don'?t|but|instead|actually|wait|rather|hold on)\b/.test(t);
@@ -550,29 +650,36 @@ export function useVoiceAgent() {
         if (affirmative && target) {
           navigateTo(target.href, target.query);
         } else {
-          handleCommand(text); // → converse(), keeps the thread going
+          handleCommand(stripAddress(text) || text);
         }
         return;
       }
 
-      if (sessionRef.current || s === "listening") {
-        handleCommand(text);
+      // ---- Continuation of an in-progress command (the buffer window is open) ----
+      // The rest of the same sentence needs no re-addressing.
+      if (flushTimerRef.current) {
+        queueUserSpeech(stripAddress(text));
         return;
       }
 
-      if (WAKE.test(t)) {
-        keepSessionAlive();
-        const after = text.replace(new RegExp(WAKE, "i"), "").trim();
-        if (after.length > 2) {
-          setS("listening");
-          handleCommand(after);
-        } else {
-          setS("listening");
-          say("I'm listening.", { after: () => setS("listening") });
-        }
-      }
+      // ---- A NEW command must be addressed to "Claude" ----
+      // Anything not addressed is ambient talk and is ignored — so it no longer
+      // reacts to every passing remark.
+      if (!ADDRESS.test(t)) return;
+      keepSessionAlive();
+      setS("listening");
+      queueUserSpeech(stripAddress(text));
     },
-    [handleCommand, navigateTo, say, setS, keepSessionAlive]
+    [
+      handleCommand,
+      navigateTo,
+      setS,
+      keepSessionAlive,
+      tryInterrupt,
+      stopPlayback,
+      queueUserSpeech,
+      isLikelyEcho,
+    ]
   );
 
   const enable = useCallback(() => {
@@ -583,12 +690,16 @@ export function useVoiceAgent() {
     }
     const rec = new Ctor();
     rec.continuous = true;
-    rec.interimResults = false;
+    // Interim results let us react to "stop"/"pause"/"continue" the instant
+    // they're recognized, instead of waiting for a final transcript that may
+    // never settle while TTS audio fills the mic.
+    rec.interimResults = true;
     rec.lang = "en-US";
     rec.onresult = (e) => {
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const r = e.results[i];
         if (r.isFinal) onFinalTranscript(r[0].transcript);
+        else onInterimTranscript(r[0].transcript);
       }
     };
     rec.onend = () => {
@@ -617,7 +728,7 @@ export function useVoiceAgent() {
       /* ignore */
     }
     say(INTRO, { after: () => setS("idle") });
-  }, [onFinalTranscript, say, setS]);
+  }, [onFinalTranscript, onInterimTranscript, say, setS]);
 
   useEffect(() => {
     if (!getRecognitionCtor() || !isSpeechSupported()) setS("unsupported");
@@ -627,6 +738,7 @@ export function useVoiceAgent() {
     return () => {
       enabledRef.current = false;
       if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
+      if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
       cancelSpeech();
       try {
         recRef.current?.abort();
@@ -636,5 +748,14 @@ export function useVoiceAgent() {
     };
   }, []);
 
-  return { status, heard, message, enable, disable: teardown };
+  return {
+    status,
+    heard,
+    message,
+    enable,
+    disable: teardown,
+    pause: pausePlayback,
+    resume: resumePlayback,
+    stop: stopPlayback,
+  };
 }
