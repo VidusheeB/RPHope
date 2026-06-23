@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getGene } from "@/lib/genes";
 import { geneGrid } from "@/lib/geneGrid";
 import GeneArticles from "@/components/site/GeneArticles";
+import ListenButton from "@/components/site/ListenButton";
 import { getResearchItems } from "@/lib/researchRepo";
 
 export function generateStaticParams() {
@@ -27,10 +28,27 @@ export function generateMetadata({
   return { title: item ? `${item.display} | RP Hope` : "Gene not found — RP Hope" };
 }
 
-function FaceOfRP({ name, location }: { name: string; location?: string }) {
+function FaceOfRP({
+  name,
+  location,
+  gene,
+}: {
+  name: string;
+  location?: string;
+  gene: string;
+}) {
   const initial = name.replace(/[^A-Za-z]/g, "").charAt(0).toUpperCase() || "•";
   return (
-    <div className="flex shrink-0 flex-col items-center text-center">
+    <div
+      className="flex shrink-0 flex-col items-center text-center"
+      // Voice-reader hook: a clean verbatim string the voice assistant reads
+      // when asked about the "face of RP", instead of scraping the badge (which
+      // would include the decorative initial).
+      data-readable-key="face of rp"
+      data-readable-text={`The face of RP for ${gene} is ${name}${
+        location ? `, from ${location}` : ""
+      }.`}
+    >
       <span className="text-[10px] font-bold uppercase tracking-widest text-forest/70">
         A Face of RP
       </span>
@@ -44,6 +62,31 @@ function FaceOfRP({ name, location }: { name: string; location?: string }) {
       {location && <span className="text-sm text-ink/60">{location}</span>}
     </div>
   );
+}
+
+/**
+ * Build the verbatim text the read-aloud button speaks. Only published,
+ * human-facing fields — no AI paraphrase, no page chrome. Mirrors the order the
+ * page presents content (name, at-a-glance, brief description).
+ */
+function readableGeneText(
+  gene: ReturnType<typeof getGene>,
+  articles: import("@/components/site/GeneArticles").Article[]
+): string {
+  if (!gene) return "";
+  const parts: string[] = [];
+  parts.push(gene.fullName ? `${gene.gene}. ${gene.fullName}.` : `${gene.gene}.`);
+  if (gene.diseaseCategory) parts.push(`Disease category: ${gene.diseaseCategory}.`);
+  if (gene.patientPopulation) parts.push(`Patient population: ${gene.patientPopulation}.`);
+  if (gene.treatmentOptions) parts.push(`Treatment options: ${gene.treatmentOptions}.`);
+  if (gene.eyeHealthStrategies)
+    parts.push(`Strategies to preserve eye health: ${gene.eyeHealthStrategies}.`);
+  if (gene.summary) parts.push(`Brief description. ${gene.summary}`);
+  if (articles.length > 0) {
+    parts.push("In the news.");
+    for (const a of articles) parts.push(`${a.title.replace(/\.?$/, ".")}`);
+  }
+  return parts.join(" ");
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -111,8 +154,13 @@ export default async function GenePage({ params }: { params: { gene: string } })
               <FaceOfRP
                 name={gene.faceOfRP.name}
                 location={gene.faceOfRP.location}
+                gene={gene.gene}
               />
             )}
+          </div>
+
+          <div className="mt-5">
+            <ListenButton text={readableGeneText(gene, articles)} />
           </div>
 
           <dl className="mt-6 grid gap-x-10 sm:grid-cols-2">

@@ -246,7 +246,10 @@ New version (live app at repo root):
 - `/newly-diagnosed`, `/clinical-trials`, `/stories` — content pages (stories/trials have sample data)
 - `/donate`, `/events` — recreated (restyle to new brand still pending)
 - `/privacy-policy`, `/terms-of-use` — stubs
-- `/api/navigate` — AI navigation assistant endpoint
+- `/api/navigate` — bounded text nav assistant (homepage `NavAssistant` + voice "take me to")
+- `/api/assistant` — **conversational voice brain** (Opus, whole-site corpus, pure prose)
+- `/api/explain` — gated per-gene simplify/analogy (Opus, reviewed-content-grounded)
+- `/api/cron/research-pull` — weekly Opus web-search research drafts
 
 Archived original-site clone (reference only, excluded from build): `StaticDemoOriginal/`
 (`who-we-are`, `learn-more`, `search` + old Nav/Footer/GeneCard).
@@ -334,8 +337,94 @@ Archived original-site clone (reference only, excluded from build): `StaticDemoO
     `npm run research:pull -- rpgr` (uncapped; needs the env in `.env.local`).
   - **Governance**: Opus may DRAFT freely, but nothing publishes until a human reviews it. Titles/URLs
     come from real web-search results; `why_it_matters` is AI-written and must be checked.
+  - **TODO — FAQ extraction (planned).** While Opus is already pulling research per gene, also have it
+    draft a small set of **plain-English FAQ entries** per gene (question + answer, e.g. the "some
+    methods are…" that the voice assistant's advice-handoff currently stitches verbatim from page
+    fields). Store as `pending_review` in a new `faqs` table (one row per Q/A, gene-scoped, item-level
+    status like `research_items`). Once a human approves, the voice assistant answers from the
+    **reviewed FAQ answer** — backend context catered to the question's phrasing — instead of reading
+    raw page fields. Keeps governance intact (human-reviewed before it's spoken) while being more
+    natural than verbatim field-stitching. Not built yet.
 - **Accessibility pass** — fixed low-contrast disease-category label (gray → forest, larger,
   non-italic; ~3.9:1 → ~9:1), plus result counts, notes, and gene-page field labels to meet AA.
+- **Read-aloud button** (`components/site/ListenButton.tsx` + `lib/speech.ts`) — "Listen to this
+  page" on gene detail pages. Browser-native `SpeechSynthesis` (free, no keys); never autoplays
+  (starts on click), keyboard-operable with visible Pause/Resume/Stop, `aria-hidden` so it doesn't
+  duplicate content for an active screen reader, hidden on unsupported browsers. Speaks VERBATIM
+  published fields only via `readableGeneText()` (name → at-a-glance → brief description → In-the-News
+  titles) — no AI paraphrase, so it stays inside content governance.
+- **Hands-free conversational voice assistant** (`components/site/VoiceAssistant.tsx` +
+  `lib/useVoiceAgent.ts` + `app/api/assistant/route.ts`) — mounted globally in `app/layout.tsx`,
+  **opt-in / OFF by default** so it never fights an active screen reader (targets the low-vision /
+  aging / non-screen-reader audience). This evolved a LOT through owner iteration — it is now a
+  **fully conversational Claude, grounded to the website**, not a keyword router. Read this whole
+  block before changing it.
+  - **Flow**: one tap **"Click to use mic"** (the single unavoidable gesture — browsers require a
+    user action before mic/audio) → mic permission + audio unlock → spoken intro → listens for the
+    wake phrase **"Hello Claude"** (continuous `webkitSpeechRecognition` + auto-restart loop). After
+    the first "Hello Claude" the conversation **stays open indefinitely** (no silence timeout — it
+    kept dropping users mid-thought) until they say **"goodbye"** (ends session) or **"turn off"**
+    (disables). Enable-preference stored in cookie `rphope_voice`; client-side navigation keeps the
+    mic session alive.
+  - **The brain (`app/api/assistant/route.ts`, Opus `claude-opus-4-8`).** Owner decision, arrived at
+    over several rounds (superseded the original verbatim-only + JSON-envelope + keyword-routing
+    designs): the assistant **talks naturally like Claude and may freely answer / simplify /
+    analogize / rephrase** — its ONE boundary is that its **knowledge is fenced to the RP Hope
+    website**. Mechanics:
+    - **Whole-site corpus, cached.** `SITE_CORPUS` (built once at module load) = all sections +
+      **every gene's full record** (summary, inheritance, population, treatments, eye-health,
+      institutions, trials, **Face of RP**, **+ a visual description of the gene-card photo**) + the
+      research-article list. Sent every turn as a **cached** system prefix (`cache_control:
+      ephemeral`; warm turns ≈3.5s vs ≈6s cold). Small site (66 genes ≈ ~20–25k tokens) → hand the
+      model everything instead of per-turn retrieval, so it "knows the whole site" regardless of
+      page. Current page is a one-line hint on the **user** turn (keeps the cached prefix byte-stable).
+    - **Pure natural prose — NO JSON.** Earlier designs made the model emit a `{reply, navigate}` JSON
+      envelope; when it answered in prose instead, `JSON.parse` threw and the user got a canned "I had
+      trouble with that". Removed entirely — the endpoint returns `{ reply }` = exactly what Claude
+      said. Only a real network/model error falls back now.
+    - **"See the screen" (visual matching).** The gene cards show real Face-of-RP **photos**
+      (`/public/genes/*.jpg`). `scripts/describe-faces.mjs` ran Haiku vision once over them → short
+      visual descriptions in **`lib/geneFaceImages.json`** (38 real portraits; the 15 from-scratch
+      genes have placeholder "iris" graphics, auto-filtered out). Folded into the corpus, so "the bald
+      man with black sunglasses" → resolves to **LRAT**. Re-run `node scripts/describe-faces.mjs` if
+      photos change.
+  - **✏️ Editable instructions:** the entire personality + rules is one hand-editable file,
+    `lib/assistantInstructions.ts` (`ASSISTANT_SYSTEM_PROMPT`, with a `{{WEBSITE_CONTEXT}}`
+    placeholder). It's intentionally **minimal** (owner asked to "remove all bars"): be a natural,
+    capable Claude; answer from the site; one optional clinician-handoff line the owner can delete.
+    Edit the prose, save, next turn changes — no other code edits.
+  - **Voice commands** (fast, client-side, before any model call — in `lib/useVoiceAgent.ts`):
+    - **"stop"** — barge-in: the mic now stays **live while Claude speaks**, so the visitor can cut it
+      off. To stop Claude hearing its own TTS echo, only a **short utterance (≤8 words) containing an
+      interrupt word** acts; long transcripts (Claude's own voice) are ignored. "stop, tell me about X"
+      stops *and* runs the remainder.
+    - **"pause"** / **"continue"** — `pauseSpeech()/resumeSpeech()` in `lib/speech.ts` (a `paused` flag
+      stops the keep-alive from auto-resuming) so a long answer holds and resumes **without resetting**.
+    - **"take me to X" / "go to / open / show me"** → bounded navigation via `/api/navigate`
+      (resolves a real href, confirms, `router.push`, then reads the page). Vague "take me there"
+      resolves from the last thing Claude said.
+    - **"read this page"** → reads the `<main>` text **verbatim** (the one place output is guaranteed
+      not AI-paraphrased); **"go back"**; **"turn off"**; **"goodbye"**.
+    - Everything else → `converse()` → the conversational brain above (keeps rolling history).
+  - **Confirm flow handles "no, but…"**: only a clean affirmative navigates; "no", "no but tell me
+    about X", "yes but actually…", or any new question all flow back into the natural conversation.
+  - **Governance (the deliberate shift):** this is a conscious move **past** CLAUDE.md's original
+    "verbatim-only / no generative medical content" line — the owner chose conversational-but-
+    site-grounded after repeated discussion. What keeps it defensible: knowledge **fenced to reviewed
+    site content** (can't pull outside medical facts), an **audit log** (every reply → `ai_explanations`
+    `mode='chat'`, `supabase/migrations/0002_ai_explanations.sql`, service-role only), the panel's
+    "not medical advice" note, and an optional clinician-handoff line. If the gene library ever grows
+    large, swap the whole-corpus approach for retrieval/pgvector (it currently fits because the site is
+    small). The voice TTS read-aloud (`lib/speech.ts`, chunked + keep-alive to dodge Chrome's
+    ~15s cutoff) is shared with the **Read-aloud button**.
+  - **Other endpoints:** `app/api/explain/route.ts` (gated per-gene simplify/analogy, Opus) and
+    `app/api/navigate` (typed homepage `NavAssistant` + the "take me to" path) both remain; the main
+    voice conversation goes through `/api/assistant`.
+  - **Browser support**: reliable in Chrome/Edge, partial in Safari, **unsupported in Firefox** —
+    component renders nothing when unsupported; those users use the typed `NavAssistant`.
+  - **Phase 2 (TODO)**: smoother live captions, returning-visitor auto-enable, pgvector semantic
+    search (only if the library outgrows the whole-corpus approach), and reviewed **FAQ** drafting
+    (see research element) so common answers come from human-approved Q/A.
 
 ### How content was sourced (so it can be reproduced)
 - Scraped the live Wix site via its Wix sitemaps (~280 URLs: ~30 pages, 66 events, 168 posts).
@@ -383,6 +472,14 @@ search + tokens). Low volume by design; swap the cron schedule/limit in `vercel.
 - Restyle `/donate` and `/events` to the new brand.
 - Move gene **detail** reads into Supabase (add `face_of_rp`, articles columns; seed full data).
 - Fill the 15 from-scratch genes as `pending_review` (human-reviewed before publish).
-- Read-aloud button; AI voice (speech) layer; embeddings/pgvector for semantic search.
+- Read-aloud ✅ and the **conversational voice assistant** ✅ shipped (whole-site-grounded Claude,
+  pure-prose, barge-in "stop", "pause"/"continue", persistent listening, "take me to" navigation,
+  and **"see the screen"** visual photo matching via `lib/geneFaceImages.json`). Gated simplify/analogy
+  (`/api/explain`) ✅ too. **Manual steps:** (1) run `supabase/migrations/0002_ai_explanations.sql`
+  in Supabase to enable the AI-reply audit log (`mode='chat'`; the assistant works without it —
+  logging is best-effort). (2) `node scripts/describe-faces.mjs` is already run; re-run only if the
+  gene-card photos change. Remaining: voice Phase 2 (smoother captions, returning-visitor auto-enable),
+  research→FAQ extraction, and pgvector semantic search (only if the gene library outgrows the
+  whole-corpus prompt).
 - Apply to Vercel's nonprofit program; build an admin/review UI for the `pending_review` queue
   (currently reviewed in the Supabase Table Editor); pull `og:image` thumbnails for discovered studies.
