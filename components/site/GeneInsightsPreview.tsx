@@ -45,7 +45,7 @@ export default function GeneInsightsPreview() {
               Explore genes linked to RP
             </h2>
             <p className="mt-4 text-lg text-ink/70">
-              Plain-English summaries of what each gene means, what research
+              Clear, jargon-free summaries of what each gene means, what research
               exists, and where trials stand today.
             </p>
           </div>

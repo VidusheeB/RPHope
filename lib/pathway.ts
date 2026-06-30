@@ -86,7 +86,7 @@ export const sections: Record<string, Section> = {
     id: "start",
     title: "Start Here",
     description:
-      "A plain-English orientation to RP — what it is, how it progresses, and what your next steps can be.",
+      "A clear, jargon-free orientation to RP — what it is, how it progresses, and what your next steps can be.",
     href: "/newly-diagnosed",
     icon: "🧭",
   },
@@ -94,7 +94,7 @@ export const sections: Record<string, Section> = {
     id: "genetics",
     title: "Genetic Insights",
     description:
-      "Search 80+ RP-linked genes for plain-English summaries, inheritance, and where research stands.",
+      "Search 80+ RP-linked genes for clear, jargon-free summaries, inheritance, and where research stands.",
     href: "/genetic-insights",
     icon: "🧬",
   },
@@ -110,7 +110,7 @@ export const sections: Record<string, Section> = {
     id: "research",
     title: "Research Updates",
     description:
-      "Curated, plain-English summaries of new RP studies and what they mean for patients today.",
+      "Curated, easy-to-read summaries of new RP studies and what they mean for patients today.",
     href: "/clinical-trials",
     icon: "📚",
   },
@@ -142,7 +142,7 @@ export const sections: Record<string, Section> = {
     id: "updates",
     title: "Monthly Updates",
     description:
-      "Get curated RP research and event announcements in plain English — twice a month at most.",
+      "Get curated RP research and event announcements in clear, everyday language — twice a month at most.",
     href: "/explore",
     icon: "✉️",
   },

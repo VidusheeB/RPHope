@@ -10,7 +10,7 @@ export type ExploreItem = {
 export const exploreItems: ExploreItem[] = [
   {
     title: "Search Genetic Insights",
-    description: "Look up any RP-linked gene for a plain-English summary.",
+    description: "Look up any RP-linked gene for a clear, jargon-free summary.",
     href: "/genetic-insights",
     icon: "🧬",
   },
@@ -40,7 +40,7 @@ export const exploreItems: ExploreItem[] = [
   },
   {
     title: "Donate or Fundraise",
-    description: "Fund plain-English research and family support.",
+    description: "Fund clear, jargon-free research and family support.",
     href: "/donate",
     icon: "♡",
   },

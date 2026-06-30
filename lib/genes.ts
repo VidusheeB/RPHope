@@ -31,7 +31,7 @@ export const genes: Gene[] = (raw as Gene[]).map((g) => ({
   ...g,
   summary:
     g.summary ||
-    `${g.gene} is a gene associated with retinitis pigmentosa. A plain-English summary is being prepared.`,
+    `${g.gene} is a gene associated with retinitis pigmentosa. A clear, jargon-free summary is being prepared.`,
 }));
 
 export function getGene(slug: string): Gene | undefined {

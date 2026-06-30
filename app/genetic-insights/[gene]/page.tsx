@@ -232,7 +232,7 @@ function Disclaimer() {
     <p className="mt-12 border-t border-ink/10 pt-6 text-sm text-ink/50">
       <span className="font-semibold text-ink/70">Medical disclaimer:</span> This
       page is for education and navigation only — not medical advice, diagnosis,
-      or treatment. Plain-English summaries are paraphrases of published research;
+      or treatment. These summaries are paraphrases of published research;
       always confirm details with a qualified clinician and primary sources.
     </p>
   );

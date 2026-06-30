@@ -21,7 +21,7 @@ export const sections: NavTarget[] = [
     label: "Genetic Insights (gene library)",
     href: "/genetic-insights",
     about:
-      "searchable library of 80+ RP-linked genes with plain-English summaries, inheritance, and research status.",
+      "searchable library of 80+ RP-linked genes with clear, jargon-free summaries, inheritance, and research status.",
   },
   {
     label: "Clinical Trials",

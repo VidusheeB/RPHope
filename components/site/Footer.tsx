@@ -71,7 +71,7 @@ export default function Footer() {
             Stay Informed
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-white/70">
-            Receive plain-English RP research updates and event announcements —
+            Receive easy-to-read RP research updates and event announcements —
             no more than twice a month.
           </p>
           <form className="mt-4 flex gap-2">

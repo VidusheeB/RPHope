@@ -18,7 +18,7 @@ export default function DonationSupport() {
             Help families access clearer RP research and community support.
           </h2>
           <p className="mx-auto mt-5 max-w-xl text-lg text-ink/70">
-            RP Hope is a volunteer-led nonprofit. Every dollar funds plain-English
+            RP Hope is a volunteer-led nonprofit. Every dollar funds clear, jargon-free
             research summaries, genetic counseling resources, and family support
             programs.
           </p>

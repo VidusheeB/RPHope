@@ -4,7 +4,7 @@ import CTAButton from "@/components/site/CTAButton";
 export const metadata: Metadata = {
   title: "Newly Diagnosed — RP Hope",
   description:
-    "A plain-English starting point for understanding retinitis pigmentosa, genetic testing, and your next steps.",
+    "A clear, jargon-free starting point for understanding retinitis pigmentosa, genetic testing, and your next steps.",
 };
 
 export default function NewlyDiagnosedPage() {
@@ -21,7 +21,7 @@ export default function NewlyDiagnosedPage() {
         <p className="mt-5 text-lg leading-relaxed text-ink/75">
           Retinitis pigmentosa (RP) is a group of rare genetic eye conditions that
           cause gradual vision loss. A diagnosis can feel overwhelming — this page
-          is a plain-English place to begin: what RP is, why genetic testing
+          is a clear, jargon-free place to begin: what RP is, why genetic testing
           matters, and what to ask your doctor.
         </p>
 

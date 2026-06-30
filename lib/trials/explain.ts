@@ -127,7 +127,7 @@ function profileForPrompt(intake: TrialFinderIntake) {
     country: intake.country,
     travel_scope: intake.travel_scope,
     opportunity_preference: intake.opportunity_type_preference,
-    summary_preference: intake.summary_preference || "plain_english",
+    summary_preference: intake.summary_preference || "everyday_language",
     goal: intake.user_goal || null,
   };
 }
@@ -155,7 +155,7 @@ confidence: one of "high", "medium", "low". If low, prefer a lower category and 
 For each trial also produce:
 - matched_factors: short strings naming what lined up (e.g. "RPGR", "retinitis pigmentosa", "recruiting"). Only things actually present in the trial fields.
 - missing_information: what the user/study team would still need (always include study-team confirmation of eligibility).
-- plain_english_reason: ONE warm, plain sentence on why it may be relevant to review. Match the user's summary_preference in tone. Never claim eligibility.
+- plain_english_reason: ONE warm, clear sentence on why it may be relevant to review. Match the user's summary_preference in tone. Never claim eligibility.
 - study_team_questions: 2 concrete questions the user could ask the study team.
 
 Respond with ONLY a JSON array (no markdown fences, no prose) where each element is:

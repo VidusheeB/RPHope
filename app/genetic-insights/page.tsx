@@ -5,7 +5,7 @@ import GeneLibrary from "./GeneLibrary";
 export const metadata: Metadata = {
   title: "Genetic Insights — RP Hope",
   description:
-    "Search 80+ RP-linked genes for plain-English summaries, inheritance, and where research stands today.",
+    "Search 80+ RP-linked genes for clear, jargon-free summaries, inheritance, and where research stands today.",
 };
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export default async function GeneticInsightsPage() {
           Explore genes linked to RP
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-ink/70">
-          Plain-English summaries of what each gene means, what research exists,
+          Clear, jargon-free summaries of what each gene means, what research exists,
           and where trials stand today. Tell us what you&rsquo;re looking for, or
           browse the full list below.
         </p>

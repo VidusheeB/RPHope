@@ -3,7 +3,7 @@ const cards = [
     icon: "📖",
     tone: "bg-mint",
     iconTone: "text-forest",
-    title: "Plain-English Summaries",
+    title: "Clear, Jargon-Free Summaries",
     body: "Complex research translated into language families can actually use — no PhD required. We break down what each study means for patients today.",
   },
   {

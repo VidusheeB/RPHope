@@ -150,7 +150,7 @@ export const USER_GOAL: IntakeOption[] = [
 ];
 
 export const SUMMARY_PREFERENCE: IntakeOption[] = [
-  { value: "plain_english", label: "Plain-English summary" },
+  { value: "everyday", label: "Easy-to-read summary" },
   { value: "scientific", label: "More scientific detail" },
   { value: "ask_team", label: "What to ask the study team" },
   { value: "eligibility_points", label: "Key eligibility points" },

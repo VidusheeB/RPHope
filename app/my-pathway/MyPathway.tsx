@@ -133,7 +133,7 @@ export default function MyPathway() {
               You&rsquo;re set for monthly updates
             </h2>
             <p className="mt-2 text-white/80">
-              Add your email to start receiving curated, plain-English RP research
+              Add your email to start receiving curated, easy-to-read RP research
               and event news.
             </p>
             <form className="mt-4 flex max-w-md gap-2" onSubmit={(e) => e.preventDefault()}>

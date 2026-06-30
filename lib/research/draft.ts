@@ -35,7 +35,7 @@ For the 3-6 most relevant and recent items you find, produce:
 - title: the real article / study / trial title, copied accurately from the source.
 - url: the real source URL from your search results — NEVER invent or guess a URL.
 - published_label: the publication or update date/year if available; omit if unknown.
-- why_it_matters: ONE plain-English sentence (~12-25 words) on why an RP patient or family might care. Do NOT invent or imply findings, results, or efficacy beyond what the title/source states. No medical advice. For a clinical trial, say it is studying/testing something — never that it works.
+- why_it_matters: ONE clear, everyday-language sentence (~12-25 words) on why an RP patient or family might care. Do NOT invent or imply findings, results, or efficacy beyond what the title/source states. No medical advice. For a clinical trial, say it is studying/testing something — never that it works.
 
 Rules:
 - Only include items genuinely about THIS gene in the context of RP or closely related inherited retinal disease.

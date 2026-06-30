@@ -46,7 +46,7 @@ export default function ClinicalTrialsFinder() {
           Searching global trial registries…
         </h2>
         <p className="mt-2 text-ink/70">
-          Pulling current studies and translating them into plain English. This
+          Pulling current studies and translating them into clear, everyday language. This
           takes a few seconds.
         </p>
       </div>
