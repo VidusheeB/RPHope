@@ -300,17 +300,12 @@ export default function TrialIntakeForm({
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-14">
-      <p className="text-sm font-bold uppercase tracking-widest text-forest">
-        Clinical Trials Finder
-      </p>
-      <h1 className="mt-3 font-display text-3xl font-bold text-ink sm:text-4xl">
-        Find research worth reviewing
+      <h1 className="font-display text-3xl font-bold text-ink sm:text-4xl">
+        Find clinical trial matches
       </h1>
       <p className="mt-3 text-ink/70">
-        Answer a few questions and we&rsquo;ll surface clinical trials, registries,
-        and research opportunities that <span className="font-semibold">may be relevant
-        to review</span> — anywhere in the world. This is for navigation, not a
-        diagnosis or eligibility decision.
+        Answer a few questions about diagnosis, gene status, location, and research
+        goals. We&rsquo;ll show you the clinical trials that match your needs best.
       </p>
 
       {/* Progress */}
@@ -390,7 +385,7 @@ export default function TrialIntakeForm({
       case "search_for":
         return (
           <>
-            <Legend text="Who is this search for?" helper="We use this for tone only — never to decide eligibility." />
+            <Legend text="Who is this search for?" />
             <SingleChoice
               options={SEARCH_FOR}
               value={form.search_for}

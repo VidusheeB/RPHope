@@ -125,14 +125,11 @@ export async function POST(req: Request) {
     "Because you don't know the gene linked to the diagnosis yet, we're showing broader RP/IRD studies, registries, and research opportunities that do not appear limited to one specific gene. Once you have a genetic test result, RP Hope can help surface more specific gene-related opportunities.";
   const contextNote = geneKnown ? knownGeneNote : unknownGeneNote;
 
+  // No-results paths still surface the known/unknown-gene context note (it must
+  // not be hidden); the "couldn't find studies" explanation lives in the result UI.
   if (fetched.length === 0) {
     return NextResponse.json(
-      emptyResponse(
-        "We could not find relevant active studies from the available trial data right now. You may still want to check back later, join a registry, or discuss research options with your clinician.",
-        geneKnown,
-        normalizedGene,
-        normalizedCondition,
-      ),
+      emptyResponse(contextNote, geneKnown, normalizedGene, normalizedCondition),
     );
   }
 
@@ -140,12 +137,7 @@ export async function POST(req: Request) {
 
   if (gated.length === 0) {
     return NextResponse.json(
-      emptyResponse(
-        "We did not find a strong match in the active trial data right now. You may want to broaden your filters, join a registry, or check back later.",
-        geneKnown,
-        normalizedGene,
-        normalizedCondition,
-      ),
+      emptyResponse(contextNote, geneKnown, normalizedGene, normalizedCondition),
     );
   }
 

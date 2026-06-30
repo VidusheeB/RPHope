@@ -45,10 +45,7 @@ export default function TrialResults({
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-14">
-      <p className="text-sm font-bold uppercase tracking-widest text-forest">
-        Clinical Trials Finder
-      </p>
-      <h1 className="mt-3 font-display text-3xl font-bold text-ink sm:text-4xl">
+      <h1 className="font-display text-3xl font-bold text-ink sm:text-4xl">
         Research you may want to review
       </h1>
 
@@ -64,9 +61,9 @@ export default function TrialResults({
         {DISCLAIMER}
       </div>
 
-      {/* Known/unknown gene context */}
+      {/* Known/unknown gene context — always shown (cannot be hidden), red box */}
       {data.contextNote && (
-        <p className="mt-4 rounded-xl border border-forest/20 bg-mint/30 px-5 py-4 text-sm leading-relaxed text-ink/80">
+        <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm leading-relaxed text-ink/80">
           {data.contextNote}
         </p>
       )}
@@ -99,11 +96,7 @@ export default function TrialResults({
               reviewing.
             </p>
           )}
-          <Section
-            title="Best matches to review"
-            blurb="Most closely aligned with what you shared. Still options to review — not eligibility decisions."
-            items={sections.bestMatches}
-          />
+          <Section title="Best matches to review" items={sections.bestMatches} />
           <Section
             title="Broader research options"
             blurb="RP/IRD studies that aren't limited to one specific gene."
