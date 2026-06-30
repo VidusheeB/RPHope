@@ -243,10 +243,14 @@ New version (live app at repo root):
   Description, In the News, disclaimer). 51/66 genes have real content.
 - `/my-pathway` — "My RP Pathway" guided quiz + personalized results
 - `/explore` — Explore RP Hope quick-access grid
-- `/newly-diagnosed`, `/clinical-trials`, `/stories` — content pages (stories/trials have sample data)
+- `/clinical-trials` — **Clinical Trials Finder**: guided global intake quiz → live ClinicalTrials.gov
+  results, AI-classified as "may be relevant to review" (never eligibility). See feature note below.
+- `/newly-diagnosed`, `/stories` — content pages (stories has sample data)
 - `/donate`, `/events` — recreated (restyle to new brand still pending)
 - `/privacy-policy`, `/terms-of-use` — stubs
 - `/api/navigate` — bounded text nav assistant (homepage `NavAssistant` + voice "take me to")
+- `/api/trials/match` — Clinical Trials Finder matcher (normalize → CT.gov fetch → safety gates →
+  Opus relevance classify → rank/group). Opus; deterministic fallback when no key.
 - `/api/assistant` — **conversational voice brain** (Opus, whole-site corpus, pure prose)
 - `/api/explain` — gated per-gene simplify/analogy (Opus, reviewed-content-grounded)
 - `/api/cron/research-pull` — weekly Opus web-search research drafts
@@ -425,6 +429,36 @@ Archived original-site clone (reference only, excluded from build): `StaticDemoO
   - **Phase 2 (TODO)**: smoother live captions, returning-visitor auto-enable, pgvector semantic
     search (only if the library outgrows the whole-corpus approach), and reviewed **FAQ** drafting
     (see research element) so common answers come from human-approved Q/A.
+- **Clinical Trials Finder** (`app/clinical-trials/`, `components/site/trials/`, `lib/trials/`,
+  `app/api/trials/match/route.ts`) — a guided, global, AI-assisted trial-discovery flow. NOT an
+  eligibility tool: every result is framed "may be relevant to review" / "ask the study team."
+  - **Flow**: a 14-question progressive-disclosure intake (`TrialIntakeForm`, mirrors the
+    `my-pathway` quiz UX) → `POST /api/trials/match` → grouped result cards (`TrialResults` →
+    `TrialCard`), orchestrated by `ClinicalTrialsFinder`. Branches: gene questions only show if the
+    user knows their gene; an inline "did you mean RPGR?" confirm step appears when input is fuzzy.
+  - **Source-grounded data**: live **ClinicalTrials.gov API v2** (`lib/trials/source.ts`, public, no
+    key, global, always current) is the reviewed source. We map studies → `TrialRecord` and only
+    pass those real fields downstream. Route is `force-dynamic`, nodejs, 12s fetch timeout.
+  - **Deterministic normalization** (`lib/trials/normalize.ts`, `geneUtil.ts`) — dictionary +
+    fuzzy/Levenshtein match against the existing `geneGrid` (NOT an AI call): "rpgrr"→RPGR,
+    "pde6 beta"→PDE6B, "USH"→ambiguous[USH2A,USH3A]. Runs client-side in the form (instant, no round
+    trip) and again server-side. Keeps governance tight — the model can't invent a gene.
+  - **Deterministic safety gates** (`lib/trials/match.ts`) — drop completed/withdrawn/terminated (by
+    default), off-topic, conflicting-confirmed-gene, and clearly age-incompatible studies. Location is
+    a RANKING signal, not a hard exclusion (rare-disease trials are often far). Unknown-gene rule:
+    gene-specific studies can never be "strong" matches when no gene is confirmed (enforced in code,
+    post-AI). Sections: best / broader / registries+observational / other.
+  - **AI relevance layer** (`lib/trials/explain.ts`, **Opus `claude-opus-4-8`**, system prompt cached)
+    — classifies each trial into a fixed enum (`strong_review_candidate` … `not_relevant`) and writes
+    a plain-English "why it may be relevant" + study-team questions, grounded ONLY in passed fields,
+    forbidden from saying anyone "qualifies/is eligible." Off-enum output is repaired; **deterministic
+    fallback** classifies everything when there's no API key or on any parse/network error (page never
+    dead-ends). Caps to 20 trials/call (overflow → deterministic).
+  - **Governance**: this stays inside the content model because the trial data IS an official registry
+    (no unreviewed medical facts invented), the AI only adds curation/explanation language, and the
+    framing is navigation ("worth reviewing"), never diagnosis or eligibility. Disclaimer at top of
+    results AND on every card. No Supabase table needed yet (the type carries `status_review` so a
+    `manual`/`pending_review` record path exists for the future). **No manual setup required.**
 
 ### How content was sourced (so it can be reproduced)
 - Scraped the live Wix site via its Wix sitemaps (~280 URLs: ~30 pages, 66 events, 168 posts).
