@@ -3,15 +3,51 @@
 // My RP Pathway — a short quiz that builds a guided JOURNEY through the site
 // (not a recommendation grid). See lib/pathway.ts for the deterministic logic.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { questions, buildPathway, type PathwayAnswers } from "@/lib/pathway";
 import { geneGrid } from "@/lib/geneGrid";
 import PathwayJourney from "@/components/site/PathwayJourney";
+
+// Temporarily preserve the journey for the current tab, so visiting a stop and
+// coming back doesn't wipe the quiz. sessionStorage is per-tab and clears when
+// the tab closes — used here only as a graceful enhancement (no medical data).
+const STORAGE_KEY = "rphope_pathway";
 
 export default function MyPathway() {
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
   const [answers, setAnswers] = useState<PathwayAnswers>({});
+  const [mounted, setMounted] = useState(false);
+
+  // Restore any in-session journey once, after hydration.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as {
+          answers?: PathwayAnswers;
+          done?: boolean;
+          step?: number;
+        };
+        if (saved.answers) setAnswers(saved.answers);
+        if (saved.done) setDone(true);
+        if (typeof saved.step === "number") setStep(saved.step);
+      }
+    } catch {
+      /* storage unavailable — quiz still works, just no restore */
+    }
+    setMounted(true);
+  }, []);
+
+  // Persist on change (skip until after the restore pass, so we don't clobber it).
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ answers, done, step }));
+    } catch {
+      /* ignore */
+    }
+  }, [answers, done, step, mounted]);
 
   // Questions currently applicable (Q4 gene selector only shows if gene = yes).
   const visible = useMemo(
@@ -41,6 +77,11 @@ export default function MyPathway() {
     setAnswers({});
     setStep(0);
     setDone(false);
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
   }
 
   const result = useMemo(() => (done ? buildPathway(answers) : null), [done, answers]);

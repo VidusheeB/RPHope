@@ -22,6 +22,11 @@ export default function PathwayJourney({
         {result.title}
       </h1>
       <p className="mt-4 max-w-2xl text-lg text-ink/75">{result.subtitle}</p>
+      <p className="mt-2 text-sm text-ink/60">
+        Your journey stays saved while this tab is open — open a stop, then return
+        here from the <span className="font-semibold">My RP Pathway</span> menu
+        anytime.
+      </p>
 
       {/* Governance note */}
       <div className="mt-6 rounded-xl border border-gold/40 bg-butter/50 px-5 py-4 text-sm leading-relaxed text-ink/80">

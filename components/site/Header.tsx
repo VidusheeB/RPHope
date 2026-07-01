@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const nav = [
   { href: "/genetic-insights", label: "Genetic Insights" },
-  { href: "/newly-diagnosed", label: "Newly Diagnosed" },
+  { href: "/my-pathway", label: "My RP Pathway" },
   { href: "/clinical-trials", label: "Clinical Trials" },
   { href: "/events", label: "Events" },
   { href: "/stories", label: "Stories" },
