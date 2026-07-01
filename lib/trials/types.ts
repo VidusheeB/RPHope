@@ -136,6 +136,8 @@ export type ScoredTrial = {
   trial: TrialRecord;
   classification: TrialClassification;
   rankScore: number;
+  // Km to the nearest study site from the visitor's location (when geocoded).
+  distanceKm?: number;
 };
 
 // Result sections, in display order.

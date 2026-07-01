@@ -38,6 +38,8 @@ export default function TrialCard({ item }: { item: ScoredTrial }) {
   const matchLabel = RELEVANCE_LABELS[classification.relevance_category];
   const primaryCountries = trial.countries.slice(0, 4).join(", ");
   const moreCountries = trial.countries.length > 4 ? ` +${trial.countries.length - 4} more` : "";
+  const nearestMiles =
+    item.distanceKm != null ? Math.round(item.distanceKm / 1.609) : undefined;
 
   return (
     <article className="rounded-2xl border border-ink/10 bg-white p-6 shadow-sm">
@@ -70,7 +72,16 @@ export default function TrialCard({ item }: { item: ScoredTrial }) {
       <dl className="mt-3 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
         <div className="flex gap-2">
           <dt className="font-semibold text-forest">Location</dt>
-          <dd className="text-ink/80">{primaryCountries || "Not specified"}{moreCountries}</dd>
+          <dd className="text-ink/80">
+            {primaryCountries || "Not specified"}
+            {moreCountries}
+            {nearestMiles != null && (
+              <span className="text-ink/60">
+                {" "}
+                · nearest site ~{nearestMiles.toLocaleString()} mi
+              </span>
+            )}
+          </dd>
         </div>
         <div className="flex gap-2">
           <dt className="font-semibold text-forest">Relevance</dt>

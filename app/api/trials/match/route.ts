@@ -14,6 +14,7 @@ import { normalizeCondition, normalizeGene } from "@/lib/trials/normalize";
 import { fetchTrials } from "@/lib/trials/source";
 import { applySafetyGates, rankAndGroup } from "@/lib/trials/match";
 import { classifyTrials } from "@/lib/trials/explain";
+import { geocodeLocation, type GeoPoint } from "@/lib/trials/geocode";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic"; // always hit the live registry
@@ -111,25 +112,54 @@ export async function POST(req: Request) {
     );
   }
 
-  let fetched: TrialRecord[];
+  // Geocode the visitor's location (best-effort) in parallel with the trial fetch,
+  // so we can rank by real distance and be honest about the requested radius.
+  const locQuery = (intake.city || intake.postal_code || "").trim();
+  const wantsDistance =
+    intake.location_precision !== "none" &&
+    !!intake.country &&
+    !!locQuery &&
+    (intake.travel_scope === "near_me" || intake.travel_scope === "state_region");
+  const geoPromise: Promise<GeoPoint | null> = wantsDistance
+    ? geocodeLocation(intake.country, locQuery)
+    : Promise.resolve(null);
+
+  let fetched: TrialRecord[] = [];
+  let geo: GeoPoint | null = null;
   try {
-    fetched = (await Promise.all(queries)).flat();
+    const [arrays, g] = await Promise.all([Promise.all(queries), geoPromise]);
+    fetched = arrays.flat();
+    geo = g;
   } catch {
     fetched = [];
   }
 
-  const knownGeneNote = normalizedGene
+  const geneNote = geneKnown
     ? `Since you selected ${normalizedGene}, we prioritized studies that mention ${normalizedGene}, related inherited retinal disease terms, and currently active opportunities. Only the study team can confirm whether the full criteria fit your situation.`
-    : "";
-  const unknownGeneNote =
-    "Because you don't know the gene linked to the diagnosis yet, we're showing broader RP/IRD studies, registries, and research opportunities that do not appear limited to one specific gene. Once you have a genetic test result, RP Hope can help surface more specific gene-related opportunities.";
-  const contextNote = geneKnown ? knownGeneNote : unknownGeneNote;
+    : "Because you don't know the gene linked to the diagnosis yet, we're showing broader RP/IRD studies, registries, and research opportunities that do not appear limited to one specific gene. Once you have a genetic test result, RP Hope can help surface more specific gene-related opportunities.";
 
-  // No-results paths still surface the known/unknown-gene context note (it must
-  // not be hidden); the "couldn't find studies" explanation lives in the result UI.
+  // Location honesty. `withinCount === undefined` = pre-ranking (empty paths).
+  const radiusKm = intake.travel_radius_km ?? 160;
+  // Show the mileage from the option the visitor actually picked (25/50/100/250).
+  const radiusMiles = { 40: 25, 80: 50, 160: 100, 400: 250 }[radiusKm] ?? Math.round(radiusKm / 1.609);
+  const locLabel = `${locQuery}${intake.country ? ", " + intake.country : ""}`;
+  const locationSentence = (withinCount?: number): string => {
+    if (intake.travel_scope !== "near_me" || !locQuery) return "";
+    if (!geo)
+      return `We couldn't pinpoint "${locQuery}" to sort by distance, so these results aren't distance-ranked — check each study's locations before reaching out.`;
+    if (withinCount === undefined)
+      return `We searched around ${locLabel} but didn't find active studies to rank by distance right now.`;
+    if (withinCount > 0)
+      return `${withinCount} of these ${withinCount === 1 ? "has a study site" : "have a study site"} within about ${radiusMiles} miles of ${locLabel}. The rest are farther away and shown because RP/IRD trials are rare — ask any study team about remote visits or travel support.`;
+    return `We didn't find a study with a site within about ${radiusMiles} miles of ${locLabel}. RP and inherited-retinal-disease trials are rare and their sites are far apart, so we're showing the closest and broader options worth reviewing — it's worth asking any study team about remote visits or travel support.`;
+  };
+  const join = (loc: string) => [loc, geneNote].filter(Boolean).join(" ");
+
+  // No-results paths still surface the context note (it must not be hidden); the
+  // "couldn't find studies" explanation lives in the result UI.
   if (fetched.length === 0) {
     return NextResponse.json(
-      emptyResponse(contextNote, geneKnown, normalizedGene, normalizedCondition),
+      emptyResponse(join(locationSentence()), geneKnown, normalizedGene, normalizedCondition),
     );
   }
 
@@ -137,7 +167,7 @@ export async function POST(req: Request) {
 
   if (gated.length === 0) {
     return NextResponse.json(
-      emptyResponse(contextNote, geneKnown, normalizedGene, normalizedCondition),
+      emptyResponse(join(locationSentence()), geneKnown, normalizedGene, normalizedCondition),
     );
   }
 
@@ -149,12 +179,17 @@ export async function POST(req: Request) {
       Boolean(p.classification),
     );
 
-  const sections = rankAndGroup(pairs, resolvedIntake);
-  const totalShown =
-    sections.bestMatches.length +
-    sections.broaderOptions.length +
-    sections.registriesObservational.length +
-    sections.otherStudies.length;
+  const sections = rankAndGroup(pairs, resolvedIntake, geo);
+  const allShown = [
+    ...sections.bestMatches,
+    ...sections.broaderOptions,
+    ...sections.registriesObservational,
+    ...sections.otherStudies,
+  ];
+  const totalShown = allShown.length;
+  const withinCount = geo
+    ? allShown.filter((s) => s.distanceKm != null && s.distanceKm <= radiusKm).length
+    : undefined;
 
   const response: TrialMatchResponse = {
     sections,
@@ -163,7 +198,7 @@ export async function POST(req: Request) {
     geneKnown,
     normalizedGene,
     normalizedCondition,
-    contextNote,
+    contextNote: join(locationSentence(withinCount)),
     noResults: totalShown === 0,
   };
 

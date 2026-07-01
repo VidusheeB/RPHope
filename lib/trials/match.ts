@@ -15,6 +15,7 @@ import type {
   TrialResultSections,
 } from "./types";
 import { canonGene } from "./geneUtil";
+import { distanceKm as haversineKm, type GeoPoint } from "./geocode";
 
 // Representative age span (years) for each group; null = don't gate on age.
 export function ageRangeForGroup(group?: AgeGroup): [number, number] | null {
@@ -152,6 +153,29 @@ function isRemoteFriendly(trial: TrialRecord): boolean {
   );
 }
 
+// Km from the visitor to the trial's NEAREST site with coordinates (or undefined).
+export function nearestSiteKm(trial: TrialRecord, geo: GeoPoint): number | undefined {
+  let best: number | undefined;
+  for (const loc of trial.locations) {
+    if (loc.lat == null || loc.lng == null) continue;
+    const d = haversineKm(geo, { lat: loc.lat, lng: loc.lng });
+    if (best === undefined || d < best) best = d;
+  }
+  return best;
+}
+
+// Distance is a RANKING signal (rare-disease sites are often far), tuned to the
+// visitor's travel scope. Never a hard exclusion.
+function distanceBonus(d: number | undefined, intake: TrialFinderIntake): number {
+  if (d === undefined) return 0;
+  if (intake.travel_scope === "near_me" || intake.travel_scope === "state_region") {
+    const radius = intake.travel_radius_km ?? 160;
+    const withinBonus = d <= radius ? 12 : Math.max(-8, 4 - d / 80);
+    return withinBonus - Math.min(d / 100, 6); // + continuous "closer is better"
+  }
+  return Math.max(0, 5 - d / 600); // gentle nudge for country/international
+}
+
 function computeRankScore(
   trial: TrialRecord,
   cls: TrialClassification,
@@ -184,6 +208,7 @@ function computeRankScore(
 export function rankAndGroup(
   pairs: { trial: TrialRecord; classification: TrialClassification }[],
   intake: TrialFinderIntake,
+  geo?: GeoPoint | null,
 ): TrialResultSections {
   const geneKnown =
     intake.gene_status === "known" && Boolean(intake.normalized_gene);
@@ -202,10 +227,15 @@ export function rankAndGroup(
         cls = { ...cls, relevance_category: "possible_review_candidate" };
       }
 
+      const distanceKm = geo ? nearestSiteKm(trial, geo) : undefined;
+
       return {
         trial,
         classification: cls,
-        rankScore: computeRankScore(trial, cls, intake, geneKnown),
+        rankScore:
+          computeRankScore(trial, cls, intake, geneKnown) +
+          distanceBonus(distanceKm, intake),
+        distanceKm,
       };
     })
     .filter((s) => s.classification.relevance_category !== "not_relevant")
