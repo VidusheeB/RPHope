@@ -17,6 +17,8 @@ export type Question = {
   prompt: string;
   helper?: string;
   options: Option[];
+  // Allow selecting multiple options (stored as a string[]).
+  multi?: boolean;
   // Only show this question when the predicate passes (progressive disclosure).
   showIf?: (a: PathwayAnswers) => boolean;
   // Special render: a searchable gene selector instead of option buttons.
@@ -28,7 +30,7 @@ export type PathwayAnswers = {
   startingPoint?: string;
   geneStatus?: string;
   selectedGene?: string;
-  mainGoal?: string;
+  mainGoal?: string[];
   researchInterest?: string;
   navigationPreference?: string;
 };
@@ -80,6 +82,8 @@ export const questions: Question[] = [
   {
     id: "mainGoal",
     prompt: "What are you mainly looking for today?",
+    helper: "Choose all that apply.",
+    multi: true,
     options: [
       { value: "easy_read", label: "An easy-to-read explanation" },
       { value: "technical", label: "Technical or scientific detail" },
@@ -218,11 +222,12 @@ export function knowsGene(a: PathwayAnswers): boolean {
 }
 
 export function wantsResearch(a: PathwayAnswers): boolean {
+  const goals = a.mainGoal ?? [];
   return (
     a.role === "research" ||
     a.startingPoint === "research" ||
-    a.mainGoal === "trials" ||
-    a.mainGoal === "research" ||
+    goals.includes("trials") ||
+    goals.includes("research") ||
     a.researchInterest === "trials" ||
     a.researchInterest === "research" ||
     a.researchInterest === "both"
@@ -230,16 +235,17 @@ export function wantsResearch(a: PathwayAnswers): boolean {
 }
 
 export function wantsCommunity(a: PathwayAnswers): boolean {
+  const goals = a.mainGoal ?? [];
   return (
     a.role === "caregiver" ||
-    a.mainGoal === "stories" ||
-    a.mainGoal === "events" ||
+    goals.includes("stories") ||
+    goals.includes("events") ||
     a.startingPoint === "community"
   );
 }
 
 export function wantsSupport(a: PathwayAnswers): boolean {
-  return a.mainGoal === "support";
+  return (a.mainGoal ?? []).includes("support");
 }
 
 // Add a stop only if neither its id nor its href is already present.
@@ -370,13 +376,13 @@ export function buildPathway(answers: PathwayAnswers): PathwayResult {
       answers.role === "caregiver" ||
       answers.role === "newly" ||
       wantsCommunity(answers) ||
-      answers.mainGoal === "stories",
+      (answers.mainGoal ?? []).includes("stories"),
   );
   addOptional(STOP.clinicalTrials, wantsResearch(answers));
   addOptional(
     STOP.events,
     wantsCommunity(answers) ||
-      answers.mainGoal === "events" ||
+      (answers.mainGoal ?? []).includes("events") ||
       answers.startingPoint === "community",
   );
   addOptional(STOP.donate, wantsSupport(answers) || answers.role === "clinician");

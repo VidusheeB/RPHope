@@ -59,9 +59,24 @@ export default function MyPathway() {
   const total = visible.length;
 
   const value = answers[q.id];
-  const canContinue = q.geneSelector ? true : Boolean(value);
+  const canContinue = q.geneSelector
+    ? true
+    : q.multi
+      ? Array.isArray(value) && value.length > 0
+      : Boolean(value);
+
+  const isSelected = (v: string) =>
+    q.multi ? Array.isArray(value) && value.includes(v) : value === v;
 
   function select(v: string) {
+    if (q.multi) {
+      setAnswers((prev) => {
+        const set = new Set((prev[q.id] as string[] | undefined) ?? []);
+        set.has(v) ? set.delete(v) : set.add(v);
+        return { ...prev, [q.id]: Array.from(set) };
+      });
+      return;
+    }
     setAnswers((prev) => ({ ...prev, [q.id]: v }));
   }
 
@@ -157,7 +172,7 @@ export default function MyPathway() {
         ) : (
           <div className="mt-5 grid gap-3">
             {q.options.map((opt) => {
-              const selected = value === opt.value;
+              const selected = isSelected(opt.value);
               return (
                 <button
                   key={opt.value}
