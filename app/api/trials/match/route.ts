@@ -6,6 +6,7 @@
 
 import { NextResponse } from "next/server";
 import type {
+  ScoredTrial,
   TrialFinderIntake,
   TrialMatchResponse,
   TrialRecord,
@@ -138,20 +139,42 @@ export async function POST(req: Request) {
     ? `Since you selected ${normalizedGene}, we prioritized studies that mention ${normalizedGene}, related inherited retinal disease terms, and currently active opportunities. Only the study team can confirm whether the full criteria fit your situation.`
     : "Because you don't know the gene linked to the diagnosis yet, we're showing broader RP/IRD studies, registries, and research opportunities that do not appear limited to one specific gene. Once you have a genetic test result, RP Hope can help surface more specific gene-related opportunities.";
 
-  // Location honesty. `withinCount === undefined` = pre-ranking (empty paths).
+  // Location honesty — computed from the REAL results, never hidden. `shown`
+  // is the ranked list, or undefined on the empty (pre-ranking) paths.
+  const scope = intake.travel_scope;
+  const country = intake.country;
   const radiusKm = intake.travel_radius_km ?? 160;
   // Show the mileage from the option the visitor actually picked (25/50/100/250).
   const radiusMiles = { 40: 25, 80: 50, 160: 100, 400: 250 }[radiusKm] ?? Math.round(radiusKm / 1.609);
-  const locLabel = `${locQuery}${intake.country ? ", " + intake.country : ""}`;
-  const locationSentence = (withinCount?: number): string => {
-    if (intake.travel_scope !== "near_me" || !locQuery) return "";
-    if (!geo)
-      return `We couldn't pinpoint "${locQuery}" to sort by distance, so these results aren't distance-ranked — check each study's locations before reaching out.`;
-    if (withinCount === undefined)
-      return `We searched around ${locLabel} but didn't find active studies to rank by distance right now.`;
-    if (withinCount > 0)
-      return `${withinCount} of these ${withinCount === 1 ? "has a study site" : "have a study site"} within about ${radiusMiles} miles of ${locLabel}. The rest are farther away and shown because RP/IRD trials are rare — ask any study team about remote visits or travel support.`;
-    return `We didn't find a study with a site within about ${radiusMiles} miles of ${locLabel}. RP and inherited-retinal-disease trials are rare and their sites are far apart, so we're showing the closest and broader options worth reviewing — it's worth asking any study team about remote visits or travel support.`;
+  const locLabel = `${locQuery}${country ? ", " + country : ""}`;
+  const inCountry = (s: ScoredTrial) =>
+    !!country && s.trial.countries.some((c) => c.toLowerCase() === country.toLowerCase());
+
+  const locationSentence = (shown?: ScoredTrial[]): string => {
+    // "Near me" → radius-specific (uses geocoded distance).
+    if (scope === "near_me" && locQuery) {
+      if (!geo)
+        return `We couldn't pinpoint "${locQuery}" to sort by distance, so these results aren't distance-ranked — check each study's locations before reaching out.`;
+      if (!shown)
+        return `We searched around ${locLabel} but didn't find active studies to rank by distance right now.`;
+      const within = shown.filter((s) => s.distanceKm != null && s.distanceKm <= radiusKm).length;
+      if (within > 0)
+        return `${within} of these ${within === 1 ? "has a study site" : "have a study site"} within about ${radiusMiles} miles of ${locLabel}. The rest are farther away and shown because RP/IRD trials are rare — ask any study team about remote visits or travel support.`;
+      return `We didn't find a study with a site within about ${radiusMiles} miles of ${locLabel}. RP and inherited-retinal-disease trials are rare and their sites are far apart, so we're showing the closest and broader options worth reviewing — it's worth asking any study team about remote visits or travel support.`;
+    }
+    // Country / region / not-sure with a chosen country → in-country honesty.
+    if (country && (scope === "country" || scope === "state_region" || scope === "not_sure")) {
+      if (!shown)
+        return `We searched for studies in ${country} but didn't find active studies right now.`;
+      const n = shown.filter(inCountry).length;
+      if (n > 0)
+        return `${n} of these ${n === 1 ? "has a study site" : "have a study site"} in ${country}. Others are international and shown because RP/IRD trials are rare — ask any study team about remote visits or travel support.`;
+      return `We didn't find a study with a site in ${country}. RP and inherited-retinal-disease trials are rare, so we're showing international options that may still be worth reviewing — some offer remote visits or travel support, and only the study team can confirm details.`;
+    }
+    // Remote/online only.
+    if (scope === "remote_only")
+      return `You chose remote or online only, so we've prioritized registries, observational studies, and research that isn't tied to a single in-person site.`;
+    return "";
   };
   const join = (loc: string) => [loc, geneNote].filter(Boolean).join(" ");
 
@@ -187,9 +210,6 @@ export async function POST(req: Request) {
     ...sections.otherStudies,
   ];
   const totalShown = allShown.length;
-  const withinCount = geo
-    ? allShown.filter((s) => s.distanceKm != null && s.distanceKm <= radiusKm).length
-    : undefined;
 
   const response: TrialMatchResponse = {
     sections,
@@ -198,7 +218,7 @@ export async function POST(req: Request) {
     geneKnown,
     normalizedGene,
     normalizedCondition,
-    contextNote: join(locationSentence(withinCount)),
+    contextNote: join(locationSentence(allShown)),
     noResults: totalShown === 0,
   };
 
