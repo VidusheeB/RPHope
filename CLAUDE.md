@@ -255,7 +255,8 @@ New version (live app at repo root):
   Opus relevance classify → rank/group). Opus; deterministic fallback when no key.
 - `/api/assistant` — **conversational voice brain** (Opus, whole-site corpus, pure prose)
 - `/api/explain` — gated per-gene simplify/analogy (Opus, reviewed-content-grounded)
-- `/api/cron/research-pull` — weekly Opus web-search research drafts
+- `/api/cron/research-pull` — Opus web-search research drafts; **manual only** (no `vercel.json` cron
+  currently — see Implementation log)
 
 Archived original-site clone (reference only, excluded from build): `StaticDemoOriginal/`
 (`who-we-are`, `learn-more`, `search` + old Nav/Footer/GeneCard).
@@ -350,9 +351,13 @@ Archived original-site clone (reference only, excluded from build): `StaticDemoO
   - **Surfaced on gene pages**: once a human flips a row to `published`, `lib/researchRepo.ts` reads it
     (RLS = published only), merges with the curated `lib/geneArticles.json`, and it renders in the gene
     page's **"In the News"** section (`revalidate = 3600`, so it appears within an hour, no redeploy).
-  - Weekly **Vercel cron** (`vercel.json`, Mon 09:00 UTC, `?limit=12`) protected by `CRON_SECRET`;
-    genes ordered least-recently-pulled so successive runs cover all 66 (~6 weeks/cycle). Manual run:
-    `npm run research:pull -- rpgr` (uncapped; needs the env in `.env.local`).
+  - **Manual only for now (owner decision, 2026-07-02) — no automatic cron.** The `crons` entry in
+    `vercel.json` has been removed to avoid ongoing Opus + web-search spend; the route/logic (`app/api/cron/research-pull/`,
+    protected by `CRON_SECRET`) still exists and works, it's just not scheduled. Run manually with
+    `npm run research:pull -- rpgr` (single gene) or uncapped for the whole `geneGrid` list; needs the
+    env in `.env.local`. **Planned:** re-add a cron to `vercel.json` on a **quarterly** cadence once the
+    gene library size settles (was weekly `0 9 * * 1` capped at `?limit=12`/run, ~6 weeks/cycle at 66
+    genes — quarterly is a deliberate cost-conscious downgrade from that, not a return to it).
   - **Governance**: Opus may DRAFT freely, but nothing publishes until a human reviews it. Titles/URLs
     come from real web-search results; `why_it_matters` is AI-written and must be checked.
   - **TODO — FAQ extraction (planned).** While Opus is already pulling research per gene, also have it
@@ -520,15 +525,17 @@ then the rest of the site is unaffected (gene pages still show the curated `gene
      for Production (and Preview). Vercel auto-sends it as the cron's `Authorization` header.
 4. **Confirm the other env vars are on Vercel** (most already are): `ANTHROPIC_API_KEY`,
    `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-5. **Redeploy** (push to `main`, or Vercel → Deployments → Redeploy) so `vercel.json`'s cron
-   registers. Check Vercel → Settings → Cron Jobs shows `/api/cron/research-pull?limit=12` weekly.
+5. **No cron to register right now (owner decision, 2026-07-02).** The `crons` entry was removed from
+   `vercel.json` to avoid ongoing Opus + web-search spend — run the pull manually instead (step 6/7).
+   Redeploy as usual for the `CRON_SECRET`/env changes above to take effect; there's just no scheduled
+   trigger. **Planned:** re-add a `crons` entry on a quarterly cadence once the gene library size settles.
 6. **Smoke-test (optional but recommended):** locally run `npm run research:pull -- rpgr` →
    open Supabase Table Editor → `research_items` should have a few `pending_review` rows for RPGR.
 7. **Review & publish:** in the Table Editor, read each drafted row; for ones you approve, set
    `status` = `published` (and optionally fill `reviewed_by`). Within ~1 hour they appear in the
    **"In the News"** section of that gene's page (e.g. `rp-hope.vercel.app/genetic-insights/rpgr`).
 
-Ongoing: the weekly cron drafts ~12 genes' worth of new items (oldest-checked first). Periodically
+Ongoing: run `npm run research:pull` manually (no cap) or per-gene, whenever you want fresh drafts. Periodically
 review the `pending_review` queue and publish what passes. Nothing medical goes live unreviewed.
 
 Cost note: each gene run makes one Opus call with up to 5 web searches (web search is billed per

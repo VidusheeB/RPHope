@@ -1,8 +1,2 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/research-pull?limit=12",
-      "schedule": "0 9 * * 1"
-    }
-  ]
 }
