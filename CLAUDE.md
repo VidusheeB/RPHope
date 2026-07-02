@@ -241,7 +241,9 @@ New version (live app at repo root):
 - `/genetic-insights` — gene library (Supabase-backed grid + AI assistant + inheritance filter)
 - `/genetic-insights/[gene]` — gene detail (at-a-glance table, circular Face of RP, Brief
   Description, In the News, disclaimer). 51/66 genes have real content.
-- `/my-pathway` — "My RP Pathway" guided quiz + personalized results
+- `/my-pathway` — "My RP Pathway" — a guided **journey** ("Your RP Hope Journey"): a 7-question
+  quiz builds an ordered website tour (Start here → next stops → optional stops), not a
+  recommendation grid. In the primary nav (replaced "Newly Diagnosed"). See feature note below.
 - `/explore` — Explore RP Hope quick-access grid
 - `/clinical-trials` — **Clinical Trials Finder**: guided global intake quiz → live ClinicalTrials.gov
   results, AI-classified as "may be relevant to review" (never eligibility). See feature note below.
@@ -307,10 +309,22 @@ Archived original-site clone (reference only, excluded from build): `StaticDemoO
 - **Homepage** — Hero (dark teal overlay, serif + gold italic), "Personalize my experience" →
   `/my-pathway`, "I know what I'm looking for" → `/explore`, Choose Your Path, gene preview,
   Research-made-understandable, Events & Community, Donation. Components in `components/site/`.
-- **My RP Pathway** (`app/my-pathway/`) — 60-second quiz (role, gene known, goals, updates) →
-  personalized results across 8 curated sections, "Recommended for you" with reasons. Logic in
-  `lib/pathway.ts` `recommend()` — a pure function; swap it for AI curation later, UI unchanged.
-  All curation labeled "AI-assisted curation … for education and navigation only, not medical advice."
+- **My RP Pathway → "Your RP Hope Journey"** (`app/my-pathway/`, `components/site/PathwayJourney.tsx`
+  + `PathwayStopCard.tsx`) — rebuilt from a recommendation grid into a guided, ordered **website
+  tour**. A 7-question quiz (role, starting point, gene status, conditional **gene selector** shown
+  only if gene known, multi-select main goal, research interest, navigation preference) →
+  `lib/pathway.ts` `buildPathway()` returns a `PathwayResult`: an ordered `primaryPath` (first stop
+  labeled "Start here") + separate `optionalStops` + `notes`. Deterministic rules (no AI):
+  `knowsGene`/`wantsResearch`/`wantsCommunity`/`wantsSupport`/`getGeneHref`, `addStopOnce` dedupes by
+  id+href so a gene-known visitor gets a real multi-page tour (not 4 links to one page); min 2 stops.
+  Gene-known → their gene page; unknown → Genetic Insights + a genetic-testing note; nav-preference
+  answers surface tips for the real read-aloud/voice/search features. Copy is navigation-only
+  ("Start here", "next stop"), never "recommended"/treatment. Timeline UI = numbered `<ol>` (SR order),
+  primary path visually distinct from optional. **In-session preserve:** answers + result persist to
+  `sessionStorage` (per-tab, cleared on close; feature-detected + try/catch, restore runs
+  post-hydration and the save pass is guarded so it can't clobber the restore) so visiting a stop and
+  returning doesn't wipe the journey. "Start over" clears it. Promoted into the primary nav
+  (`components/site/Header.tsx`) in place of "Newly Diagnosed" (that page stays reachable elsewhere).
 - **Explore RP Hope** (`app/explore/`) — quick-access grid (`components/site/ExploreGrid.tsx`).
 - **Gene library** (`app/genetic-insights/`) — Supabase-backed grid + inheritance filter, both
   inside the assistant box (the standalone keyword search bar was removed by request).
@@ -448,6 +462,19 @@ Archived original-site clone (reference only, excluded from build): `StaticDemoO
     a RANKING signal, not a hard exclusion (rare-disease trials are often far). Unknown-gene rule:
     gene-specific studies can never be "strong" matches when no gene is confirmed (enforced in code,
     post-AI). Sections: best / broader / registries+observational / other.
+  - **Real distance handling** (`lib/trials/geocode.ts`) — the visitor's city/postal is geocoded
+    best-effort (Zippopotam for postal codes, Nominatim for place names; free, no key, 6s timeout,
+    graceful null; country→ISO2 map). Haversine distance to each trial's NEAREST CT.gov `geoPoint`
+    (`nearestSiteKm` in `match.ts`) feeds ranking tuned to travel scope (strong pull within radius,
+    gentle penalty beyond — still never a hard exclusion); `distanceKm` rides on each `ScoredTrial`
+    and shows as "nearest site ~N mi" on the card. (Before this, city/zip + radius were collected but
+    unused — location only mattered at country level.)
+  - **Honest, computed location note** (the red context box, always shown — `route.ts`
+    `locationSentence()`) — states the TRUTH from the real results per travel scope: near-me → how
+    many have a site within the picked radius (25/50/100/250 mi) or plainly "none within X mi";
+    country/region → how many have a site in that country or "none in {country}, showing
+    international options"; remote-only → prioritized registries/observational. Deterministic template
+    (a factual count, so not AI). Falls back to "couldn't pinpoint {loc}" if geocoding fails.
   - **AI relevance layer** (`lib/trials/explain.ts`, **Opus `claude-opus-4-8`**, system prompt cached)
     — classifies each trial into a fixed enum (`strong_review_candidate` … `not_relevant`) and writes
     a plain-English "why it may be relevant" + study-team questions, grounded ONLY in passed fields,
@@ -472,6 +499,11 @@ Archived original-site clone (reference only, excluded from build): `StaticDemoO
   trigger (done in `supabase/schema.sql`).
 - The platform/editor injects suggestions to use the Vercel AI SDK and newer Next.js APIs; we
   deliberately use the official Anthropic SDK and Next 14 patterns — those nudges are not bugs.
+- **Copy rule (owner directive): the literal phrase "plain English" must NEVER appear in any
+  user-facing text.** It's the owner's term for talking to the AI, not site copy. Scrubbed site-wide
+  → use "clear, jargon-free" / "easy-to-read" / "clear, everyday language" instead. (Internal code
+  identifiers like the `plain_english_reason` JSON field and the `plain_english_summary` data-model
+  name are fine — they're never rendered. AI prompts were also scrubbed so the model won't emit it.)
 
 ### Deploying the research-pulling element — MANUAL STEPS (do these on your end)
 
@@ -503,7 +535,13 @@ Cost note: each gene run makes one Opus call with up to 5 web searches (web sear
 search + tokens). Low volume by design; swap the cron schedule/limit in `vercel.json` to tune.
 
 ### Still to do (roadmap)
-- Restyle `/donate` and `/events` to the new brand.
+- **Donations (`/donate`) — decided approach, NOT built yet.** Recommend **Stripe Checkout** (hosted):
+  one integration gets cards + **Apple Pay** + **Google Pay** + Link, accessible, receipts handled;
+  apply for Stripe's nonprofit rate (2.2% + 30¢). The org's existing Stripe account (used via Wix)
+  carries over — Stripe is independent of Wix; confirm it's a real Stripe account (dashboard.stripe.com),
+  not "Wix Payments", and check whether any recurring donations live in Stripe. **Zelle can't be
+  embedded** (no merchant API) — only a manual "send to this email/phone" display option. Needs the
+  Stripe keys in Vercel env before building. Also restyle `/donate` + `/events` to the new brand.
 - Move gene **detail** reads into Supabase (add `face_of_rp`, articles columns; seed full data).
 - Fill the 15 from-scratch genes as `pending_review` (human-reviewed before publish).
 - Read-aloud ✅ and the **conversational voice assistant** ✅ shipped (whole-site-grounded Claude,
