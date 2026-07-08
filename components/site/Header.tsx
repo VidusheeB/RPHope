@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const nav = [
   { href: "/genetic-insights", label: "Genetic Insights" },
@@ -16,9 +17,14 @@ export default function Header() {
         className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4"
       >
         <Link href="/" className="flex items-center gap-3">
-          <span
+          <Image
+            src="/home/logo.png"
+            alt=""
             aria-hidden="true"
-            className="h-9 w-9 rounded-full bg-forest"
+            width={40}
+            height={40}
+            priority
+            className="h-10 w-10 rounded-full"
           />
           <span className="font-display text-2xl font-semibold text-forest">
             RP Hope

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const learn = [
   { href: "/genetic-insights", label: "Genetic Insights" },
@@ -9,11 +10,11 @@ const learn = [
 ];
 
 const connect = [
+  { href: "/who-we-are", label: "Who We Are" },
   { href: "/events", label: "Events" },
-  { href: "/explore", label: "Community Forum" },
   { href: "/stories", label: "Patient Stories" },
-  { href: "/explore", label: "Volunteer" },
-  { href: "/explore", label: "Contact Us" },
+  { href: "/transparency", label: "Financial Transparency" },
+  { href: "/who-we-are#contact", label: "Contact Us" },
 ];
 
 export default function Footer() {
@@ -22,7 +23,14 @@ export default function Footer() {
       <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:grid-cols-2 lg:grid-cols-4">
         <div>
           <div className="flex items-center gap-3">
-            <span aria-hidden="true" className="h-8 w-8 rounded-full bg-forest" />
+            <Image
+              src="/home/logo.png"
+              alt=""
+              aria-hidden="true"
+              width={36}
+              height={36}
+              className="h-9 w-9 rounded-full"
+            />
             <span className="font-display text-xl font-semibold text-white">
               RP Hope
             </span>
@@ -31,8 +39,17 @@ export default function Footer() {
             Helping patients and families understand retinitis pigmentosa
             research, genetic testing, and community resources.
           </p>
-          <p className="mt-5 font-mono text-xs text-white/50">
-            EIN: 83-0000000 · 501(c)(3) Nonprofit
+          <address className="mt-5 space-y-1 text-xs not-italic text-white/60">
+            <p>P.O. Box 1163, Pleasanton, CA 94566</p>
+            <p>
+              <a href="mailto:information@rphope.org" className="hover:text-white">
+                information@rphope.org
+              </a>{" "}
+              · 925.209.1440
+            </p>
+          </address>
+          <p className="mt-3 font-mono text-xs text-white/50">
+            EIN: 86-3745576 · 501(c)(3) Nonprofit
           </p>
         </div>
 
