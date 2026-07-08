@@ -9,6 +9,9 @@ export type Article = {
   // Plain-English "why it matters" line (AI-drafted, human-reviewed) for items
   // pulled from PubMed / ClinicalTrials.gov. Absent on legacy curated articles.
   whyItMatters?: string;
+  // Optional thumbnail (a journal cover or the paper's figure). When absent, a
+  // neutral document icon is shown instead. See lib/geneArticleImages.ts.
+  image?: { src: string; alt: string };
 };
 
 export default function GeneArticles({ articles }: { articles: Article[] }) {
@@ -34,13 +37,24 @@ export default function GeneArticles({ articles }: { articles: Article[] }) {
               rel="noopener noreferrer"
               className="flex h-full flex-col rounded-2xl border border-ink/10 bg-white p-4 shadow-sm transition hover:border-forest/40 hover:shadow-md"
             >
-              {/* Article image placeholder until images are curated */}
-              <span
-                aria-hidden="true"
-                className="grid aspect-[4/3] w-full place-items-center rounded-lg bg-cream-card text-3xl text-forest/40"
-              >
-                📄
-              </span>
+              {/* Real article thumbnail (journal cover / figure) when we have
+                  a confident match; otherwise a neutral document icon. */}
+              {a.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={a.image.src}
+                  alt={a.image.alt}
+                  loading="lazy"
+                  className="aspect-[4/3] w-full rounded-lg bg-cream-card object-cover"
+                />
+              ) : (
+                <span
+                  aria-hidden="true"
+                  className="grid aspect-[4/3] w-full place-items-center rounded-lg bg-cream-card text-3xl text-forest/40"
+                >
+                  📄
+                </span>
+              )}
               {a.date && (
                 <span className="mt-3 text-xs text-ink/50">{a.date}</span>
               )}

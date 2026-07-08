@@ -8,10 +8,19 @@
 
 import { getSupabase } from "./supabase";
 import articlesByGene from "./geneArticles.json";
+import { geneArticleImages } from "./geneArticleImages";
 import type { Article } from "@/components/site/GeneArticles";
 
+// Attach a curated thumbnail (by article URL) when we have a confident match.
+function withImage(a: Article): Article {
+  const image = geneArticleImages[a.url];
+  return image ? { ...a, image } : a;
+}
+
 export async function getResearchItems(slug: string): Promise<Article[]> {
-  const local = (articlesByGene as Record<string, Article[]>)[slug] ?? [];
+  const local = ((articlesByGene as Record<string, Article[]>)[slug] ?? []).map(
+    withImage
+  );
 
   const supabase = getSupabase();
   if (!supabase) return local;
@@ -25,12 +34,14 @@ export async function getResearchItems(slug: string): Promise<Article[]> {
 
   if (error || !data || data.length === 0) return local;
 
-  const fromDb: Article[] = data.map((r) => ({
-    title: r.title as string,
-    url: r.source_url as string,
-    date: (r.published_label as string | null) ?? undefined,
-    whyItMatters: (r.why_it_matters as string | null) ?? undefined,
-  }));
+  const fromDb: Article[] = data.map((r) =>
+    withImage({
+      title: r.title as string,
+      url: r.source_url as string,
+      date: (r.published_label as string | null) ?? undefined,
+      whyItMatters: (r.why_it_matters as string | null) ?? undefined,
+    })
+  );
 
   const seen = new Set(fromDb.map((a) => a.url));
   return [...fromDb, ...local.filter((a) => !seen.has(a.url))];
