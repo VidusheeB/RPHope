@@ -53,7 +53,7 @@ export type AgentStatus =
 const NAME = "(claude|cloud|clod|claud|clawed|cloud's|clyde|claudia|cloudy|cload|chlode)";
 const ADDRESS = new RegExp(`\\b${NAME}\\b`, "i");
 const INTRO =
-  "To talk to me, start with my name. Say, Claude, then what you want — for example, Claude, take me to the stories page, or, Claude, pause. I'll only act when you begin with, Claude. Say, Claude, turn off, when you're done.";
+  "To talk to me, start by saying, Hello Claude, then what you want — for example, Hello Claude, take me to the stories page. After that, our conversation stays open — just talk, you don't need to say my name again. Say, goodbye, when you're done, or, Claude, turn off, to disable me.";
 
 // Strip the address word (and any leading hello/hey) off a command, leaving the
 // actual request: "Claude, tell me Rosie's story" → "tell me Rosie's story".
@@ -662,10 +662,14 @@ export function useVoiceAgent() {
         return;
       }
 
-      // ---- A NEW command must be addressed to "Claude" ----
-      // Anything not addressed is ambient talk and is ignored — so it no longer
-      // reacts to every passing remark.
-      if (!ADDRESS.test(t)) return;
+      // ---- A NEW command ----
+      // Only the FIRST command of a fresh session must be addressed by name
+      // ("Hello Claude" / "Claude") — that's what wakes the assistant up and
+      // keeps it from reacting to ambient conversation before it's listening.
+      // Once a session is open (sessionRef.current), it stays hands-free: the
+      // visitor can just talk without re-saying "Claude" every turn — saying
+      // it anyway still works fine since stripAddress removes it either way.
+      if (!sessionRef.current && !ADDRESS.test(t)) return;
       keepSessionAlive();
       setS("listening");
       queueUserSpeech(stripAddress(text));

@@ -99,9 +99,10 @@ export default function VoiceAssistant() {
           )}
 
           <p className="mt-3 text-xs text-ink/50">
-            Start every request with my name — e.g. “Claude, take me to the
-            stories page,” or “Claude, pause.” AI assistant grounded in this site
-            — not medical advice.
+            Start with “Hello Claude” — e.g. “Hello Claude, take me to the
+            stories page.” After that, just talk; no need to say my name again
+            until you say “goodbye.” AI assistant grounded in this site — not
+            medical advice.
           </p>
         </div>
       )}
@@ -112,9 +113,9 @@ export default function VoiceAssistant() {
 function statusLabel(s: AgentStatus): string {
   switch (s) {
     case "idle":
-      return "Say “Claude, …”";
+      return "Say “Hello Claude”";
     case "listening":
-      return "Say “Claude, …”";
+      return "Listening — just talk";
     case "thinking":
       return "Finding it…";
     case "confirming":
