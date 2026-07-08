@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 const nav = [
+  { href: "/who-we-are", label: "About" },
   { href: "/genetic-insights", label: "Genetic Insights" },
   { href: "/my-pathway", label: "My RP Pathway" },
   { href: "/clinical-trials", label: "Clinical Trials" },
