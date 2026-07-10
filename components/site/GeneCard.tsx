@@ -16,11 +16,11 @@ const tagStyles: Record<GeneCardData["tagTone"], string> = {
 
 export default function GeneCard({ data }: { data: GeneCardData }) {
   return (
-    <article className="flex flex-col rounded-2xl border border-ink/10 bg-white p-6 shadow-sm transition hover:shadow-md">
+    <article className="flex flex-col rounded-lg border border-ink/12 bg-white p-6 transition hover:border-forest/40">
       <div className="flex items-start justify-between gap-3">
-        <h3 className="font-display text-2xl font-bold text-ink">{data.gene}</h3>
+        <h3 className="font-sans text-2xl font-bold tracking-tight text-ink">{data.gene}</h3>
         <span
-          className={`rounded-full px-3 py-1 text-xs font-bold ${tagStyles[data.tagTone]}`}
+          className={`rounded px-2.5 py-1 text-[0.7rem] font-bold uppercase tracking-wide ${tagStyles[data.tagTone]}`}
         >
           {data.tag}
         </span>
@@ -28,7 +28,7 @@ export default function GeneCard({ data }: { data: GeneCardData }) {
       <p className="mt-4 flex-1 leading-relaxed text-ink/75">{data.summary}</p>
       <Link
         href={`/genetic-insights/${data.slug}`}
-        className="mt-5 inline-flex items-center gap-2 font-bold text-forest hover:underline"
+        className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold uppercase tracking-[0.06em] text-forest hover:text-forest-dark"
       >
         View insight <span aria-hidden="true">→</span>
       </Link>

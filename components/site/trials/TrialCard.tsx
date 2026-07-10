@@ -42,30 +42,30 @@ export default function TrialCard({ item }: { item: ScoredTrial }) {
     item.distanceKm != null ? Math.round(item.distanceKm / 1.609) : undefined;
 
   return (
-    <article className="rounded-2xl border border-ink/10 bg-white p-6 shadow-sm">
+    <article className="rounded-lg border border-ink/12 bg-white p-6">
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${badge.cls}`}
+          className={`inline-flex items-center gap-1.5 rounded border px-3 py-1 text-xs font-bold ${badge.cls}`}
         >
           <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full bg-current" />
           {badge.label}
         </span>
-        <span className="rounded-full border border-forest/30 bg-forest/5 px-3 py-1 text-xs font-bold text-forest">
+        <span className="rounded border border-forest/30 bg-forest/5 px-3 py-1 text-xs font-bold text-forest">
           {matchLabel}
         </span>
         {trial.study_type && (
-          <span className="rounded-full border border-ink/15 px-3 py-1 text-xs font-semibold text-ink/70">
+          <span className="rounded border border-ink/15 px-3 py-1 text-xs font-semibold text-ink/70">
             {STUDY_TYPE_LABEL[trial.study_type] || "Research study"}
           </span>
         )}
         {trial.phase && (
-          <span className="rounded-full border border-ink/15 px-3 py-1 text-xs font-semibold text-ink/70">
+          <span className="rounded border border-ink/15 px-3 py-1 text-xs font-semibold text-ink/70">
             {trial.phase.replace(/_/g, " ").toLowerCase()}
           </span>
         )}
       </div>
 
-      <h3 className="mt-3 font-display text-xl font-bold leading-snug text-ink">
+      <h3 className="mt-3 font-display text-xl font-medium leading-snug text-ink">
         {trial.title}
       </h3>
 
@@ -101,7 +101,7 @@ export default function TrialCard({ item }: { item: ScoredTrial }) {
         </p>
       )}
 
-      <div className="mt-4 rounded-xl border border-forest/15 bg-cream/60 p-4">
+      <div className="mt-4 rounded-lg border border-forest/15 bg-cream/60 p-4">
         <p className="text-sm font-bold text-forest">Why this may be relevant</p>
         <p className="mt-1 text-sm leading-relaxed text-ink/80">
           {classification.plain_english_reason}
@@ -137,7 +137,7 @@ export default function TrialCard({ item }: { item: ScoredTrial }) {
           href={trial.source_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-xl bg-forest px-5 py-2.5 text-sm font-bold text-white hover:bg-forest-dark"
+          className="inline-flex items-center gap-2 rounded-md bg-forest px-5 py-2.5 text-sm font-bold text-white hover:bg-forest-dark"
         >
           View official trial record
           <span aria-hidden="true">↗</span>

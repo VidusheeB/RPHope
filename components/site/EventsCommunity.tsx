@@ -1,27 +1,29 @@
 import CTAButton from "./CTAButton";
+import Eyebrow from "./Eyebrow";
 
 export default function EventsCommunity() {
   return (
     <section className="bg-cream-header py-20" aria-labelledby="events-community">
       <div className="mx-auto max-w-7xl px-5">
+        <Eyebrow>Get involved</Eyebrow>
         <h2
           id="events-community"
-          className="font-display text-4xl font-bold text-ink sm:text-5xl"
+          className="mt-5 font-display text-4xl font-medium tracking-tight text-ink sm:text-5xl"
         >
           Events &amp; community
         </h2>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-2">
+        <div className="mt-10 grid gap-5 md:grid-cols-2">
           {/* Upcoming event */}
-          <article className="rounded-2xl border border-ink/10 bg-white p-8 shadow-sm">
-            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-forest">
-              <span aria-hidden="true">📅</span> Upcoming Event
+          <article className="rounded-lg border border-ink/12 bg-white p-8">
+            <p className="text-[0.7rem] font-bold uppercase tracking-[0.16em] text-forest">
+              Upcoming Event
             </p>
-            <div className="mt-6 border-l-4 border-forest pl-4">
+            <div className="mt-5">
               <p className="text-sm text-ink/60">
                 July 19, 2025 · 2:00 PM ET · Online
               </p>
-              <h3 className="mt-1 font-display text-2xl font-bold text-ink">
+              <h3 className="mt-1 font-display text-2xl font-medium text-ink">
                 Understanding Your RP Genetic Report
               </h3>
               <p className="mt-3 leading-relaxed text-ink/75">
@@ -35,11 +37,11 @@ export default function EventsCommunity() {
           </article>
 
           {/* Community */}
-          <article className="rounded-2xl bg-forest p-8 text-white shadow-sm">
-            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/70">
-              <span aria-hidden="true">👥</span> Community
+          <article className="rounded-lg bg-forest p-8 text-white">
+            <p className="text-[0.7rem] font-bold uppercase tracking-[0.16em] text-gold-soft">
+              Community
             </p>
-            <h3 className="mt-6 font-display text-2xl font-bold">
+            <h3 className="mt-5 font-display text-2xl font-medium">
               RP Hope Community Forum
             </h3>
             <p className="mt-3 leading-relaxed text-white/80">

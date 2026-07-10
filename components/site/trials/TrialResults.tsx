@@ -18,7 +18,7 @@ function Section({
   return (
     <section className="mt-10" aria-label={`${title} (${items.length})`}>
       <div className="flex items-baseline justify-between gap-4">
-        <h2 className="font-display text-2xl font-bold text-ink">{title}</h2>
+        <h2 className="font-display text-2xl font-medium tracking-tight text-ink">{title}</h2>
         <span className="shrink-0 text-sm font-semibold text-forest">
           {items.length} {items.length === 1 ? "study" : "studies"}
         </span>
@@ -45,7 +45,7 @@ export default function TrialResults({
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-14">
-      <h1 className="font-display text-3xl font-bold text-ink sm:text-4xl">
+      <h1 className="font-display text-3xl font-medium tracking-tight text-ink sm:text-4xl">
         Research you may want to review
       </h1>
 
@@ -57,20 +57,20 @@ export default function TrialResults({
       </p>
 
       {/* Governance disclaimer — top of results */}
-      <div className="mt-5 rounded-xl border border-gold/40 bg-butter/50 px-5 py-4 text-sm leading-relaxed text-ink/80">
+      <div className="mt-5 rounded-md border border-gold/40 bg-butter/50 px-5 py-4 text-sm leading-relaxed text-ink/80">
         {DISCLAIMER}
       </div>
 
       {/* Known/unknown gene context — always shown (cannot be hidden), red box */}
       {data.contextNote && (
-        <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm leading-relaxed text-ink/80">
+        <p className="mt-4 rounded-md border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm leading-relaxed text-ink/80">
           {data.contextNote}
         </p>
       )}
 
       {data.noResults ? (
-        <div className="mt-10 rounded-2xl border border-ink/10 bg-white p-8 text-center">
-          <h2 className="font-display text-2xl font-bold text-ink">
+        <div className="mt-10 rounded-lg border border-ink/10 bg-white p-8 text-center">
+          <h2 className="font-display text-2xl font-medium tracking-tight text-ink">
             No strong matches found right now
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-ink/70">
@@ -82,7 +82,7 @@ export default function TrialResults({
             href="https://clinicaltrials.gov/search?cond=retinitis+pigmentosa"
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-forest px-5 py-2.5 text-sm font-bold text-white hover:bg-forest-dark"
+            className="mt-5 inline-flex items-center gap-2 rounded-md bg-forest px-5 py-2.5 text-sm font-bold text-white hover:bg-forest-dark"
           >
             Browse ClinicalTrials.gov directly <span aria-hidden="true">↗</span>
           </a>
@@ -90,7 +90,7 @@ export default function TrialResults({
       ) : (
         <>
           {noStrong && (
-            <p className="mt-8 rounded-xl border border-ink/15 bg-white px-5 py-4 text-sm text-ink/75">
+            <p className="mt-8 rounded-md border border-ink/15 bg-white px-5 py-4 text-sm text-ink/75">
               We did not find a strong gene-specific match right now. Here are broader
               RP/IRD research options, registries, or studies that may still be worth
               reviewing.
@@ -118,7 +118,7 @@ export default function TrialResults({
         <button
           type="button"
           onClick={onRestart}
-          className="rounded-xl border border-ink/30 px-6 py-3 font-bold text-ink hover:bg-ink/5"
+          className="rounded-md border border-ink/30 px-6 py-3 font-bold text-ink hover:bg-ink/5"
         >
           ↺ Start a new search
         </button>

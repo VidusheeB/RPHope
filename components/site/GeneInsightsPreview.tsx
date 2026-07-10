@@ -1,5 +1,6 @@
 import Link from "next/link";
 import GeneCard, { type GeneCardData } from "./GeneCard";
+import Eyebrow from "./Eyebrow";
 
 const featured: GeneCardData[] = [
   {
@@ -32,15 +33,13 @@ export default function GeneInsightsPreview() {
   return (
     <section className="bg-cream-header py-20" aria-labelledby="gi-preview">
       <div className="mx-auto max-w-7xl px-5">
-        <span className="inline-flex items-center gap-2 rounded-full bg-forest/10 px-4 py-1.5 text-sm font-semibold text-forest">
-          <span aria-hidden="true">⚛</span> Genetic Insights
-        </span>
+        <Eyebrow>Genetic Insights</Eyebrow>
 
-        <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+        <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-xl">
             <h2
               id="gi-preview"
-              className="font-display text-4xl font-bold text-ink sm:text-5xl"
+              className="font-display text-4xl font-medium tracking-tight text-ink sm:text-5xl"
             >
               Explore genes linked to RP
             </h2>
@@ -51,9 +50,9 @@ export default function GeneInsightsPreview() {
           </div>
           <Link
             href="/genetic-insights"
-            className="inline-flex items-center gap-2 font-bold text-forest hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm font-bold uppercase tracking-[0.06em] text-forest hover:text-forest-dark"
           >
-            Browse all genes <span aria-hidden="true">↗</span>
+            Browse all genes <span aria-hidden="true">→</span>
           </Link>
         </div>
 
@@ -62,10 +61,20 @@ export default function GeneInsightsPreview() {
           <label htmlFor="gene-quick-search" className="sr-only">
             Search genes
           </label>
-          <div className="flex items-center gap-3 rounded-2xl border border-ink/15 bg-white px-5 py-4 shadow-sm">
-            <span aria-hidden="true" className="text-ink/40">
-              🔍
-            </span>
+          <div className="flex items-center gap-3 rounded-lg border border-ink/15 bg-white px-5 py-4">
+            <svg
+              aria-hidden="true"
+              className="h-5 w-5 shrink-0 text-ink/40"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
             <input
               id="gene-quick-search"
               name="q"
@@ -76,7 +85,7 @@ export default function GeneInsightsPreview() {
           </div>
         </form>
 
-        <div className="mt-8 grid gap-6 md:grid-cols-3">
+        <div className="mt-8 grid gap-5 md:grid-cols-3">
           {featured.map((g) => (
             <GeneCard key={g.slug} data={g} />
           ))}

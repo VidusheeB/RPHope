@@ -54,7 +54,7 @@ function FaceOfRP({
       </span>
       <span
         aria-hidden="true"
-        className="mt-2 grid h-24 w-24 place-items-center rounded-full bg-forest font-display text-3xl font-bold text-white"
+        className="mt-2 grid h-24 w-24 place-items-center rounded-full bg-forest font-display text-3xl font-medium text-white"
       >
         {initial}
       </span>
@@ -111,17 +111,17 @@ export default async function GenePage({ params }: { params: { gene: string } })
     return (
       <div className="bg-cream">
         <article className="mx-auto max-w-5xl px-5 py-12">
-          <Link href="/genetic-insights" className="text-sm font-bold text-forest">
+          <Link href="/genetic-insights" className="text-sm font-bold uppercase tracking-[0.06em] text-forest hover:text-forest-dark">
             ← Genetic Insights
           </Link>
-          <h1 className="mt-4 font-display text-5xl font-bold text-ink">
+          <h1 className="mt-4 font-sans text-5xl font-bold tracking-tight text-ink">
             {item.display}
           </h1>
-          <dl className="mt-8 max-w-md rounded-2xl border border-ink/10 bg-white px-6 py-2 shadow-sm">
+          <dl className="mt-8 max-w-md rounded-lg border border-ink/12 bg-white px-6 py-2">
             <Field label="Disease Category">{item.label}</Field>
           </dl>
           <section className="mt-12">
-            <h2 className="font-display text-3xl font-bold text-ink">In the News</h2>
+            <h2 className="font-display text-3xl font-medium tracking-tight text-ink">In the News</h2>
             <div className="mt-6">
               <GeneArticles articles={articles} />
             </div>
@@ -135,20 +135,23 @@ export default async function GenePage({ params }: { params: { gene: string } })
   return (
     <div className="bg-cream">
       <article className="mx-auto max-w-5xl px-5 py-12">
-        <Link href="/genetic-insights" className="text-sm font-bold text-forest">
+        <Link href="/genetic-insights" className="text-sm font-bold uppercase tracking-[0.06em] text-forest hover:text-forest-dark">
           ← Genetic Insights
         </Link>
 
         {/* Header card: name + at-a-glance table + Face of RP */}
-        <div className="mt-4 rounded-2xl border border-ink/10 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+        <div className="mt-4 rounded-lg border border-ink/12 bg-white p-6 sm:p-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="font-display text-5xl font-bold text-ink">
+              <h1 className="font-sans text-5xl font-bold tracking-tight text-ink">
                 {gene.gene}
               </h1>
               {gene.fullName && (
                 <p className="mt-1 text-lg text-ink/60">{gene.fullName}</p>
               )}
+              <div className="mt-5">
+                <ListenButton text={readableGeneText(gene, articles)} />
+              </div>
             </div>
             {gene.faceOfRP && gene.faceOfRP.name && gene.faceOfRP.name !== "—" && (
               <FaceOfRP
@@ -159,11 +162,7 @@ export default async function GenePage({ params }: { params: { gene: string } })
             )}
           </div>
 
-          <div className="mt-5">
-            <ListenButton text={readableGeneText(gene, articles)} />
-          </div>
-
-          <dl className="mt-6 grid gap-x-10 sm:grid-cols-2">
+          <dl className="mt-8 grid gap-x-10 sm:grid-cols-2">
             <Field label="Disease Category">{gene.diseaseCategory}</Field>
             <Field label="Treatment Options">
               {gene.treatmentOptions || "—"}
@@ -198,7 +197,7 @@ export default async function GenePage({ params }: { params: { gene: string } })
 
         {/* Brief description */}
         <section className="mt-10">
-          <h2 className="font-display text-3xl font-bold text-ink">
+          <h2 className="font-display text-3xl font-medium tracking-tight text-ink">
             Brief Description
           </h2>
           <p className="mt-4 max-w-3xl text-lg leading-relaxed text-ink/80">
@@ -209,7 +208,7 @@ export default async function GenePage({ params }: { params: { gene: string } })
         {/* In the News */}
         <section className="mt-12">
           <div className="flex items-baseline justify-between">
-            <h2 className="font-display text-3xl font-bold text-ink">
+            <h2 className="font-display text-3xl font-medium tracking-tight text-ink">
               In the News
             </h2>
             <span className="text-xs font-semibold uppercase tracking-wide text-ink/40">

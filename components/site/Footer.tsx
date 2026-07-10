@@ -31,7 +31,7 @@ export default function Footer() {
               height={36}
               className="h-9 w-9 rounded-full"
             />
-            <span className="font-display text-xl font-semibold text-white">
+            <span className="font-display text-xl font-medium tracking-tight text-white">
               RP Hope
             </span>
           </div>
@@ -54,7 +54,7 @@ export default function Footer() {
         </div>
 
         <nav aria-label="Learn">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-white/60">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-gold">
             Learn
           </h2>
           <ul className="mt-4 space-y-3 text-sm">
@@ -69,7 +69,7 @@ export default function Footer() {
         </nav>
 
         <nav aria-label="Connect">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-white/60">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-gold">
             Connect
           </h2>
           <ul className="mt-4 space-y-3 text-sm">
@@ -84,7 +84,7 @@ export default function Footer() {
         </nav>
 
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-widest text-white/60">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-gold">
             Stay Informed
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-white/70">
@@ -99,14 +99,25 @@ export default function Footer() {
               id="footer-email"
               type="email"
               placeholder="your@email.com"
-              className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40"
+              className="w-full rounded-md border border-white/15 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40"
             />
             <button
               type="submit"
               aria-label="Subscribe"
-              className="rounded-lg bg-forest px-3 py-2 text-white hover:bg-forest-dark"
+              className="grid place-items-center rounded-md bg-forest px-3 py-2 text-white hover:bg-forest-dark"
             >
-              ✉
+              <svg
+                aria-hidden="true"
+                className="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
             </button>
           </form>
           <ul className="mt-5 flex gap-3" aria-label="Social media">
@@ -115,7 +126,7 @@ export default function Footer() {
                 <a
                   href="#"
                   aria-label={s}
-                  className="grid h-9 w-9 place-items-center rounded-lg bg-white/10 hover:bg-white/20"
+                  className="grid h-9 w-9 place-items-center rounded-md bg-white/10 hover:bg-white/20"
                 >
                   <span aria-hidden="true" className="text-xs">
                     {s[0]}

@@ -4,7 +4,7 @@ import "./globals.css";
 import SkipLink from "@/components/SkipLink";
 import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
-import VoiceAssistant from "@/components/site/VoiceAssistant";
+import VoiceAssistant from "@/components/site/voice-assistant/VoiceAssistant";
 
 const display = Fraunces({
   subsets: ["latin"],

@@ -119,7 +119,7 @@ function OptionButton({
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`flex items-center justify-between rounded-xl border px-5 py-4 text-left text-lg transition ${
+      className={`flex items-center justify-between rounded-md border px-5 py-4 text-left text-lg transition ${
         selected
           ? "border-forest bg-forest/5 font-semibold text-forest"
           : "border-ink/15 bg-white text-ink hover:border-forest/40"
@@ -300,7 +300,7 @@ export default function TrialIntakeForm({
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-14">
-      <h1 className="font-display text-3xl font-bold text-ink sm:text-4xl">
+      <h1 className="font-display text-3xl font-medium tracking-tight text-ink sm:text-4xl">
         Find clinical trial matches
       </h1>
       <p className="mt-3 text-ink/70">
@@ -329,7 +329,7 @@ export default function TrialIntakeForm({
           type="button"
           onClick={goBack}
           disabled={history.length === 0}
-          className="rounded-xl px-5 py-3 font-semibold text-ink/70 enabled:hover:bg-ink/5 disabled:opacity-40"
+          className="rounded-md px-5 py-3 font-semibold text-ink/70 enabled:hover:bg-ink/5 disabled:opacity-40"
         >
           ← Back
         </button>
@@ -337,7 +337,7 @@ export default function TrialIntakeForm({
           type="button"
           onClick={goNext}
           disabled={!canContinue()}
-          className="rounded-xl bg-forest px-7 py-3 font-bold text-white enabled:hover:bg-forest-dark disabled:opacity-40"
+          className="rounded-md bg-forest px-7 py-3 font-bold text-white enabled:hover:bg-forest-dark disabled:opacity-40"
         >
           {step === "summary" ? "See research to review" : "Continue"}
         </button>
@@ -348,7 +348,7 @@ export default function TrialIntakeForm({
   function Legend({ text, helper }: { text: string; helper?: string }) {
     return (
       <>
-        <legend className="font-display text-2xl font-bold text-ink">{text}</legend>
+        <legend className="font-display text-2xl font-medium tracking-tight text-ink">{text}</legend>
         {helper && <p className="mt-1 text-sm text-ink/60">{helper}</p>}
         <p className="sr-only">
           Question {stepNumber} of about {approxTotal}
@@ -414,7 +414,7 @@ export default function TrialIntakeForm({
                   value={form.conditionOther}
                   onChange={(e) => set({ conditionOther: e.target.value })}
                   placeholder="e.g. rod-cone dystrophy"
-                  className="mt-2 w-full rounded-xl border border-ink/20 bg-white px-4 py-3 text-lg text-ink focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/30"
+                  className="mt-2 w-full rounded-md border border-ink/20 bg-white px-4 py-3 text-lg text-ink focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/30"
                 />
                 <p className="mt-1 text-sm text-ink/55">
                   Optional — we&rsquo;ll broaden to inherited retinal disease if it&rsquo;s unclear.
@@ -459,7 +459,7 @@ export default function TrialIntakeForm({
                 }
                 placeholder="e.g. RPGR, USH2A, PDE6B"
                 autoComplete="off"
-                className="w-full rounded-xl border border-ink/20 bg-white px-4 py-3 text-lg text-ink focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/30"
+                className="w-full rounded-md border border-ink/20 bg-white px-4 py-3 text-lg text-ink focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/30"
               />
               <datalist id="rp-gene-list">
                 {geneGrid.map((g) => (
@@ -567,7 +567,7 @@ export default function TrialIntakeForm({
                   value={form.country}
                   disabled={form.noLocation}
                   onChange={(e) => set({ country: e.target.value })}
-                  className="mt-2 w-full rounded-xl border border-ink/20 bg-white px-4 py-3 text-lg text-ink focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/30 disabled:opacity-50"
+                  className="mt-2 w-full rounded-md border border-ink/20 bg-white px-4 py-3 text-lg text-ink focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/30 disabled:opacity-50"
                 >
                   <option value="">Select a country…</option>
                   {COUNTRIES.map((c) => (
@@ -588,10 +588,10 @@ export default function TrialIntakeForm({
                   disabled={form.noLocation}
                   onChange={(e) => set({ city: e.target.value })}
                   placeholder="e.g. Boston or 02114"
-                  className="mt-2 w-full rounded-xl border border-ink/20 bg-white px-4 py-3 text-lg text-ink focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/30 disabled:opacity-50"
+                  className="mt-2 w-full rounded-md border border-ink/20 bg-white px-4 py-3 text-lg text-ink focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/30 disabled:opacity-50"
                 />
               </div>
-              <label className="flex items-center gap-3 rounded-xl border border-ink/15 bg-white px-4 py-3 text-ink">
+              <label className="flex items-center gap-3 rounded-md border border-ink/15 bg-white px-4 py-3 text-ink">
                 <input
                   type="checkbox"
                   checked={form.noLocation}
@@ -618,7 +618,7 @@ export default function TrialIntakeForm({
               }
             />
             {form.travel_scope === "near_me" && (
-              <div className="mt-5 rounded-xl border border-forest/20 bg-mint/40 p-4">
+              <div className="mt-5 rounded-md border border-forest/20 bg-mint/40 p-4">
                 <p className="font-semibold text-ink">What distance feels reasonable?</p>
                 {form.noLocation && (
                   <p className="mt-1 text-sm text-ink/60">

@@ -39,7 +39,7 @@ export default function VoiceAssistant() {
         <div
           role="status"
           aria-live="polite"
-          className="w-72 max-w-[85vw] rounded-2xl border border-forest/20 bg-white p-4 shadow-xl"
+          className="w-72 max-w-[85vw] rounded-lg border border-forest/20 bg-white p-4 shadow-xl"
         >
           <div className="flex items-center justify-between gap-2">
             <span className="flex items-center gap-2 font-bold text-forest">

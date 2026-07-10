@@ -54,3 +54,22 @@ body {
 .font-display {
   font-optical-sizing: auto;
 }
+
+/* Accessibility preferences set by the voice assistant (data attrs on <html>) */
+:root[data-contrast="high"] body {
+  color: #000;
+}
+:root[data-contrast="high"] a {
+  text-decoration: underline;
+}
+:root[data-contrast="high"] :where(a, button, input, select, textarea):focus-visible {
+  outline-width: 4px;
+}
+:root[data-reduced-motion="true"] *,
+:root[data-reduced-motion="true"] *::before,
+:root[data-reduced-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}

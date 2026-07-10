@@ -1,4 +1,5 @@
 import CTAButton from "./CTAButton";
+import Eyebrow from "./Eyebrow";
 
 export default function Hero() {
   return (
@@ -17,16 +18,11 @@ export default function Hero() {
 
       <div className="mx-auto max-w-7xl px-5 py-24 lg:py-32">
         <div className="max-w-2xl">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-semibold text-white/90 backdrop-blur">
-            <span aria-hidden="true" className="text-gold">
-              ⚛
-            </span>
-            Genetics · Research · Community
-          </span>
+          <Eyebrow tone="dark">Genetics · Research · Community</Eyebrow>
 
-          <h1 className="mt-6 font-display text-5xl font-bold leading-[1.05] text-white sm:text-6xl">
+          <h1 className="mt-6 font-display text-5xl font-medium leading-[1.03] tracking-tight text-white sm:text-6xl">
             Understand RP research.{" "}
-            <span className="italic font-medium text-gold-soft">
+            <span className="italic text-gold-soft">
               Find your path forward.
             </span>
           </h1>

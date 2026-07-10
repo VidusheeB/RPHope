@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getGeneGrid } from "@/lib/genesRepo";
 import GeneLibrary from "./GeneLibrary";
+import Eyebrow from "@/components/site/Eyebrow";
 
 export const metadata: Metadata = {
   title: "Genetic Insights — RP Hope",
@@ -16,10 +17,8 @@ export default async function GeneticInsightsPage() {
   return (
     <div className="bg-cream">
       <div className="mx-auto max-w-7xl px-5 py-16">
-        <span className="inline-flex items-center gap-2 rounded-full bg-forest/10 px-4 py-1.5 text-sm font-semibold text-forest">
-          <span aria-hidden="true">⚛</span> Genetic Insights
-        </span>
-        <h1 className="mt-4 font-display text-5xl font-bold text-ink">
+        <Eyebrow>Genetic Insights</Eyebrow>
+        <h1 className="mt-5 font-display text-5xl font-medium tracking-tight text-ink">
           Explore genes linked to RP
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-ink/70">

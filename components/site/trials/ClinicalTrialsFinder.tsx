@@ -42,7 +42,7 @@ export default function ClinicalTrialsFinder() {
           className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-forest/20 border-t-forest motion-reduce:animate-none"
           aria-hidden="true"
         />
-        <h2 className="mt-6 font-display text-2xl font-bold text-ink">
+        <h2 className="mt-6 font-display text-2xl font-medium tracking-tight text-ink">
           Searching global trial registries…
         </h2>
         <p className="mt-2 text-ink/70">
@@ -56,7 +56,7 @@ export default function ClinicalTrialsFinder() {
   if (phase === "error") {
     return (
       <div className="mx-auto max-w-2xl px-5 py-24 text-center">
-        <h2 className="font-display text-2xl font-bold text-ink">
+        <h2 className="font-display text-2xl font-medium tracking-tight text-ink">
           Something went wrong searching for trials
         </h2>
         <p className="mt-2 text-ink/70">
@@ -67,7 +67,7 @@ export default function ClinicalTrialsFinder() {
           <button
             type="button"
             onClick={restart}
-            className="rounded-xl bg-forest px-6 py-3 font-bold text-white hover:bg-forest-dark"
+            className="rounded-md bg-forest px-6 py-3 font-bold text-white hover:bg-forest-dark"
           >
             Try again
           </button>
@@ -75,7 +75,7 @@ export default function ClinicalTrialsFinder() {
             href="https://clinicaltrials.gov/search?cond=retinitis+pigmentosa"
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-xl border border-ink/30 px-6 py-3 font-bold text-ink hover:bg-ink/5"
+            className="rounded-md border border-ink/30 px-6 py-3 font-bold text-ink hover:bg-ink/5"
           >
             ClinicalTrials.gov ↗
           </a>

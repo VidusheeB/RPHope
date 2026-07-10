@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { speak, cancelSpeech, isSpeechSupported } from "@/lib/speech";
+import {
+  speak,
+  cancelSpeech,
+  pauseSpeech,
+  resumeSpeech,
+  isSpeechSupported,
+} from "@/lib/speech";
 
 /**
  * "Listen to this page" — a secondary read-aloud aid for users who do NOT run a
@@ -36,17 +42,21 @@ export default function ListenButton({ text }: { text: string }) {
   }
 
   function pause() {
-    window.speechSynthesis.pause();
+    // Use the module's pause so its keep-alive timer stops auto-resuming (a raw
+    // speechSynthesis.pause() gets undone within ~5s by the keep-alive).
+    pauseSpeech();
     setState("paused");
   }
 
   function resume() {
-    window.speechSynthesis.resume();
+    resumeSpeech();
     setState("playing");
   }
 
   function stop() {
-    window.speechSynthesis.cancel();
+    // Use the module's cancel so it bumps the generation token and clears the
+    // keep-alive + chunk queue (a raw cancel() only skips to the next chunk).
+    cancelSpeech();
     setState("idle");
   }
 

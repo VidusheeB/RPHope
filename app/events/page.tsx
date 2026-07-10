@@ -58,7 +58,7 @@ export default function EventsPage() {
           <p className="text-sm font-bold uppercase tracking-widest text-gold-soft">
             Get Involved
           </p>
-          <h1 className="mt-3 font-display text-4xl font-bold text-white sm:text-5xl">
+          <h1 className="mt-3 font-display text-4xl font-medium tracking-tight text-white sm:text-5xl">
             Our events
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-white/85">
@@ -73,20 +73,20 @@ export default function EventsPage() {
           {events.map((e) => (
             <article
               key={e.title}
-              className="grid items-center gap-6 rounded-2xl border border-ink/10 bg-white p-6 shadow-sm sm:grid-cols-[minmax(0,1fr)_1.3fr]"
+              className="grid items-center gap-6 rounded-lg border border-ink/10 bg-white p-6 sm:grid-cols-[minmax(0,1fr)_1.3fr]"
             >
               <Image
                 src={e.img.src}
                 alt={e.img.alt}
                 width={e.img.w}
                 height={e.img.h}
-                className="w-full rounded-xl object-cover"
+                className="w-full rounded-md object-cover"
               />
               <div>
                 <span className="inline-block rounded-full bg-mint px-3 py-1 text-xs font-bold text-forest">
                   {e.tag}
                 </span>
-                <h2 className="mt-3 font-display text-2xl font-bold text-ink">
+                <h2 className="mt-3 font-display text-2xl font-medium tracking-tight text-ink">
                   {e.title}
                 </h2>
                 <p className="mt-2 font-semibold text-forest">{e.when}</p>

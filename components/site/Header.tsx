@@ -27,15 +27,18 @@ export default function Header() {
             priority
             className="h-10 w-10 rounded-full"
           />
-          <span className="font-display text-2xl font-semibold text-forest">
+          <span className="font-display text-2xl font-medium tracking-tight text-forest">
             RP Hope
           </span>
         </Link>
 
-        <ul className="hidden items-center gap-8 text-[0.95rem] font-semibold text-ink/80 md:flex">
+        <ul className="hidden items-center gap-7 text-[0.9rem] font-semibold text-ink/75 md:flex">
           {nav.map((n) => (
             <li key={n.href}>
-              <Link href={n.href} className="hover:text-forest">
+              <Link
+                href={n.href}
+                className="border-b-2 border-transparent pb-0.5 transition-colors hover:border-gold hover:text-forest"
+              >
                 {n.label}
               </Link>
             </li>
@@ -44,9 +47,21 @@ export default function Header() {
 
         <Link
           href="/donate"
-          className="inline-flex items-center gap-2 rounded-full bg-forest px-5 py-2.5 font-semibold text-white shadow-sm hover:bg-forest-dark"
+          className="inline-flex items-center gap-2 rounded-md bg-forest px-5 py-2.5 font-semibold text-white hover:bg-forest-dark"
         >
-          <span aria-hidden="true">♡</span> Donate
+          <svg
+            aria-hidden="true"
+            className="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20.8 8.6a5 5 0 0 0-8.8-3.2A5 5 0 0 0 3.2 8.6c0 4.2 5.6 8 8.8 10.4 3.2-2.4 8.8-6.2 8.8-10.4Z" />
+          </svg>
+          Donate
         </Link>
       </nav>
     </header>

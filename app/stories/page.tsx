@@ -76,7 +76,7 @@ export default function StoriesPage() {
         <p className="text-sm font-bold uppercase tracking-widest text-forest">
           Stories
         </p>
-        <h1 className="mt-3 font-display text-4xl font-bold text-ink sm:text-5xl">
+        <h1 className="mt-3 font-display text-4xl font-medium tracking-tight text-ink sm:text-5xl">
           Stories like yours
         </h1>
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink/75">
@@ -93,7 +93,7 @@ export default function StoriesPage() {
               href={s.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex flex-col rounded-2xl border border-ink/10 bg-white p-6 shadow-sm transition hover:border-forest/40 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2"
+              className="group flex flex-col rounded-lg border border-ink/10 bg-white p-6 transition hover:border-forest/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2"
             >
               <span className="self-start rounded-full bg-lilac px-3 py-1 text-xs font-bold text-[#5b51a3]">
                 {s.tag}

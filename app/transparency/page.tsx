@@ -67,7 +67,7 @@ export default function TransparencyPage() {
         <p className="text-sm font-bold uppercase tracking-widest text-forest">
           Accountability
         </p>
-        <h1 className="mt-3 font-display text-4xl font-bold text-ink sm:text-5xl">
+        <h1 className="mt-3 font-display text-4xl font-medium tracking-tight text-ink sm:text-5xl">
           Financial transparency
         </h1>
         <p className="mt-5 text-lg leading-relaxed text-ink/75">
@@ -79,7 +79,7 @@ export default function TransparencyPage() {
           EIN: 86-3745576 · 501(c)(3) public charity
         </p>
 
-        <h2 className="mt-12 font-display text-2xl font-bold text-ink">
+        <h2 className="mt-12 font-display text-2xl font-medium tracking-tight text-ink">
           Annual tax filings
         </h2>
         <ul className="mt-6 space-y-3">
@@ -88,7 +88,7 @@ export default function TransparencyPage() {
               <a
                 href={`/transparency/${f.file}`}
                 download
-                className="group flex items-center gap-4 rounded-2xl border border-ink/10 bg-white p-5 shadow-sm transition hover:border-forest/40 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2"
+                className="group flex items-center gap-4 rounded-lg border border-ink/10 bg-white p-5 transition hover:border-forest/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2"
               >
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-forest/10 text-forest">
                   <DownloadIcon />

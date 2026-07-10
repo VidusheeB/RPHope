@@ -48,9 +48,22 @@ export default function NavAssistant() {
     <section aria-labelledby="nav-assistant-heading">
       <h2
         id="nav-assistant-heading"
-        className="flex items-center gap-2 font-display text-xl font-bold text-forest"
+        className="flex items-center gap-2 font-display text-xl font-medium tracking-tight text-forest"
       >
-        <span aria-hidden="true">🧭</span> Tell us what you&rsquo;re looking for
+        <svg
+          aria-hidden="true"
+          className="h-5 w-5 shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" />
+        </svg>
+        Tell us what you&rsquo;re looking for
       </h2>
       <p className="mt-1 text-sm text-ink/70">
         Describe it in your own words and we&rsquo;ll point you to the right place.
@@ -72,12 +85,12 @@ export default function NavAssistant() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="e.g. I have trouble seeing at night"
-          className="flex-1 rounded-xl border border-ink/15 bg-white px-4 py-3 text-base outline-none focus:border-forest"
+          className="flex-1 rounded-md border border-ink/15 bg-white px-4 py-3 text-base outline-none focus:border-forest"
         />
         <button
           type="submit"
           disabled={loading}
-          className="rounded-xl bg-forest px-6 py-3 font-bold text-white hover:bg-forest-dark disabled:opacity-50"
+          className="rounded-md bg-forest px-6 py-3 font-bold text-white hover:bg-forest-dark disabled:opacity-50"
         >
           {loading ? "Thinking…" : "Find it"}
         </button>
@@ -109,7 +122,7 @@ export default function NavAssistant() {
               {result.suggestions.map((s) => {
                 const external = /^https?:\/\//.test(s.href);
                 const cls =
-                  "inline-flex items-center gap-1 rounded-xl border border-forest/30 bg-white px-4 py-2 text-sm font-semibold text-forest hover:border-forest hover:bg-forest/5";
+                  "inline-flex items-center gap-1 rounded-md border border-forest/30 bg-white px-4 py-2 text-sm font-semibold text-forest hover:border-forest hover:bg-forest/5";
                 return (
                   <li key={s.href}>
                     {external ? (

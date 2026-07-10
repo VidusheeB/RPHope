@@ -40,13 +40,13 @@ export default function WhoWeArePage() {
             width={96}
             height={96}
             priority
-            className="h-24 w-24 rounded-full shadow-sm"
+            className="h-24 w-24 rounded-full"
           />
           <div>
             <p className="text-sm font-bold uppercase tracking-widest text-forest">
               Who We Are
             </p>
-            <h1 className="mt-2 font-display text-4xl font-bold text-ink sm:text-5xl">
+            <h1 className="mt-2 font-display text-4xl font-medium tracking-tight text-ink sm:text-5xl">
               Hope, grounded in{" "}
               <span className="italic font-medium text-gold">research.</span>
             </h1>
@@ -63,7 +63,7 @@ export default function WhoWeArePage() {
           {pillars.map((p) => (
             <section
               key={p.heading}
-              className={`rounded-2xl ${p.tint} p-6 shadow-sm`}
+              className={`rounded-lg ${p.tint} p-6`}
             >
               <h2 className="font-display text-xl font-bold text-ink">
                 {p.heading}
@@ -75,9 +75,9 @@ export default function WhoWeArePage() {
 
         <section
           id="contact"
-          className="mt-14 scroll-mt-24 rounded-2xl border border-ink/10 bg-white p-8 shadow-sm"
+          className="mt-14 scroll-mt-24 rounded-lg border border-ink/10 bg-white p-8"
         >
-          <h2 className="font-display text-2xl font-bold text-ink">Contact us</h2>
+          <h2 className="font-display text-2xl font-medium tracking-tight text-ink">Contact us</h2>
           <p className="mt-3 text-ink/75">
             Questions, ideas, or want to get involved? We&rsquo;d love to hear
             from you.

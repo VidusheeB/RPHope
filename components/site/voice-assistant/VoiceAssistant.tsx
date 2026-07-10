@@ -1,0 +1,72 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRPVoiceAssistant } from "@/hooks/useRPVoiceAssistant";
+import {
+  applyPreferences,
+  getPreferences,
+} from "@/lib/voice/accessibilityPreferences";
+import VoiceAssistantPanel from "./VoiceAssistantPanel";
+
+// Persistent "Talk to RP Hope" launcher + the conversational panel. Mounted once
+// globally in the layout. The microphone is never activated automatically — a
+// session only starts on an explicit user action inside the panel.
+export default function VoiceAssistant() {
+  const voice = useRPVoiceAssistant();
+  const [open, setOpen] = useState(false);
+  const launcherRef = useRef<HTMLButtonElement | null>(null);
+
+  // Apply any saved accessibility preferences on first load.
+  useEffect(() => {
+    applyPreferences(getPreferences());
+  }, []);
+
+  const close = useCallback(() => {
+    setOpen(false);
+    // Restore focus to the launcher when the panel closes.
+    window.setTimeout(() => launcherRef.current?.focus(), 0);
+  }, []);
+
+  // Escape: interrupt speech if speaking, otherwise close the panel.
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      if (voice.activity === "speaking") {
+        voice.stopSpeaking();
+      } else {
+        close();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, voice, close]);
+
+  return (
+    <>
+      {/* Global polite live region for connection/navigation announcements. */}
+      <div aria-live="polite" className="sr-only" data-voice-assistant>
+        {voice.announcement}
+      </div>
+
+      {!open && (
+        <button
+          ref={launcherRef}
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-haspopup="dialog"
+          className="fixed bottom-4 right-4 z-50 inline-flex min-h-[48px] items-center gap-2 rounded-full bg-forest px-5 py-3 font-bold text-white shadow-lg transition hover:bg-forest-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
+          data-voice-assistant
+        >
+          <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="9" y="3" width="6" height="11" rx="3" />
+            <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+          </svg>
+          Talk to RP Hope
+        </button>
+      )}
+
+      {open && <VoiceAssistantPanel voice={voice} onClose={close} />}
+    </>
+  );
+}

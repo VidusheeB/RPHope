@@ -11,10 +11,10 @@ export default function ExplorePage() {
   return (
     <div className="bg-cream">
       <div className="mx-auto max-w-7xl px-5 py-16">
-        <p className="text-sm font-bold uppercase tracking-widest text-forest">
+        <span className="inline-block border-b border-gold pb-2 text-xs font-bold uppercase tracking-[0.2em] text-forest">
           Explore RP Hope
-        </p>
-        <h1 className="mt-3 font-display text-4xl font-bold text-ink sm:text-5xl">
+        </span>
+        <h1 className="mt-5 font-display text-4xl font-medium tracking-tight text-ink sm:text-5xl">
           Jump straight to what you need
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-ink/70">

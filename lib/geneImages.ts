@@ -1,7 +1,7 @@
 // Slugs with a real, valid gene-grid image in /public/genes.
 export const geneImages = new Set<string>([
   "abca4",
-  "abgl5",
+  "agbl5",
   "adgra3",
   "adipor1",
   "ahr",

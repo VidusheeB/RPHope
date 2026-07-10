@@ -542,13 +542,30 @@ Cost note: each gene run makes one Opus call with up to 5 web searches (web sear
 search + tokens). Low volume by design; swap the cron schedule/limit in `vercel.json` to tune.
 
 ### Still to do (roadmap)
-- **Donations (`/donate`) — decided approach, NOT built yet.** Recommend **Stripe Checkout** (hosted):
-  one integration gets cards + **Apple Pay** + **Google Pay** + Link, accessible, receipts handled;
-  apply for Stripe's nonprofit rate (2.2% + 30¢). The org's existing Stripe account (used via Wix)
-  carries over — Stripe is independent of Wix; confirm it's a real Stripe account (dashboard.stripe.com),
-  not "Wix Payments", and check whether any recurring donations live in Stripe. **Zelle can't be
-  embedded** (no merchant API) — only a manual "send to this email/phone" display option. Needs the
-  Stripe keys in Vercel env before building. Also restyle `/donate` + `/events` to the new brand.
+- **Donations (`/donate`) — CODE BUILT, blocked on Stripe login/keys from Carin.** Uses **Stripe
+  Checkout** (hosted): one integration gets cards + **Apple Pay** + **Google Pay** + Link, accessible,
+  receipts handled. **What's built (working, typechecked, verified locally):** `lib/stripe.ts`
+  (server client + `stripeConfigured` guard), `app/api/checkout/route.ts` (one-time = `payment` mode;
+  monthly = `subscription` mode with an inline recurring price — no dashboard Products/Prices needed),
+  `components/site/DonateForm.tsx` (Frequency toggle + preset/Other amounts), `/donate/success` +
+  `/donate/cancelled` pages. Page no longer says "demo". Without keys the endpoint returns a clean 503.
+  **Running TODO to finish (do in order):**
+  - [ ] **Waiting on Carin** to hand over the Stripe login (org's existing account, used via Wix).
+        When she does: confirm it's a real Stripe account (dashboard.stripe.com), NOT "Wix Payments";
+        check whether any recurring donations already live in Stripe.
+  - [ ] **Test mode first.** In Stripe (Test mode ON) → Developers → API keys → copy the **Test**
+        secret key (`sk_test_…`).
+  - [ ] Add to `.env.local`: `STRIPE_SECRET_KEY=sk_test_…` and `NEXT_PUBLIC_SITE_URL=http://localhost:3000`.
+  - [ ] `npm run dev` → `/donate` → pay with test card `4242 4242 4242 4242` (future expiry, any CVC).
+        Land on Thank You; also test the **Monthly** toggle (appears under Billing → Subscriptions).
+  - [ ] **Go live:** add `STRIPE_SECRET_KEY` (the **live** `sk_live_…` key) to Vercel env (Production),
+        redeploy.
+  - [ ] Stripe dashboard polish: Settings → Payment methods → enable **Apple Pay / Google Pay**;
+        Settings → Emails → enable "Successful payments" receipts.
+  - [ ] Apply for Stripe's **nonprofit rate** (2.2% + 30¢) — [stripe.com/docs/nonprofit](https://stripe.com/docs/nonprofit).
+  - [ ] **Restyle `/donate` + `/events`** to the new forest/gold brand (still on old Wix teal/maroon tokens).
+  - [ ] (Optional later) Stripe **Customer Portal** link so monthly donors can self-manage/cancel.
+  - **Zelle can't be embedded** (no merchant API) — only a manual "send to this email/phone" display option.
 - Move gene **detail** reads into Supabase (add `face_of_rp`, articles columns; seed full data).
 - Fill the 15 from-scratch genes as `pending_review` (human-reviewed before publish).
 - Read-aloud ✅ and the **conversational voice assistant** ✅ shipped (whole-site-grounded Claude,
@@ -562,3 +579,44 @@ search + tokens). Low volume by design; swap the cron schedule/limit in `vercel.
   whole-corpus prompt).
 - Apply to Vercel's nonprofit program; build an admin/review UI for the `pending_review` queue
   (currently reviewed in the Supabase Table Editor); pull `og:image` thumbnails for discovered studies.
+
+Clinical-trial matching must remain in the dedicated Clinical Trials Finder.
+
+On each Genetic Insights gene page:
+
+- Show only a brief gene-specific trial summary.
+- Display the number of potentially relevant active or recruiting trials.
+- Clearly distinguish:
+  - recruiting
+  - active, not recruiting
+  - completed
+  - preclinical research
+- Do not display generic trials merely because they mention inherited retinal disease.
+- Add a primary action labeled:
+  “Find clinical trials”
+- When clicked, open the Clinical Trials Finder with the current gene
+  preselected.
+- Preserve the user’s ability to change or remove the gene selection.
+
+Use wording such as:
+“Studies that may be relevant to review”
+
+Do not use:
+“You qualify”
+“You are eligible”
+“This trial is right for you”
+“Suitable trial”
+
+The Clinical Trials Finder should collect, where relevant:
+
+- gene
+- diagnosis
+- age
+- country or region
+- travel distance
+- remote participation preference
+- prior treatments
+- study-type preference
+
+Results should explain why each study may be relevant and which eligibility
+details still need confirmation from the study team.

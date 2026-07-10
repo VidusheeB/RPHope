@@ -1,0 +1,558 @@
+<title>RP Hope — Design Directions</title>
+
+<style>
+  /* ============================================================
+     Deliberate single-theme "studio presentation" surface:
+     a warm near-black desk on which the light-brand samples sit
+     like printed swatches. RP Hope's site is a light, warm brand,
+     so previewing it in its own light world is the honest choice;
+     the dark chrome only frames the samples.
+     ============================================================ */
+  :root {
+    /* brand tokens (from tailwind.config.ts) */
+    --forest: #234b43;
+    --forest-dark: #1a3a34;
+    --forest-deep: #16322d;
+    --gold: #cf9f4e;
+    --gold-soft: #ecdca6;
+    --cream: #f4f1e9;
+    --cream-header: #f6f3ec;
+    --cream-card: #eae5d8;
+    --ink: #1e1c19;
+    --mint: #e3eee4;
+    --butter: #f6efd1;
+
+    /* presentation chrome — warm charcoal, biased toward the ink */
+    --desk: #17140f;
+    --desk-2: #201b14;
+    --desk-line: #352f24;
+    --paper-white: #efe9dc;
+    --paper-dim: #b8ab92;
+
+    --serif: "Fraunces", "Georgia", "Times New Roman", serif;
+    --sans: "Mulish", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: radial-gradient(120% 80% at 50% -10%, var(--desk-2), var(--desk) 60%);
+    color: var(--paper-white);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 4vw, 2.5rem); }
+
+  /* ---- deck header ---- */
+  .deck-head { max-width: 62ch; }
+  .deck-eyebrow {
+    font-size: .72rem; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--gold); font-weight: 700; margin: 0 0 1rem;
+  }
+  .deck-head h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(2rem, 5vw, 3.1rem);
+    line-height: 1.05; letter-spacing: -.015em;
+    margin: 0 0 1rem; text-wrap: balance;
+  }
+  .deck-head p { color: var(--paper-dim); font-size: 1.02rem; margin: 0; max-width: 60ch; }
+  .deck-note {
+    margin-top: 1.5rem; font-size: .82rem; color: var(--paper-dim);
+    border-left: 2px solid var(--desk-line); padding-left: 1rem;
+  }
+
+  /* ---- sample frame ---- */
+  .sample { margin-top: clamp(2.5rem, 6vw, 4.5rem); }
+  .sample-tag {
+    display: flex; align-items: baseline; gap: .9rem; flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .sample-tag .num {
+    font-family: var(--serif); font-size: 1.1rem; color: var(--gold);
+    font-variant-numeric: tabular-nums;
+  }
+  .sample-tag h2 {
+    font-family: var(--sans); font-weight: 800; font-size: 1.05rem;
+    letter-spacing: .02em; margin: 0; color: var(--paper-white);
+  }
+  .sample-tag .pill {
+    font-size: .68rem; letter-spacing: .12em; text-transform: uppercase;
+    font-weight: 700; padding: .2rem .6rem; border-radius: 999px;
+  }
+  .pill.rec { background: var(--gold); color: #2a2109; }
+  .pill.cur { background: transparent; color: var(--paper-dim); border: 1px solid var(--desk-line); }
+
+  .frame {
+    border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--desk-line);
+    box-shadow: 0 30px 60px -30px rgba(0,0,0,.7);
+  }
+  /* faux browser bar so each sample reads as a real page */
+  .chrome {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .6rem .9rem; background: #0f0d0a;
+    border-bottom: 1px solid var(--desk-line);
+  }
+  .chrome i { width: 10px; height: 10px; border-radius: 50%; background: #3a342a; display: block; }
+  .chrome .url {
+    margin-left: .6rem; font-size: .72rem; color: var(--paper-dim);
+    font-family: var(--sans);
+  }
+
+  .caption {
+    margin: 1rem 0 0; font-size: .86rem; color: var(--paper-dim);
+    display: flex; flex-wrap: wrap; gap: .4rem 1.1rem;
+  }
+  .caption b { color: var(--paper-white); font-weight: 700; }
+  .caption span::before { content: "› "; color: var(--gold); }
+
+  /* ============================================================
+     SHARED brand-page scaffolding (inside each sample)
+     ============================================================ */
+  .page { background: var(--cream); color: var(--ink); font-family: var(--sans); }
+  .hero { position: relative; overflow: hidden; }
+  .hero-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(90% 120% at 12% 20%, rgba(207,159,78,.16), transparent 55%),
+      linear-gradient(105deg, var(--forest-deep), var(--forest-deep) 42%, var(--forest) 100%);
+  }
+  .hero-inner { position: relative; padding: clamp(2.2rem, 5vw, 3.4rem) clamp(1.5rem, 4vw, 3rem); }
+  .cards { display: grid; gap: 1rem; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 620px) { .cards { grid-template-columns: 1fr; } }
+  .card p { margin: .5rem 0 0; font-size: .92rem; line-height: 1.55; }
+  .btn {
+    display: inline-flex; align-items: center; gap: .5rem;
+    font-weight: 700; font-size: .9rem; text-decoration: none;
+    padding: .7rem 1.15rem; cursor: default;
+  }
+  .icn { width: 26px; height: 26px; display: block; }
+  .icn.sq { width: 44px; height: 44px; }
+
+  /* ---------- DIRECTION 0 : CURRENT (the "AI look") ---------- */
+  .d0 .hero-inner { text-align: center; }
+  .d0 .glasspill {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .4rem 1rem; border-radius: 999px;
+    background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2);
+    color: rgba(255,255,255,.9); font-size: .82rem; font-weight: 600;
+    backdrop-filter: blur(6px);
+  }
+  .d0 h3.hh {
+    font-family: var(--serif); font-weight: 700; color: #fff;
+    font-size: clamp(1.9rem, 4.5vw, 2.9rem); line-height: 1.08;
+    margin: 1.1rem auto 0; max-width: 20ch;
+  }
+  .d0 h3.hh em { font-style: italic; font-weight: 500; color: var(--gold-soft); }
+  .d0 .sub { color: rgba(255,255,255,.85); max-width: 46ch; margin: 1rem auto 0; }
+  .d0 .ctas { display: flex; gap: .8rem; justify-content: center; margin-top: 1.4rem; flex-wrap: wrap; }
+  .d0 .btn.white { background: #fff; color: var(--forest); border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,.15); }
+  .d0 .btn.oline { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.6); border-radius: 12px; }
+  .d0 .cardwrap { padding: clamp(1.5rem,4vw,2.4rem); }
+  .d0 .card {
+    border-radius: 20px; padding: 1.6rem; box-shadow: 0 8px 24px rgba(31,28,25,.12);
+  }
+  .d0 .card.a { background: var(--forest); color: #fff; }
+  .d0 .card.b { background: var(--cream-card); }
+  .d0 .emoji { font-size: 1.5rem; width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center; }
+  .d0 .card.a .emoji { background: rgba(255,255,255,.15); }
+  .d0 .card.b .emoji { background: rgba(207,159,78,.2); }
+  .d0 .card h4 { font-family: var(--serif); font-weight: 700; font-size: 1.3rem; margin: .9rem 0 0; }
+  .d0 .card.a .btn { background:#fff;color:var(--forest);border-radius:12px;margin-top:1rem; }
+  .d0 .card.b .btn { background:var(--ink);color:#fff;border-radius:12px;margin-top:1rem; }
+
+  /* ---------- DIRECTION A : EDITORIAL REFINED (recommended) ---------- */
+  .dA .hero-inner { text-align: left; }
+  .dA .eyebrow {
+    font-size: .72rem; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--gold); font-weight: 700; padding-bottom: .7rem;
+    border-bottom: 1px solid rgba(255,255,255,.22); display: inline-block;
+  }
+  .dA h3.hh {
+    font-family: var(--serif); font-weight: 400; color: #fff;
+    font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.02;
+    letter-spacing: -.02em; margin: 1.1rem 0 0; max-width: 18ch;
+  }
+  .dA h3.hh em { font-style: italic; font-weight: 400; color: var(--gold-soft); }
+  .dA .sub { color: rgba(255,255,255,.82); max-width: 48ch; margin: 1.1rem 0 0; font-size: .98rem; }
+  .dA .ctas { display: flex; gap: .8rem; margin-top: 1.5rem; flex-wrap: wrap; }
+  .dA .btn.white { background: #fff; color: var(--forest); border-radius: 8px; }
+  .dA .btn.oline { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.55); border-radius: 8px; }
+  .dA .cardwrap { padding: clamp(1.5rem,4vw,2.4rem); }
+  .dA .card {
+    border-radius: 10px; padding: 1.6rem; background: var(--cream-header);
+    border: 1px solid rgba(30,28,25,.14);
+  }
+  .dA .card.a { background: var(--forest); color: #fff; border-color: transparent; }
+  .dA .iconbox {
+    width: 44px; height: 44px; border-radius: 8px; display: grid; place-items: center;
+    border: 1px solid rgba(30,28,25,.18);
+  }
+  .dA .card.a .iconbox { border-color: rgba(255,255,255,.28); }
+  .dA .card h4 { font-family: var(--serif); font-weight: 500; font-size: 1.3rem; margin: 0; letter-spacing: -.01em; }
+  .dA .card .btn { padding: 0; margin-top: 1rem; font-size: .82rem; letter-spacing: .04em; text-transform: uppercase; }
+  .dA .card.a .btn { color: var(--gold-soft); }
+  .dA .card.b .btn { color: var(--forest); }
+
+  /* ---------- THE BLEND : 01 warmth + 02 sharpness (recommended) ---------- */
+  .dX .hero-inner { text-align: left; }
+  .dX .eyebrow {
+    font-size: .7rem; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--gold); font-weight: 700; padding-bottom: .7rem;
+    border-bottom: 1px solid rgba(255,255,255,.22); display: inline-block;
+  }
+  .dX h3.hh {
+    font-family: var(--serif); font-weight: 500; color: #fff;
+    font-size: clamp(2rem, 5vw, 3.1rem); line-height: 1.03;
+    letter-spacing: -.02em; margin: 1.2rem 0 0; max-width: 18ch;
+  }
+  .dX h3.hh em { font-style: italic; font-weight: 500; color: var(--gold-soft); }
+  .dX .sub { color: rgba(255,255,255,.82); max-width: 48ch; margin: 1.1rem 0 0; font-size: .98rem; }
+  .dX .ctas { display: flex; gap: .7rem; margin-top: 1.5rem; flex-wrap: wrap; }
+  .dX .btn.white { background: #fff; color: var(--forest); border-radius: 5px; }
+  .dX .btn.oline { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.55); border-radius: 5px; }
+  .dX .cardwrap { padding: clamp(1.5rem,4vw,2.4rem); }
+  .dX .card {
+    border-radius: 5px; padding: 1.6rem; background: var(--cream-header);
+    border: 1px solid rgba(30,28,25,.16);
+  }
+  .dX .card.a { background: var(--forest); color: #fff; border-color: transparent; }
+  .dX .iconbox {
+    width: 44px; height: 44px; border-radius: 5px; display: grid; place-items: center;
+    border: 1px solid rgba(30,28,25,.2);
+  }
+  .dX .card.a .iconbox { border-color: rgba(255,255,255,.28); }
+  .dX .card .lbl {
+    display: block; margin-top: 1rem;
+    font-size: .64rem; letter-spacing: .18em; text-transform: uppercase; font-weight: 800;
+    color: var(--gold);
+  }
+  .dX .card.b .lbl { color: var(--forest); }
+  .dX .card h4 { font-family: var(--serif); font-weight: 500; font-size: 1.3rem; margin: .35rem 0 0; letter-spacing: -.01em; }
+  .dX .card .rule { height: 1px; margin: .9rem 0; background: rgba(255,255,255,.18); }
+  .dX .card.b .rule { background: rgba(30,28,25,.16); }
+  .dX .card .btn { padding: 0; margin-top: 1rem; font-size: .78rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 800; }
+  .dX .card.a .btn { color: var(--gold-soft); }
+  .dX .card.b .btn { color: var(--forest); }
+
+  /* ---------- DIRECTION B : INSTITUTIONAL / SHARP ---------- */
+  .dB .hero-inner { text-align: left; }
+  .dB .hero-bg { background: linear-gradient(180deg, var(--forest-deep), var(--forest)); }
+  .dB .kicker {
+    font-size: .7rem; letter-spacing: .28em; text-transform: uppercase;
+    color: var(--gold); font-weight: 700; padding-bottom: .8rem;
+    border-bottom: 1px solid rgba(255,255,255,.22); display: inline-block;
+  }
+  .dB h3.hh {
+    font-family: var(--serif); font-weight: 600; color: #fff;
+    font-size: clamp(1.9rem, 4.6vw, 2.9rem); line-height: 1.06;
+    letter-spacing: -.01em; margin: 1.2rem 0 0; max-width: 20ch;
+  }
+  .dB h3.hh em { font-style: normal; color: var(--gold-soft); }
+  .dB .sub { color: rgba(255,255,255,.8); max-width: 50ch; margin: 1rem 0 0; font-size: .96rem; }
+  .dB .ctas { display: flex; gap: 0; margin-top: 1.5rem; }
+  .dB .btn.white { background: var(--gold); color: #241b06; border-radius: 2px; }
+  .dB .btn.oline { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.4); border-left: 0; border-radius: 2px; }
+  .dB .cardwrap { padding: 0; background: var(--cream-header); }
+  .dB .cards { grid-template-columns: 1fr 1fr; gap: 0; }
+  .dB .card { padding: 1.7rem clamp(1.4rem,3.5vw,2.2rem); border-right: 1px solid rgba(30,28,25,.14); }
+  .dB .card:last-child { border-right: 0; }
+  .dB .card .lbl {
+    font-size: .66rem; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--forest); font-weight: 800;
+  }
+  .dB .card h4 { font-family: var(--serif); font-weight: 600; font-size: 1.35rem; margin: .5rem 0 0; }
+  .dB .card .rule { height: 1px; background: rgba(30,28,25,.16); margin: .9rem 0; }
+  .dB .card .btn { padding: 0; font-size: .8rem; letter-spacing: .04em; text-transform: uppercase; color: var(--forest); font-weight: 800; margin-top: 1rem; }
+
+  /* ---------- DIRECTION C : WARM NONPROFIT / HUMAN ---------- */
+  .dC .hero-bg { background: linear-gradient(120deg, var(--forest) 0%, var(--forest-dark) 60%, var(--forest-deep) 100%); }
+  .dC .hero-inner { display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.5rem; align-items: end; }
+  @media (max-width: 640px){ .dC .hero-inner { grid-template-columns: 1fr; } }
+  .dC .eyebrow { font-size: .74rem; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-soft); font-weight: 700; }
+  .dC h3.hh {
+    font-family: var(--serif); font-weight: 400; color: #fff;
+    font-size: clamp(2.2rem, 5.6vw, 3.6rem); line-height: 1; letter-spacing: -.02em;
+    margin: 1rem 0 0;
+  }
+  .dC h3.hh .u {
+    position: relative; font-style: italic; color: #fff;
+    background-image: linear-gradient(var(--gold), var(--gold));
+    background-size: 100% 3px; background-position: 0 100%; background-repeat: no-repeat;
+    padding-bottom: 2px;
+  }
+  .dC .sub { color: rgba(255,255,255,.85); margin: 1.2rem 0 0; font-size: 1rem; max-width: 40ch; }
+  .dC .aside {
+    border-left: 2px solid var(--gold); padding-left: 1.1rem;
+    color: rgba(255,255,255,.9); font-family: var(--serif); font-style: italic;
+    font-size: 1.05rem; line-height: 1.4;
+  }
+  .dC .ctas { display: flex; gap: .9rem; margin-top: 1.6rem; flex-wrap: wrap; }
+  .dC .btn.white { background: var(--gold-soft); color: #3a2c07; border-radius: 999px; }
+  .dC .btn.oline { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.5); border-radius: 999px; }
+  .dC .cardwrap { padding: clamp(1.8rem,4.5vw,3rem) clamp(1.5rem,4vw,3rem); }
+  .dC .cards { gap: 2rem; }
+  .dC .card { padding: 0; }
+  .dC .card .num { font-family: var(--serif); font-size: 1rem; color: var(--gold); font-weight: 600; }
+  .dC .card h4 { font-family: var(--serif); font-weight: 400; font-size: 1.5rem; margin: .3rem 0 0; letter-spacing: -.01em; }
+  .dC .card .btn { padding: 0; margin-top: .9rem; color: var(--forest); font-weight: 700; font-size: .9rem; }
+  .dC .card .btn::after { content: "→"; margin-left: .3rem; }
+
+  .foot { margin-top: 4rem; padding-top: 1.6rem; border-top: 1px solid var(--desk-line); color: var(--paper-dim); font-size: .85rem; }
+  .foot b { color: var(--paper-white); }
+</style>
+
+<div class="wrap">
+  <header class="deck-head">
+    <p class="deck-eyebrow">RP Hope · Design study</p>
+    <h1>Four ways to make it feel <em style="font-style:italic;color:var(--gold-soft)">designed by a person</em>.</h1>
+    <p>Same palette, same content, same fonts. What changes below is the <b style="color:var(--paper-white)">treatment</b> — the details that separate a template from something a studio made on purpose. Direction&nbsp;0 is your site today, so you can see each move against it.</p>
+    <p class="deck-note">Fonts are approximated (the real Fraunces + Mulish load only in the app), so judge the <b>weight, spacing, corners, icons and layout</b> — not the exact letterforms. Shown in the brand's light world on a dark studio surface; the real site stays light.</p>
+  </header>
+
+  <!-- ===================== DIRECTION 0 : CURRENT ===================== -->
+  <section class="sample">
+    <div class="sample-tag">
+      <span class="num">00</span>
+      <h2>Current site</h2>
+      <span class="pill cur">Today</span>
+    </div>
+    <div class="frame">
+      <div class="chrome"><i></i><i></i><i></i><span class="url">rp-hope.vercel.app</span></div>
+      <div class="page d0">
+        <div class="hero">
+          <div class="hero-bg"></div>
+          <div class="hero-inner">
+            <span class="glasspill"><span style="color:var(--gold)">⚛</span> Genetics · Research · Community</span>
+            <h3 class="hh">Understand RP research. <em>Find your path forward.</em></h3>
+            <p class="sub">RP Hope helps patients, families, caregivers, researchers, and supporters navigate retinitis pigmentosa.</p>
+            <div class="ctas">
+              <span class="btn white">Personalize my experience →</span>
+              <span class="btn oline">I know what I'm looking for →</span>
+            </div>
+          </div>
+        </div>
+        <div class="cardwrap">
+          <div class="cards">
+            <div class="card a">
+              <span class="emoji">🧬</span>
+              <h4>My RP Pathway</h4>
+              <p>Answer a few questions and get a personalized guide to research, testing, trials, and community.</p>
+              <span class="btn">Personalize my experience →</span>
+            </div>
+            <div class="card b">
+              <span class="emoji">📖</span>
+              <h4>Explore RP Hope</h4>
+              <p>Already know what you need? Jump directly to genes, trials, events, and stories.</p>
+              <span class="btn">I know what I'm looking for →</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">
+      <b>The tells:</b>
+      <span>emoji as icons</span><span>frosted "middot" pill</span><span>bold, centered everything</span><span>big soft radius + drop shadows</span>
+    </p>
+  </section>
+
+  <!-- ===================== THE BLEND : 01 + 02 ===================== -->
+  <section class="sample">
+    <div class="sample-tag">
+      <span class="num">—</span>
+      <h2>The Blend — 01 warmth + 02 sharpness</h2>
+      <span class="pill cur">Reference</span>
+    </div>
+    <div class="frame">
+      <div class="chrome"><i></i><i></i><i></i><span class="url">rp-hope.vercel.app</span></div>
+      <div class="page dX">
+        <div class="hero">
+          <div class="hero-bg"></div>
+          <div class="hero-inner">
+            <span class="eyebrow">Genetics · Research · Community</span>
+            <h3 class="hh">Understand RP research. <em>Find your path forward.</em></h3>
+            <p class="sub">Clear answers on genetics, trials, and community for everyone navigating retinitis pigmentosa.</p>
+            <div class="ctas">
+              <span class="btn white">Personalize my experience</span>
+              <span class="btn oline">I know what I'm looking for</span>
+            </div>
+          </div>
+        </div>
+        <div class="cardwrap">
+          <div class="cards">
+            <div class="card a">
+              <span class="iconbox">
+                <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="#ecdca6" stroke-width="1.5" stroke-linecap="round"><path d="M7 3c0 4 10 6 10 9s-10 5-10 9"/><path d="M17 3c0 4-10 6-10 9s10 5 10 9"/><path d="M8.5 7h7M8.5 17h7M7.5 10h9M7.5 14h9"/></svg>
+              </span>
+              <span class="lbl">Guided</span>
+              <h4>My RP Pathway</h4>
+              <div class="rule"></div>
+              <p>Answer a few questions and get a guided tour through research, testing, trials, and community.</p>
+              <span class="btn">Personalize →</span>
+            </div>
+            <div class="card b">
+              <span class="iconbox">
+                <svg class="icn" viewBox="0 0 24 24" fill="none" stroke="#234b43" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5C10.5 5 8 4.5 4 4.5v13c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2v-13c-4 0-6.5.5-8 2Z"/><path d="M12 6.5v13"/></svg>
+              </span>
+              <span class="lbl">Direct</span>
+              <h4>Explore RP Hope</h4>
+              <div class="rule"></div>
+              <p>Already know what you need? Go straight to genes, trials, events, and stories.</p>
+              <span class="btn">Browse →</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">
+      <b>The mix:</b>
+      <span>01's line icons + gold eyebrow + italic serif</span><span>02's crisp 5px corners</span><span>02's small-caps labels + hairline rule</span><span>flat, no shadow</span><span>warm forest + cream cards</span>
+    </p>
+  </section>
+
+  <!-- ===================== DIRECTION A : EDITORIAL REFINED ===================== -->
+  <section class="sample">
+    <div class="sample-tag">
+      <span class="num">★</span>
+      <h2>Editorial — your refinements</h2>
+      <span class="pill rec">Final direction</span>
+    </div>
+    <div class="frame">
+      <div class="chrome"><i></i><i></i><i></i><span class="url">rp-hope.vercel.app</span></div>
+      <div class="page dA">
+        <div class="hero">
+          <div class="hero-bg"></div>
+          <div class="hero-inner">
+            <span class="eyebrow">Genetics · Research · Community</span>
+            <h3 class="hh">Understand RP research. <em>Find your path forward.</em></h3>
+            <p class="sub">Clear answers on genetics, trials, and community for everyone navigating retinitis pigmentosa.</p>
+            <div class="ctas">
+              <span class="btn white">Personalize my experience</span>
+              <span class="btn oline">I know what I'm looking for</span>
+            </div>
+          </div>
+        </div>
+        <div class="cardwrap">
+          <div class="cards">
+            <div class="card a">
+              <h4>My RP Pathway</h4>
+              <p>Answer a few questions and get a guided tour through research, testing, trials, and community.</p>
+              <span class="btn">Personalize →</span>
+            </div>
+            <div class="card b">
+              <h4>Explore RP Hope</h4>
+              <p>Already know what you need? Go straight to genes, trials, events, and stories.</p>
+              <span class="btn">Browse →</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">
+      <b>Locked:</b>
+      <span>editorial base (lighter serif, hairline cards, left-aligned)</span><span>darker-gold underlined eyebrow (from blend)</span><span>no icons — cards start at the title</span><span>short "Personalize → / Browse →" buttons</span>
+    </p>
+  </section>
+
+  <!-- ===================== DIRECTION B : INSTITUTIONAL / SHARP ===================== -->
+  <section class="sample">
+    <div class="sample-tag">
+      <span class="num">02</span>
+      <h2>Institutional / Sharp</h2>
+    </div>
+    <div class="frame">
+      <div class="chrome"><i></i><i></i><i></i><span class="url">rp-hope.vercel.app</span></div>
+      <div class="page dB">
+        <div class="hero">
+          <div class="hero-bg"></div>
+          <div class="hero-inner">
+            <span class="kicker">Genetics · Research · Community</span>
+            <h3 class="hh">Understand RP research. <em>Find your path forward.</em></h3>
+            <p class="sub">A clear, credible resource on the genetics, trials, and science of retinitis pigmentosa.</p>
+            <div class="ctas">
+              <span class="btn white">Personalize my experience</span>
+              <span class="btn oline">Explore the library</span>
+            </div>
+          </div>
+        </div>
+        <div class="cardwrap">
+          <div class="cards">
+            <div class="card">
+              <span class="lbl">Guided</span>
+              <h4>My RP Pathway</h4>
+              <div class="rule"></div>
+              <p style="font-size:.9rem;color:rgba(30,28,25,.8)">A short intake builds an ordered tour through research, testing, trials, and community.</p>
+              <span class="btn">Personalize →</span>
+            </div>
+            <div class="card">
+              <span class="lbl">Direct</span>
+              <h4>Explore RP Hope</h4>
+              <div class="rule"></div>
+              <p style="font-size:.9rem;color:rgba(30,28,25,.8)">Jump straight to the gene library, clinical trials, events, and patient stories.</p>
+              <span class="btn">Browse →</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">
+      <b>What changed:</b>
+      <span>near-square corners</span><span>structural rules + small-caps labels</span><span>flat, divided cards (no shadow)</span><span>reads like a research institution</span>
+    </p>
+  </section>
+
+  <!-- ===================== DIRECTION C : WARM NONPROFIT ===================== -->
+  <section class="sample">
+    <div class="sample-tag">
+      <span class="num">03</span>
+      <h2>Warm Nonprofit / Human</h2>
+    </div>
+    <div class="frame">
+      <div class="chrome"><i></i><i></i><i></i><span class="url">rp-hope.vercel.app</span></div>
+      <div class="page dC">
+        <div class="hero">
+          <div class="hero-bg"></div>
+          <div class="hero-inner">
+            <div>
+              <span class="eyebrow">For patients, families &amp; researchers</span>
+              <h3 class="hh">Understand RP research.<br>Find your <span class="u">path forward.</span></h3>
+              <div class="ctas">
+                <span class="btn white">Personalize my experience</span>
+                <span class="btn oline">Explore</span>
+              </div>
+            </div>
+            <p class="aside">Nobody should face a retinitis pigmentosa diagnosis without answers — or without company.</p>
+          </div>
+        </div>
+        <div class="cardwrap">
+          <div class="cards">
+            <div class="card">
+              <span class="num">Start here</span>
+              <h4>My RP Pathway</h4>
+              <p style="font-size:.95rem">A few questions turn into a guided, one-at-a-time tour of everything RP Hope offers.</p>
+              <span class="btn">Personalize my experience</span>
+            </div>
+            <div class="card">
+              <span class="num">Or dive in</span>
+              <h4>Explore RP Hope</h4>
+              <p style="font-size:.95rem">Head straight to the gene library, trials, events, and the stories of our community.</p>
+              <span class="btn">See everything</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="caption">
+      <b>What changed:</b>
+      <span>bigger serif, more air</span><span>gold underline accent</span><span>asymmetric hero with a human line</span><span>donor-facing warmth</span>
+    </p>
+  </section>
+
+  <p class="foot">
+    The <b>★ Final direction</b> at the top now has your four calls baked in: editorial base, darker-gold underlined eyebrow, no card icons, and short <b>Personalize → / Browse →</b> buttons. Everything below is reference. If this looks right, say the word and I'll apply it to the real homepage components (hero, Choose-Your-Path cards, buttons) and you review on localhost before Monday.
+  </p>
+</div>

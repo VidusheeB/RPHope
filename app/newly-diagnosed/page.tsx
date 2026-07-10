@@ -14,7 +14,7 @@ export default function NewlyDiagnosedPage() {
         <p className="text-sm font-bold uppercase tracking-widest text-forest">
           Start Here
         </p>
-        <h1 className="mt-3 font-display text-4xl font-bold text-ink sm:text-5xl">
+        <h1 className="mt-3 font-display text-4xl font-medium tracking-tight text-ink sm:text-5xl">
           Newly diagnosed?{" "}
           <span className="italic font-medium text-gold">You&rsquo;re not alone.</span>
         </h1>
@@ -39,7 +39,7 @@ export default function NewlyDiagnosedPage() {
           ].map(([t, d]) => (
             <div
               key={t}
-              className="rounded-2xl border border-ink/10 bg-white p-6 shadow-sm"
+              className="rounded-lg border border-ink/10 bg-white p-6"
             >
               <h2 className="font-display text-xl font-bold text-ink">{t}</h2>
               <p className="mt-2 text-ink/70">{d}</p>

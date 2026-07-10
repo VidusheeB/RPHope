@@ -110,7 +110,7 @@ export default function MyPathway() {
       <p className="text-sm font-bold uppercase tracking-widest text-forest">
         My RP Pathway
       </p>
-      <h1 className="mt-3 font-display text-3xl font-bold text-ink sm:text-4xl">
+      <h1 className="mt-3 font-display text-3xl font-medium tracking-tight text-ink sm:text-4xl">
         Build your guided journey
       </h1>
       <p className="mt-3 text-ink/70">
@@ -134,7 +134,7 @@ export default function MyPathway() {
       </div>
 
       <fieldset className="mt-8">
-        <legend className="font-display text-2xl font-bold text-ink">
+        <legend className="font-display text-2xl font-medium tracking-tight text-ink">
           {q.prompt}
         </legend>
         {q.helper && <p className="mt-1 text-sm text-ink/60">{q.helper}</p>}
@@ -157,7 +157,7 @@ export default function MyPathway() {
               }
               placeholder="e.g. RPGR, USH2A, PDE6B"
               autoComplete="off"
-              className="w-full rounded-xl border border-ink/20 bg-white px-4 py-3 text-lg text-ink focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/30"
+              className="w-full rounded-md border border-ink/20 bg-white px-4 py-3 text-lg text-ink focus:border-forest focus:outline-none focus:ring-2 focus:ring-forest/30"
             />
             <datalist id="pathway-gene-list">
               {geneGrid.map((g) => (
@@ -179,7 +179,7 @@ export default function MyPathway() {
                   type="button"
                   onClick={() => select(opt.value)}
                   aria-pressed={selected}
-                  className={`flex items-center justify-between rounded-xl border px-5 py-4 text-left text-lg transition ${
+                  className={`flex items-center justify-between rounded-md border px-5 py-4 text-left text-lg transition ${
                     selected
                       ? "border-forest bg-forest/5 font-semibold text-forest"
                       : "border-ink/15 bg-white text-ink hover:border-forest/40"
@@ -208,7 +208,7 @@ export default function MyPathway() {
           type="button"
           onClick={back}
           disabled={safeStep === 0}
-          className="rounded-xl px-5 py-3 font-semibold text-ink/70 enabled:hover:bg-ink/5 disabled:opacity-40"
+          className="rounded-md px-5 py-3 font-semibold text-ink/70 enabled:hover:bg-ink/5 disabled:opacity-40"
         >
           ← Back
         </button>
@@ -216,7 +216,7 @@ export default function MyPathway() {
           type="button"
           onClick={next}
           disabled={!canContinue}
-          className="rounded-xl bg-forest px-7 py-3 font-bold text-white enabled:hover:bg-forest-dark disabled:opacity-40"
+          className="rounded-md bg-forest px-7 py-3 font-bold text-white enabled:hover:bg-forest-dark disabled:opacity-40"
         >
           {safeStep === total - 1 ? "See my journey" : "Continue"}
         </button>

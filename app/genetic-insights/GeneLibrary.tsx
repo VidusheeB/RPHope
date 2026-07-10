@@ -22,8 +22,8 @@ export default function GeneLibrary({ items }: { items: GridItem[] }) {
 
   return (
     <div>
-      {/* Teal box: AI assistant + the inheritance filter */}
-      <section className="rounded-2xl border border-forest/20 bg-forest/5 p-5 sm:p-6">
+      {/* Assistant + the inheritance filter */}
+      <section className="rounded-lg border border-forest/20 bg-forest/5 p-5 sm:p-6">
         <NavAssistant />
 
         <div className="mt-5 flex flex-col gap-2 border-t border-forest/15 pt-5 sm:flex-row sm:items-center sm:justify-between">
@@ -37,7 +37,7 @@ export default function GeneLibrary({ items }: { items: GridItem[] }) {
             id="gene-category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="rounded-xl border border-ink/20 bg-white px-4 py-2.5 text-base outline-none focus:border-forest sm:w-72"
+            className="rounded-md border border-ink/20 bg-white px-4 py-2.5 text-base outline-none focus:border-forest sm:w-72"
           >
             <option value="all">All categories</option>
             {categories.map((c) => (
@@ -59,24 +59,35 @@ export default function GeneLibrary({ items }: { items: GridItem[] }) {
           <li key={g.slug}>
             <Link
               href={`/genetic-insights/${g.slug}`}
-              className="block rounded-2xl border border-ink/10 bg-white p-3 text-center shadow-sm transition hover:border-forest/40 hover:shadow-md"
+              className="block rounded-lg border border-ink/12 bg-white p-3 text-center transition hover:border-forest/40"
             >
               {geneImages.has(g.slug) ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={`/genes/${g.slug}.jpg`}
                   alt={`${g.display} — Face of RP`}
-                  className="aspect-square w-full rounded-xl object-cover"
+                  className="aspect-square w-full rounded-md object-cover"
                 />
               ) : (
                 <span
                   aria-hidden="true"
-                  className="grid aspect-square w-full place-items-center rounded-xl bg-cream-card text-2xl text-forest/40"
+                  className="grid aspect-square w-full place-items-center rounded-md bg-cream-card text-forest/40"
                 >
-                  🧬
+                  <svg
+                    className="h-8 w-8"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  >
+                    <path d="M7 3c0 4 10 6 10 9s-10 5-10 9" />
+                    <path d="M17 3c0 4-10 6-10 9s10 5 10 9" />
+                    <path d="M8.5 7h7M8.5 17h7M7.5 10h9M7.5 14h9" />
+                  </svg>
                 </span>
               )}
-              <span className="mt-3 block font-display text-lg font-bold text-ink">
+              <span className="mt-3 block font-sans text-lg font-bold tracking-tight text-ink">
                 {g.display}
               </span>
               <span className="block text-sm font-semibold text-forest">

@@ -20,7 +20,7 @@ export default function GeneArticles({ articles }: { articles: Article[] }) {
 
   if (articles.length === 0) {
     return (
-      <p className="rounded-2xl border border-ink/10 bg-white p-6 text-ink/60">
+      <p className="rounded-lg border border-ink/12 bg-white p-6 text-ink/60">
         Curated research for this gene is being added. Check back soon.
       </p>
     );
@@ -35,7 +35,7 @@ export default function GeneArticles({ articles }: { articles: Article[] }) {
               href={a.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex h-full flex-col rounded-2xl border border-ink/10 bg-white p-4 shadow-sm transition hover:border-forest/40 hover:shadow-md"
+              className="flex h-full flex-col rounded-lg border border-ink/12 bg-white p-4 transition hover:border-forest/40"
             >
               {/* Real article thumbnail (journal cover / figure) when we have
                   a confident match; otherwise a neutral document icon. */}
@@ -45,14 +45,25 @@ export default function GeneArticles({ articles }: { articles: Article[] }) {
                   src={a.image.src}
                   alt={a.image.alt}
                   loading="lazy"
-                  className="aspect-[4/3] w-full rounded-lg bg-cream-card object-cover"
+                  className="aspect-[4/3] w-full rounded-md bg-cream-card object-cover"
                 />
               ) : (
                 <span
                   aria-hidden="true"
-                  className="grid aspect-[4/3] w-full place-items-center rounded-lg bg-cream-card text-3xl text-forest/40"
+                  className="grid aspect-[4/3] w-full place-items-center rounded-md bg-cream-card text-forest/40"
                 >
-                  📄
+                  <svg
+                    className="h-8 w-8"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+                    <path d="M14 3v5h5M9 13h6M9 17h6" />
+                  </svg>
                 </span>
               )}
               {a.date && (
@@ -67,7 +78,7 @@ export default function GeneArticles({ articles }: { articles: Article[] }) {
                   {a.whyItMatters}
                 </span>
               )}
-              <span className="mt-auto pt-3 text-sm font-bold text-forest">
+              <span className="mt-auto pt-3 text-sm font-bold uppercase tracking-[0.06em] text-forest">
                 Read →
               </span>
             </a>
@@ -81,7 +92,7 @@ export default function GeneArticles({ articles }: { articles: Article[] }) {
             type="button"
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
-            className="rounded-xl border border-forest/40 px-6 py-3 font-bold text-forest hover:bg-forest/5"
+            className="rounded-md border border-forest/40 px-6 py-3 font-bold text-forest hover:bg-forest/5"
           >
             {expanded
               ? "Show fewer"
