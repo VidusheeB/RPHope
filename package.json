@@ -11,7 +11,8 @@
     "check": "npm run typecheck && npm run lint && npm run build",
     "db:seed": "node scripts/seed-genes.mjs",
     "research:pull": "tsx scripts/research-pull.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "gene-pages:draft": "tsx scripts/gene-pages-draft.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
