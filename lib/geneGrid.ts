@@ -1,17 +1,28 @@
 // Auto-generated gene grid for the Genetic Insights landing page.
 // Mirrors the live site: gene display name + inheritance label (as Carin labels it).
+//
+// Updated from RP_Hope_Gene_Insight.xlsx (RP Genes sheet), reconciled against the
+// sheet's own review notes (owner decision, see chat): 4 inheritance labels
+// corrected per Suhana's GeneReviews-cited notes (ABCA4, ARL6, RPE65, SAG — all
+// "sheet says dominant, GeneReviews says recessive"); ADIPOR1 left unchanged (only
+// a soft "verify" note, no cited correction). 7 rows deliberately excluded: LCA
+// (a disease category, not a gene) and 6 RP-locus placeholder names with no actual
+// gene symbol given (RP6, RP22, RP24, RP29, RP34, RP63). NEK excluded as a likely
+// duplicate/typo of NEK2 (per the sheet's own note). BBS3/USH3A/LCA already exist
+// as separate published pages and were left untouched pending a separate decision
+// on whether to merge them into ARL6/CLRN1's pages.
 export type GeneGridItem = { display: string; slug: string; label: string };
 
 export const geneGrid: GeneGridItem[] = [
-  { display: "ABCA4", slug: "abca4", label: "autosomal dominant" },
+  { display: "ABCA4", slug: "abca4", label: "autosomal recessive" },
   { display: "AGBL5", slug: "agbl5", label: "autosomal recessive" },
   { display: "ADGRA3", slug: "adgra3", label: "autosomal recessive" },
   { display: "ADIPOR1", slug: "adipor1", label: "autosomal dominant" },
-  { display: "AhR", slug: "ahr", label: "autosomal recessive" },
+  { display: "AHR", slug: "ahr", label: "autosomal recessive" },
   { display: "ARHGEF18", slug: "arhgef18", label: "autosomal recessive" },
   { display: "ARL2BP", slug: "arl2bp", label: "autosomal recessive" },
   { display: "ARL3", slug: "arl3", label: "autosomal dominant" },
-  { display: "ARL6", slug: "arl6", label: "autosomal dominant" },
+  { display: "ARL6", slug: "arl6", label: "autosomal recessive" },
   { display: "BBS1", slug: "bbs1", label: "autosomal recessive" },
   { display: "BBS2", slug: "bbs2", label: "autosomal recessive" },
   { display: "BBS3", slug: "bbs3", label: "autosomal recessive" },
@@ -50,23 +61,56 @@ export const geneGrid: GeneGridItem[] = [
   { display: "KIZ", slug: "kiz", label: "autosomal recessive" },
   { display: "KLHL7", slug: "klhl7", label: "autosomal dominant" },
   { display: "LCA", slug: "lca", label: "autosomal recessive" },
+  { display: "LCA5", slug: "lca5", label: "autosomal recessive" },
   { display: "LRAT", slug: "lrat", label: "autosomal recessive" },
   { display: "MAK", slug: "mak", label: "autosomal recessive" },
   { display: "MERTK", slug: "mertk", label: "autosomal recessive" },
+  { display: "MVK", slug: "mvk", label: "autosomal recessive" },
+  { display: "NEK2", slug: "nek2", label: "autosomal recessive" },
+  { display: "NEUROD1", slug: "neurod1", label: "autosomal recessive" },
+  { display: "NR2E3", slug: "nr2e3", label: "autosomal dominant / recessive" },
+  { display: "NRL", slug: "nrl", label: "autosomal dominant" },
+  { display: "PCARE", slug: "pcare", label: "autosomal recessive" },
   { display: "PDE6A", slug: "pde6a", label: "autosomal recessive" },
   { display: "PDE6B", slug: "pde6b", label: "autosomal recessive" },
+  { display: "PDE6G", slug: "pde6g", label: "autosomal recessive" },
+  { display: "POMGNT1", slug: "pomgnt1", label: "autosomal recessive" },
+  { display: "PRCD", slug: "prcd", label: "autosomal recessive" },
   { display: "PROM1", slug: "prom1", label: "autosomal recessive" },
+  { display: "PROS1", slug: "pros1", label: "autosomal recessive" },
   { display: "PRPF3", slug: "prpf3", label: "autosomal dominant" },
   { display: "PRPF4", slug: "prpf4", label: "autosomal dominant" },
   { display: "PRPF6", slug: "prpf6", label: "autosomal dominant" },
   { display: "PRPF8", slug: "prpf8", label: "autosomal dominant" },
   { display: "PRPF31", slug: "prpf31", label: "autosomal dominant" },
+  { display: "PRPH2", slug: "prph2", label: "autosomal dominant" },
+  { display: "RBP3", slug: "rbp3", label: "autosomal recessive" },
+  { display: "RDH12", slug: "rdh12", label: "autosomal dominant" },
+  { display: "REEP6", slug: "reep6", label: "autosomal recessive" },
+  { display: "RGR", slug: "rgr", label: "autosomal recessive" },
   { display: "RHO", slug: "rho", label: "autosomal dominant" },
+  { display: "RLBP1", slug: "rlbp1", label: "autosomal recessive" },
+  { display: "ROM1", slug: "rom1", label: "autosomal dominant" },
+  { display: "RP1", slug: "rp1", label: "autosomal dominant" },
+  { display: "RP1L1", slug: "rp1l1", label: "autosomal recessive" },
   { display: "RP2", slug: "rp2", label: "x-linked" },
+  { display: "RP9", slug: "rp9", label: "autosomal dominant" },
+  { display: "RP17", slug: "rp17", label: "autosomal recessive" },
+  { display: "RP51", slug: "rp51", label: "autosomal recessive" },
   { display: "RPE65", slug: "rpe65", label: "autosomal recessive" },
   { display: "RPGR", slug: "rpgr", label: "x-linked" },
   { display: "SAG", slug: "sag", label: "autosomal recessive" },
+  { display: "SAMD11", slug: "samd11", label: "autosomal recessive" },
+  { display: "SEMA4A", slug: "sema4a", label: "autosomal dominant" },
+  { display: "SLC7A14", slug: "slc7a14", label: "autosomal recessive" },
   { display: "SNRNP200", slug: "snrnp200", label: "autosomal dominant" },
+  { display: "SPATA7", slug: "spata7", label: "autosomal recessive" },
+  { display: "SPP2", slug: "spp2", label: "autosomal dominant" },
+  { display: "TOPORS", slug: "topors", label: "autosomal dominant" },
+  { display: "TRNT1", slug: "trnt1", label: "autosomal recessive" },
+  { display: "TULP1", slug: "tulp1", label: "autosomal recessive" },
   { display: "USH2A", slug: "ush2a", label: "autosomal recessive" },
   { display: "USH3A", slug: "ush3a", label: "autosomal recessive" },
+  { display: "ZNF408", slug: "znf408", label: "autosomal recessive" },
+  { display: "ZNF513", slug: "znf513", label: "autosomal recessive" },
 ];

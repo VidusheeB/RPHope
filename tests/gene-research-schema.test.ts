@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { GENE_PAGE_SCHEMA, GENE_PAGE_TOP_LEVEL_FIELDS } from "@/lib/geneResearch/schema";
 import { estimateCostUsd } from "@/lib/geneResearch/generate";
-import { APPROVED_GENERAL_RESOURCES, getExistingApprovedPage } from "@/lib/geneResearch/resources";
+import { APPROVED_GENERAL_RESOURCES } from "@/lib/geneResearch/resources";
 
 describe("GENE_PAGE_SCHEMA", () => {
   it("requires every top-level field from the pipeline spec", () => {
@@ -15,9 +15,12 @@ describe("GENE_PAGE_SCHEMA", () => {
     }
   });
 
-  it("caps researchCards at 5 and questionsForClinician at 6", () => {
-    expect(GENE_PAGE_SCHEMA.properties.researchCards.maxItems).toBe(5);
-    expect(GENE_PAGE_SCHEMA.properties.questionsForClinician.maxItems).toBe(6);
+  it("does not use maxItems on array schemas (rejected by the live Structured Outputs API)", () => {
+    // Confirmed against a real 400 response: "For 'array' type, property
+    // 'maxItems' is not supported." The 5/6-item caps are enforced by the
+    // prompt + lib/geneResearch/postprocess.ts instead — see schema.ts's note.
+    const json = JSON.stringify(GENE_PAGE_SCHEMA);
+    expect(json).not.toContain("maxItems");
   });
 
   it("locks reviewStatus to the single 'unreviewed' value", () => {
@@ -62,7 +65,7 @@ describe("estimateCostUsd", () => {
   });
 });
 
-describe("approved resources + existing page lookup", () => {
+describe("approved resources", () => {
   it("every approved resource has a stable sourceId and a URL", () => {
     expect(APPROVED_GENERAL_RESOURCES.length).toBeGreaterThan(0);
     for (const r of APPROVED_GENERAL_RESOURCES) {
@@ -70,14 +73,11 @@ describe("approved resources + existing page lookup", () => {
       expect(r.url).toBeTruthy();
     }
   });
+});
 
-  it("finds an existing curated page for a known gene", () => {
-    const page = getExistingApprovedPage("rpgr");
-    expect(page).not.toBeNull();
-    expect(page?.gene).toBe("RPGR");
-  });
-
-  it("returns null for an unknown slug", () => {
-    expect(getExistingApprovedPage("not-a-real-gene")).toBeNull();
+describe("sourceCitation type enum", () => {
+  it("includes 'web' alongside the three structured databases and rphope-resource", () => {
+    const json = JSON.stringify(GENE_PAGE_SCHEMA);
+    expect(json).toContain('"web"');
   });
 });

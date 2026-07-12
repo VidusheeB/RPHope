@@ -5,15 +5,6 @@
 // add or update what Opus may cite as an "approved general resource."
 
 import type { ApprovedResource } from "./types";
-import genesData from "../genesData.json";
-
-type ExistingGeneRecord = {
-  slug: string;
-  gene: string;
-  summary?: string;
-  diseaseCategory?: string;
-  treatmentOptions?: string;
-};
 
 export const APPROVED_GENERAL_RESOURCES: ApprovedResource[] = [
   {
@@ -41,16 +32,3 @@ export const APPROVED_GENERAL_RESOURCES: ApprovedResource[] = [
     note: "First-person accounts of navigating an RP diagnosis, for emotional/community support context.",
   },
 ];
-
-/** Look up the existing curated gene record (if any) from local content, for
- *  "preserve accurate, useful content from the existing approved page." */
-export function getExistingApprovedPage(geneSlug: string) {
-  const rec = (genesData as ExistingGeneRecord[]).find((g) => g.slug === geneSlug);
-  if (!rec) return null;
-  return {
-    gene: rec.gene,
-    summary: rec.summary,
-    diseaseCategory: rec.diseaseCategory,
-    treatmentOptions: rec.treatmentOptions,
-  };
-}

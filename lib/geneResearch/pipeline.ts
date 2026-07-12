@@ -1,60 +1,270 @@
-// Orchestrates one gene end-to-end: assemble source records (NCBI + PubMed +
-// ClinicalTrials.gov + approved resources + existing approved page), generate
-// the draft with Opus, and insert it into gene_page_drafts as 'unreviewed'.
+// Orchestrates one gene end-to-end:
+//   1. Verify the human gene against NCBI Gene (required — reject if it
+//      fails or the gene isn't found).
+//   2. Build the search-term set from the verified record (official symbol,
+//      official full name, safe aliases — see aliases.ts).
+//   3. High-recall literature retrieval (retrieval spec, 2026-07-12):
+//        a. NCBI ELink Gene-to-PubMed curated associations (best-effort — a
+//           high-precision complement, not required);
+//        b. PubMed broad + focused searches (required);
+//        c. Europe PMC broad + focused searches (required);
+//        d. ClinicalTrials.gov (required).
+//      A hard failure from PubMed / Europe PMC / ClinicalTrials.gov (not just
+//      "zero results") is "required retrieval failed" and rejects the gene
+//      before spending on generation. ELink failing is logged and skipped.
+//   4. Merge all literature candidates, dedupe (PMID/DOI/title, merging
+//      retrieval provenance), then CATEGORY-BALANCED selection — not a flat
+//      top-N — down to the evidence cap. Ranking, not a disease-keyword gate,
+//      is what narrows the field (see rank.ts).
+//   5. If the SELECTED evidence is thin, run the capped, domain-allowlisted
+//      web-search fallback to fill the gap.
+//   6. ONE Opus generation call. Validate/reject per the spec's four
+//      conditions (see generate.ts + validate.ts).
+//   7. Save as 'unreviewed' on success. Rejections are reported but NOT
+//      saved — gene_page_drafts only ever holds real, valid draft content.
 //
-// Runs genes as independent, sequential requests (never batched into one
-// prompt) so a single failure doesn't take down the run — matches
-// lib/research/pull.ts's per-gene insert pattern for the same reason.
+// assembleSourceBundle also returns full retrieval DIAGNOSTICS (every
+// deduplicated candidate, selected or not, with its provenance and
+// selection reason) separate from the bundle Opus actually sees — that
+// powers --retrieve-only's per-candidate report without bloating the
+// generation prompt.
+//
+// NCBI-bound calls (gene lookup, ELink, PubMed) all share
+// eutils.ncbi.nlm.nih.gov's rate limit (3 req/sec without NCBI_API_KEY) and
+// are time-spaced by ncbiThrottle.ts; Europe PMC and ClinicalTrials.gov are
+// separate hosts and run in parallel once the NCBI-bound work is done.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchNcbiGeneRecord } from "./ncbi";
-import { fetchPubMedRecords } from "./pubmed";
+import { getSearchTerms } from "./aliases";
+import { fetchGeneToPubmedElink } from "./elink";
+import { fetchPubMedRecords, fetchPubMedRecordsByPmid } from "./pubmed";
+import { fetchEuropePmcRecords } from "./europepmc";
 import { fetchTrialSummaries } from "./trials";
-import { APPROVED_GENERAL_RESOURCES, getExistingApprovedPage } from "./resources";
-import { generateGenePage, GenerationError } from "./generate";
-import type { GeneSourceBundle } from "./types";
+import { APPROVED_GENERAL_RESOURCES } from "./resources";
+import {
+  dedupeLiterature,
+  selectCategoryBalancedEvidence,
+  rankAndCapTrials,
+} from "./rank";
+import { isEvidenceThin, fetchWebSearchFallback } from "./webSearchFallback";
+import {
+  generateGenePage,
+  GenerationError,
+  DraftRejectedError,
+  estimateCostBeforeGeneration,
+} from "./generate";
+import type {
+  GeneSourceBundle,
+  LiteratureRecord,
+  RejectReason,
+} from "./types";
+
+const LITERATURE_LIMIT = 25;
+const TRIAL_LIMIT = 15;
+// Cap ELink's curated PMID list before fetching abstracts — the spec's "up to
+// 100 candidates from each source" applies to ELink too.
+const ELINK_PMID_LIMIT = 100;
+
+/** Full retrieval provenance for one gene — every deduplicated candidate
+ *  (selected or excluded) plus source-level counts and the term set used.
+ *  This is what --retrieve-only reports on; it is NOT sent to Opus (only the
+ *  selected records, inside the bundle, are). */
+export type RetrievalDiagnostics = {
+  geneSymbol: string;
+  geneId: string;
+  searchTerms: string[];
+  safeAliases: string[];
+  excludedAliases: string[];
+  /** Raw record counts per source, BEFORE cross-source dedup. */
+  rawCounts: { pubmed: number; pubmedElink: number; europepmc: number };
+  elinkPmidCount: number;
+  candidateCount: number; // after dedup, before selection
+  selectedCount: number;
+  webFallbackCount: number;
+  /** Every deduplicated candidate, each with foundBy / matchedTerm / score /
+   *  evidenceCategory / selected / exclusionReason populated. */
+  candidates: LiteratureRecord[];
+};
+
+export type BundleResult =
+  | { ok: true; bundle: GeneSourceBundle; diagnostics: RetrievalDiagnostics }
+  | { ok: false; reasons: RejectReason[] };
+
+/** Steps 1-5: retrieve, verify, dedupe/select, and (if needed) fall back to a
+ *  bounded web search. Zero Anthropic usage except the OPTIONAL web-search
+ *  fallback call — used by both the full pipeline and --retrieve-only mode.
+ *  (--retrieve-only passes skipWebFallback to guarantee $0 Anthropic spend.) */
+export async function assembleSourceBundle(
+  geneSymbol: string,
+  geneSlug: string,
+  opts: { skipWebFallback?: boolean } = {}
+): Promise<BundleResult> {
+  // Step 1: NCBI gene verification (required).
+  const geneResult = await fetchNcbiGeneRecord(geneSymbol);
+  if (!geneResult.ok) {
+    return {
+      ok: false,
+      reasons: [
+        { code: "required_retrieval_failed", detail: `NCBI gene lookup failed: ${geneResult.error}` },
+      ],
+    };
+  }
+  if (!geneResult.record) {
+    return {
+      ok: false,
+      reasons: [{ code: "gene_not_verified", detail: `No NCBI Gene record found for symbol "${geneSymbol}".` }],
+    };
+  }
+  const geneRecord = geneResult.record;
+
+  // Step 2: build the search-term set from the verified record.
+  const { allTerms, safeAliases, excludedAliases } = getSearchTerms(geneRecord);
+
+  // Step 3a: ELink Gene-to-PubMed (NCBI-bound, best-effort). A curated
+  // association list — high precision, but a transient failure here must not
+  // block a gene whose text searches succeed, so we log and continue.
+  const elinkResult = await fetchGeneToPubmedElink(geneRecord.geneId);
+  const elinkPmids = elinkResult.ok ? elinkResult.pmids.slice(0, ELINK_PMID_LIMIT) : [];
+  if (!elinkResult.ok) {
+    console.warn(`  [pipeline] ELink skipped for ${geneSymbol}: ${elinkResult.error}`);
+  }
+
+  // Step 3b: PubMed broad + focused text searches (NCBI-bound, required).
+  const pubmedResult = await fetchPubMedRecords(geneRecord.symbol, allTerms);
+  if (!pubmedResult.ok) {
+    return {
+      ok: false,
+      reasons: [{ code: "required_retrieval_failed", detail: `PubMed search failed: ${pubmedResult.error}` }],
+    };
+  }
+
+  // Step 3c: fetch abstracts for the ELink PMIDs (NCBI-bound). Best-effort —
+  // an efetch hiccup here shouldn't sink the gene when the text searches
+  // succeeded; log and proceed with what we have.
+  const elinkRecordsResult = await fetchPubMedRecordsByPmid(elinkPmids, geneRecord.symbol);
+  const elinkRecords = elinkRecordsResult.ok ? elinkRecordsResult.records : [];
+  if (!elinkRecordsResult.ok) {
+    console.warn(`  [pipeline] ELink abstract fetch skipped for ${geneSymbol}: ${elinkRecordsResult.error}`);
+  }
+
+  // Step 3d: Europe PMC (broad + focused) and ClinicalTrials.gov — separate
+  // hosts, run in parallel now the NCBI-bound calls are done.
+  const [europePmcResult, trialsResult] = await Promise.all([
+    fetchEuropePmcRecords(geneRecord.symbol, allTerms),
+    fetchTrialSummaries(geneSymbol),
+  ]);
+  if (!europePmcResult.ok) {
+    return {
+      ok: false,
+      reasons: [{ code: "required_retrieval_failed", detail: `Europe PMC search failed: ${europePmcResult.error}` }],
+    };
+  }
+  if (!trialsResult.ok) {
+    return {
+      ok: false,
+      reasons: [{ code: "required_retrieval_failed", detail: `ClinicalTrials.gov search failed: ${trialsResult.error}` }],
+    };
+  }
+
+  // Step 4: merge all literature candidates, dedupe (merging foundBy
+  // provenance across duplicates), then category-balanced selection. The
+  // deduped list is the full candidate pool the diagnostic reports on; the
+  // selection step mutates each candidate's `selected`/`exclusionReason`.
+  const merged = [...pubmedResult.records, ...elinkRecords, ...europePmcResult.records];
+  const candidates = dedupeLiterature(merged);
+  const { selected } = selectCategoryBalancedEvidence(candidates, LITERATURE_LIMIT);
+
+  // Step 4b: rank trials strongest-first and cap — do NOT send every raw
+  // trial CT.gov returns. Gene-specific + active status outrank broader/
+  // inactive records; weakly-relevant records beyond the cap are dropped.
+  const trialRecords = rankAndCapTrials(trialsResult.records, TRIAL_LIMIT);
+
+  // Step 5: web-search fallback, ONLY if the SELECTED evidence is thin (and
+  // never in --retrieve-only mode, which guarantees zero Anthropic spend).
+  const webFallbackRecords =
+    !opts.skipWebFallback && isEvidenceThin(selected.length, trialRecords.length)
+      ? await fetchWebSearchFallback(geneSymbol)
+      : [];
+
+  const diagnostics: RetrievalDiagnostics = {
+    geneSymbol: geneRecord.symbol,
+    geneId: geneRecord.geneId,
+    searchTerms: allTerms,
+    safeAliases,
+    excludedAliases,
+    rawCounts: {
+      pubmed: pubmedResult.records.length,
+      pubmedElink: elinkRecords.length,
+      europepmc: europePmcResult.records.length,
+    },
+    elinkPmidCount: elinkPmids.length,
+    candidateCount: candidates.length,
+    selectedCount: selected.length,
+    webFallbackCount: webFallbackRecords.length,
+    candidates,
+  };
+
+  return {
+    ok: true,
+    bundle: {
+      geneSymbol: geneRecord.symbol,
+      geneSlug,
+      geneRecord,
+      literatureRecords: selected,
+      trialRecords,
+      approvedResources: APPROVED_GENERAL_RESOURCES,
+      webFallbackRecords,
+    },
+    diagnostics,
+  };
+}
 
 export type GeneRunResult =
   | {
       geneSlug: string;
       geneSymbol: string;
-      ok: true;
+      outcome: "ok";
       inputTokens: number;
       outputTokens: number;
       estimatedCostUsd: number;
       reviewFlagCount: number;
     }
-  | { geneSlug: string; geneSymbol: string; ok: false; error: string };
+  | {
+      geneSlug: string;
+      geneSymbol: string;
+      outcome: "rejected";
+      reasons: RejectReason[];
+      /** Real spend if the rejection happened AFTER a billed Opus response
+       *  (post-generation validation). Absent for a pre-generation rejection
+       *  (bundle assembly), which costs nothing — but note that path is
+       *  handled in draftGenePage, not here; a rejection FROM
+       *  generateAndSaveDraft is always post-generation and always billed. */
+      inputTokens?: number;
+      outputTokens?: number;
+      estimatedCostUsd?: number;
+    }
+  | {
+      geneSlug: string;
+      geneSymbol: string;
+      outcome: "failed";
+      error: string;
+      /** Present if the failure happened after a billed response. */
+      inputTokens?: number;
+      outputTokens?: number;
+      estimatedCostUsd?: number;
+    };
 
-async function assembleSourceBundle(
-  geneSymbol: string,
-  geneSlug: string
-): Promise<GeneSourceBundle> {
-  const [geneRecord, pubmedRecords, trialRecords] = await Promise.all([
-    fetchNcbiGeneRecord(geneSymbol),
-    fetchPubMedRecords(geneSymbol),
-    fetchTrialSummaries(geneSymbol),
-  ]);
-
-  return {
-    geneSymbol,
-    geneSlug,
-    geneRecord,
-    existingApprovedPage: getExistingApprovedPage(geneSlug),
-    pubmedRecords,
-    trialRecords,
-    approvedResources: APPROVED_GENERAL_RESOURCES,
-  };
-}
-
-/** Run the full pipeline for one gene and insert the resulting draft. */
-export async function draftGenePage(
+/** Step 6-7 only: generate from an ALREADY-ASSEMBLED bundle and save on
+ *  success. Split out from draftGenePage so a caller (the CLI) can inspect
+ *  the bundle and its pre-call cost estimate — and gate on a budget check —
+ *  BEFORE the Opus call happens, not just observe it in passing. */
+export async function generateAndSaveDraft(
   supabase: SupabaseClient,
-  geneSymbol: string,
-  geneSlug: string
+  bundle: GeneSourceBundle
 ): Promise<GeneRunResult> {
+  const { geneSymbol, geneSlug } = bundle;
   try {
-    const bundle = await assembleSourceBundle(geneSymbol, geneSlug);
     const result = await generateGenePage(bundle);
     const d = result.draft;
 
@@ -83,23 +293,89 @@ export async function draftGenePage(
     });
 
     if (error) {
-      return { geneSlug, geneSymbol, ok: false, error: `Supabase insert failed: ${error.message}` };
+      return { geneSlug, geneSymbol, outcome: "failed", error: `Supabase insert failed: ${error.message}` };
     }
 
     return {
       geneSlug,
       geneSymbol,
-      ok: true,
+      outcome: "ok",
       inputTokens: result.inputTokens,
       outputTokens: result.outputTokens,
       estimatedCostUsd: result.estimatedCostUsd,
       reviewFlagCount: d.reviewFlags.length,
     };
   } catch (err) {
-    const message =
-      err instanceof GenerationError || err instanceof Error
-        ? err.message
-        : "Unknown error";
-    return { geneSlug, geneSymbol, ok: false, error: message };
+    if (err instanceof DraftRejectedError) {
+      // The draft is thrown away, but the Opus call was billed — surface the
+      // real usage so the CLI can report it AND count it toward --max-cost.
+      return {
+        geneSlug,
+        geneSymbol,
+        outcome: "rejected",
+        reasons: err.reasons,
+        inputTokens: err.usage.inputTokens,
+        outputTokens: err.usage.outputTokens,
+        estimatedCostUsd: err.usage.estimatedCostUsd,
+      };
+    }
+    if (err instanceof GenerationError) {
+      // usage is present only when the failure came after a billed response.
+      return {
+        geneSlug,
+        geneSymbol,
+        outcome: "failed",
+        error: err.message,
+        inputTokens: err.usage?.inputTokens,
+        outputTokens: err.usage?.outputTokens,
+        estimatedCostUsd: err.usage?.estimatedCostUsd,
+      };
+    }
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { geneSlug, geneSymbol, outcome: "failed", error: message };
   }
+}
+
+/** Run the full pipeline for one gene and insert the resulting draft (success
+ *  only — rejections and failures are reported but not saved; see header).
+ *  Composition of assembleSourceBundle + generateAndSaveDraft for the common
+ *  multi-gene batch case; use the two functions directly for a budget check
+ *  between retrieval and generation (see scripts/gene-pages-draft.ts). */
+export async function draftGenePage(
+  supabase: SupabaseClient,
+  geneSymbol: string,
+  geneSlug: string,
+  onBundleReady?: (
+    bundle: GeneSourceBundle,
+    estimate: ReturnType<typeof estimateCostBeforeGeneration>,
+    diagnostics: RetrievalDiagnostics
+  ) => void
+): Promise<GeneRunResult> {
+  const bundleResult = await assembleSourceBundle(geneSymbol, geneSlug);
+  if (!bundleResult.ok) {
+    return { geneSlug, geneSymbol, outcome: "rejected", reasons: bundleResult.reasons };
+  }
+  if (onBundleReady) {
+    onBundleReady(
+      bundleResult.bundle,
+      estimateCostBeforeGeneration(bundleResult.bundle),
+      bundleResult.diagnostics
+    );
+  }
+  return generateAndSaveDraft(supabase, bundleResult.bundle);
+}
+
+/** Check Supabase for an existing draft — used for resume support (skip
+ *  genes that already have a saved row unless --force is passed). */
+export async function hasExistingDraft(
+  supabase: SupabaseClient,
+  geneSlug: string
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("gene_page_drafts")
+    .select("id")
+    .eq("gene_slug", geneSlug)
+    .limit(1);
+  if (error) return false; // fail open — don't block a run over a lookup hiccup
+  return Boolean(data && data.length > 0);
 }

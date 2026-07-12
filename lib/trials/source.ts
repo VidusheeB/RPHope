@@ -141,12 +141,24 @@ export type FetchTrialsParams = {
   pageSize?: number;
 };
 
-export async function fetchTrials({
+export type FetchTrialsResult =
+  | { ok: true; records: TrialRecord[] }
+  | { ok: false; error: string };
+
+/**
+ * Same query as fetchTrials, but distinguishes a hard failure (network,
+ * timeout, non-2xx) from a legitimate zero-result search — used by the
+ * gene-page pipeline's "required retrieval failed" reject condition, which
+ * needs that distinction. fetchTrials() below stays a thin, fully backward-
+ * compatible wrapper for the Clinical Trials Finder's existing callers, which
+ * only ever wanted a plain array and a graceful empty state either way.
+ */
+export async function fetchTrialsResult({
   condition,
   term,
   statuses,
   pageSize = 50,
-}: FetchTrialsParams): Promise<TrialRecord[]> {
+}: FetchTrialsParams): Promise<FetchTrialsResult> {
   const url = new URL(API);
   url.searchParams.set("query.cond", condition);
   if (term) url.searchParams.set("query.term", term);
@@ -165,15 +177,23 @@ export async function fetchTrials({
       // always hit the live registry; this route is force-dynamic
       cache: "no-store",
     });
-    if (!res.ok) return [];
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
     const json = await res.json();
     const studies: unknown[] = json?.studies || [];
-    return studies
-      .map(mapStudy)
-      .filter((t): t is TrialRecord => Boolean(t));
-  } catch {
-    return []; // network/timeout → caller shows the graceful "no results" copy
+    return {
+      ok: true,
+      records: studies.map(mapStudy).filter((t): t is TrialRecord => Boolean(t)),
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export async function fetchTrials(params: FetchTrialsParams): Promise<TrialRecord[]> {
+  const result = await fetchTrialsResult(params);
+  // network/timeout/non-2xx → caller shows the graceful "no results" copy,
+  // matching this function's original behavior exactly.
+  return result.ok ? result.records : [];
 }
