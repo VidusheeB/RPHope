@@ -98,6 +98,10 @@ export type LiteratureRecord = {
   exclusionReason?: string;
 };
 
+/** How a trial record entered the bundle: the normal gene-name CT.gov search,
+ *  or resolved directly from an NCT ID a selected publication named. */
+export type TrialProvenance = "gene_search" | "discovered_from_literature";
+
 /** A ClinicalTrials.gov record, trimmed to what the prompt needs. */
 export type TrialSummaryRecord = {
   sourceId: string; // "clinicaltrials:<nctId>"
@@ -108,6 +112,22 @@ export type TrialSummaryRecord = {
   geneSpecific: boolean;
   briefSummary?: string;
   url: string;
+  /** Defaults to "gene_search". "discovered_from_literature" means it was
+   *  fetched directly by an NCT ID found in a selected paper. */
+  provenance?: TrialProvenance;
+  /** Publication source IDs that referenced this trial (when discovered from
+   *  literature, or when a gene-search trial was ALSO named in a paper). */
+  referencedBySourceIds?: string[];
+};
+
+/** An NCT ID a selected publication referenced that could NOT be resolved to a
+ *  live ClinicalTrials.gov record. The citing publication is kept; the draft
+ *  may state the registry record could not be verified, and must not present
+ *  the trial's recruitment status as current. */
+export type UnverifiedTrialReference = {
+  nctId: string;
+  referencedBySourceIds: string[];
+  reason: string;
 };
 
 /** A small, hand-curated set of RP Hope-approved general resources. */
@@ -148,6 +168,10 @@ export type GeneSourceBundle = {
   trialRecords: TrialSummaryRecord[];
   approvedResources: ApprovedResource[];
   webFallbackRecords: WebSearchRecord[];
+  /** NCT IDs a selected paper named but which could not be verified against
+   *  ClinicalTrials.gov — the draft may note this, but must not state a
+   *  recruitment status for them. Empty in the common case. */
+  unverifiedTrialReferences: UnverifiedTrialReference[];
 };
 
 /** All valid source IDs a draft may cite — used by validate.ts to reject a

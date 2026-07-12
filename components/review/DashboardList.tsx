@@ -1,0 +1,79 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import type { DashboardRow } from "@/lib/reviewer/data";
+import type { DashboardStatus } from "@/lib/reviewer/dashboardStatus";
+
+const FILTERS: { key: string; label: string; match: (s: DashboardStatus) => boolean }[] = [
+  { key: "all", label: "All", match: () => true },
+  { key: "active", label: "Active", match: (s) => s !== "Published" },
+  { key: "in_progress", label: "In progress", match: (s) => s === "Draft in progress" || s === "Changes requested" },
+  { key: "ready", label: "Ready", match: (s) => s === "Ready to publish" },
+  { key: "published", label: "Published", match: (s) => s === "Published" },
+];
+
+const STATUS_STYLE: Record<DashboardStatus, string> = {
+  "Not started": "bg-ink/10 text-ink/70",
+  "Draft in progress": "bg-butter text-ink",
+  "Ready to publish": "bg-mint text-forest",
+  Published: "bg-forest text-white",
+  "Changes requested": "bg-lilac text-ink",
+};
+
+export default function DashboardList({ rows }: { rows: DashboardRow[] }) {
+  const [filter, setFilter] = useState("active");
+  const active = FILTERS.find((f) => f.key === filter) ?? FILTERS[0];
+  const shown = rows.filter((r) => active.match(r.status));
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter drafts">
+        {FILTERS.map((f) => (
+          <button
+            key={f.key}
+            role="tab"
+            aria-selected={filter === f.key}
+            onClick={() => setFilter(f.key)}
+            className={`rounded-full px-3 py-1 text-sm ${
+              filter === f.key ? "bg-forest text-white" : "bg-white text-ink/80 border border-ink/15"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {shown.length === 0 ? (
+        <p className="mt-6 text-ink/60">No drafts in this view.</p>
+      ) : (
+        <ul className="mt-6 space-y-3">
+          {shown.map((r) => (
+            <li key={r.draftId} className="rounded-lg border border-ink/12 bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="font-display text-xl font-medium text-ink">{r.geneSymbol}</h2>
+                  <p className="text-sm text-ink/60">
+                    {r.unresolvedFlags} of {r.flagCount} flag{r.flagCount === 1 ? "" : "s"} unresolved
+                    {r.updatedAt ? ` · last saved ${new Date(r.updatedAt).toLocaleDateString()}` : ""}
+                  </p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLE[r.status]}`}>
+                  {r.status}
+                </span>
+              </div>
+              <div className="mt-3">
+                <Link
+                  href={`/review/${r.draftId}`}
+                  className="inline-block rounded bg-forest px-4 py-2 text-sm font-semibold text-white"
+                >
+                  {r.status === "Published" ? "View" : "Open review"}
+                </Link>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

@@ -30,6 +30,7 @@ function bundle(overrides: Partial<GeneSourceBundle> = {}): GeneSourceBundle {
       { sourceId: "rphope-resource:genetic-testing", title: "x", url: "/x", note: "x" },
     ],
     webFallbackRecords: [],
+    unverifiedTrialReferences: [],
     ...overrides,
   };
 }

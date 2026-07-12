@@ -21,6 +21,7 @@ function bundle(literatureCount: number): GeneSourceBundle {
     trialRecords: [],
     approvedResources: [],
     webFallbackRecords: [],
+    unverifiedTrialReferences: [],
   };
 }
 

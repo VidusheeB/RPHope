@@ -70,7 +70,8 @@ export function estimateCostBeforeGeneration(bundle: GeneSourceBundle): {
     JSON.stringify(bundle.literatureRecords).length +
     JSON.stringify(bundle.trialRecords).length +
     JSON.stringify(bundle.approvedResources).length +
-    JSON.stringify(bundle.webFallbackRecords).length;
+    JSON.stringify(bundle.webFallbackRecords).length +
+    JSON.stringify(bundle.unverifiedTrialReferences).length;
   const estimatedInputTokens =
     SYSTEM_PROMPT_TOKENS + Math.ceil(bundleJsonLength / CHARS_PER_TOKEN) + 500; // +500 for prompt scaffolding
   return {
@@ -137,6 +138,7 @@ export async function generateGenePage(
     clinicalTrialRecordsJson: JSON.stringify(bundle.trialRecords, null, 2),
     approvedGeneralResourcesJson: JSON.stringify(bundle.approvedResources, null, 2),
     webFallbackRecordsJson: JSON.stringify(bundle.webFallbackRecords, null, 2),
+    unverifiedTrialReferencesJson: JSON.stringify(bundle.unverifiedTrialReferences, null, 2),
   });
 
   let message: Anthropic.Beta.Messages.BetaMessage;

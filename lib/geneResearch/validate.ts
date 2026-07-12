@@ -17,8 +17,51 @@ import type { GenePageDraft, GeneSourceBundle, RejectReason, ValidationResult } 
 const ajv = new Ajv({ allErrors: true, strict: false });
 const validateSchema = ajv.compile(GENE_PAGE_SCHEMA);
 
+/** Schema-only validation (no evidence bundle needed) — used by the reviewer
+ *  publish gate, which validates a draft's structure independently of any
+ *  original retrieval bundle. */
+export function validateDraftSchemaOnly(
+  draft: unknown
+): { ok: true } | { ok: false; error: string } {
+  if (validateSchema(draft)) return { ok: true };
+  return { ok: false, error: ajv.errorsText(validateSchema.errors, { separator: "; " }) };
+}
+
+/** Source IDs cited in the draft's PROSE and research cards only (excludes the
+ *  `sources` registry array itself). */
+function proseCitedSourceIds(draft: GenePageDraft): string[] {
+  const ids: string[] = [];
+  const sourcedFields: (keyof GenePageDraft)[] = [
+    "summaryCard",
+    "whatThisGeneMeans",
+    "howItMayAffectVision",
+    "whatIsKnown",
+    "whatIsUncertain",
+    "whatYouCanDoNext",
+    "forFamilyAndCaregivers",
+    "treatmentAndResearch",
+    "clinicalTrialSummary",
+  ];
+  for (const field of sourcedFields) {
+    const value = draft[field] as { sourceIds?: string[] } | undefined;
+    if (value?.sourceIds) ids.push(...value.sourceIds);
+  }
+  for (const card of draft.researchCards ?? []) ids.push(...(card.sourceIds ?? []));
+  return Array.from(new Set(ids));
+}
+
+/** Every source ID cited in the draft's prose/cards must appear in its own
+ *  `sources` registry. Reused by the publish gate ("all source IDs valid"). */
+export function allCitedSourcesPresent(
+  draft: GenePageDraft
+): { ok: true } | { ok: false; missing: string[] } {
+  const declared = new Set((draft.sources ?? []).map((s) => s.id));
+  const missing = proseCitedSourceIds(draft).filter((id) => !declared.has(id));
+  return missing.length ? { ok: false, missing } : { ok: true };
+}
+
 /** Collect every source ID referenced anywhere in the draft. */
-function citedSourceIds(draft: GenePageDraft): string[] {
+export function citedSourceIds(draft: GenePageDraft): string[] {
   const ids: string[] = [];
   const sourcedFields: (keyof GenePageDraft)[] = [
     "summaryCard",

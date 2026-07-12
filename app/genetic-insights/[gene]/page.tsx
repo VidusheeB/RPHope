@@ -6,6 +6,8 @@ import { geneGrid } from "@/lib/geneGrid";
 import GeneArticles from "@/components/site/GeneArticles";
 import ListenButton from "@/components/site/ListenButton";
 import { getResearchItems } from "@/lib/researchRepo";
+import { getPublishedGeneVersion } from "@/lib/reviewer/publicContent";
+import GeneDraftView from "@/components/review/GeneDraftView";
 
 export function generateStaticParams() {
   return geneGrid.map((g) => ({ gene: g.slug }));
@@ -101,6 +103,36 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export default async function GenePage({ params }: { params: { gene: string } }) {
+  // Prefer a human-reviewed, PUBLISHED Supabase version when one exists; fall
+  // back to the existing local genesData.json content otherwise (so the site
+  // keeps working during gradual migration). A published version is immutable —
+  // later edits create a new draft + version, never edit this in place.
+  const published = await getPublishedGeneVersion(params.gene);
+  if (published) {
+    const articles = await getResearchItems(params.gene);
+    return (
+      <div className="bg-cream">
+        <div className="mx-auto max-w-5xl px-5 py-12">
+          <Link
+            href="/genetic-insights"
+            className="text-sm font-bold uppercase tracking-[0.06em] text-forest hover:text-forest-dark"
+          >
+            ← Genetic Insights
+          </Link>
+          <div className="mt-6">
+            <GeneDraftView draft={published.content} />
+          </div>
+          <section className="mx-auto mt-12 max-w-3xl">
+            <h2 className="font-display text-2xl font-medium text-ink">In the News</h2>
+            <div className="mt-4">
+              <GeneArticles articles={articles} />
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
   const gene = getGene(params.gene);
   const articles = await getResearchItems(params.gene);
 

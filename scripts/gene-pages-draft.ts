@@ -109,11 +109,16 @@ async function main() {
         const b = result.bundle;
         const d = result.diagnostics;
         console.log(
-          `ok — ${d.candidateCount} candidate(s) → ${b.literatureRecords.length} selected, ${b.trialRecords.length} trial(s)`
+          `ok — ${d.candidateCount} candidate(s), ${d.relevanceExcludedCount} removed by relevance gate → ${b.literatureRecords.length} selected, ${b.trialRecords.length} trial(s)`
         );
         console.log(
           `      raw: PubMed ${d.rawCounts.pubmed}, ELink ${d.rawCounts.pubmedElink}, Europe PMC ${d.rawCounts.europepmc}`
         );
+        if (d.nctIdsExtracted.length) {
+          console.log(
+            `      NCT from literature: extracted [${d.nctIdsExtracted.join(", ")}], resolved [${d.nctResolved.join(", ") || "none"}], unverified [${d.nctUnverified.join(", ") || "none"}]`
+          );
+        }
         mkdirSync(DIAGNOSTICS_DIR, { recursive: true });
         const path = `${DIAGNOSTICS_DIR}/${gene.slug}-retrieval.txt`;
         writeFileSync(path, formatRetrievalDiagnostics(d), "utf8");

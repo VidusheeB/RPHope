@@ -40,7 +40,9 @@ import { getSearchTerms } from "./aliases";
 import { fetchGeneToPubmedElink } from "./elink";
 import { fetchPubMedRecords, fetchPubMedRecordsByPmid } from "./pubmed";
 import { fetchEuropePmcRecords } from "./europepmc";
-import { fetchTrialSummaries } from "./trials";
+import { fetchTrialSummaries, mergeLiteratureReferencedTrials } from "./trials";
+import { collectNctReferences } from "./nct";
+import { assessRelevance } from "./relevance";
 import { APPROVED_GENERAL_RESOURCES } from "./resources";
 import {
   dedupeLiterature,
@@ -79,11 +81,18 @@ export type RetrievalDiagnostics = {
   /** Raw record counts per source, BEFORE cross-source dedup. */
   rawCounts: { pubmed: number; pubmedElink: number; europepmc: number };
   elinkPmidCount: number;
-  candidateCount: number; // after dedup, before selection
+  candidateCount: number; // after dedup, before the relevance gate
+  /** Records removed by the conservative relevance gate (clearly off-topic). */
+  relevanceExcludedCount: number;
   selectedCount: number;
   webFallbackCount: number;
+  /** NCT IDs found in the selected literature, and how each resolved. */
+  nctIdsExtracted: string[];
+  nctResolved: string[]; // fetched directly from CT.gov and merged as trials
+  nctUnverified: string[]; // referenced but CT.gov couldn't return them
   /** Every deduplicated candidate, each with foundBy / matchedTerm / score /
-   *  evidenceCategory / selected / exclusionReason populated. */
+   *  evidenceCategory / selected / exclusionReason populated (gate-excluded
+   *  records carry a "Relevance gate: …" reason). */
   candidates: LiteratureRecord[];
 };
 
@@ -168,17 +177,43 @@ export async function assembleSourceBundle(
   }
 
   // Step 4: merge all literature candidates, dedupe (merging foundBy
-  // provenance across duplicates), then category-balanced selection. The
-  // deduped list is the full candidate pool the diagnostic reports on; the
-  // selection step mutates each candidate's `selected`/`exclusionReason`.
+  // provenance across duplicates), then apply the conservative relevance gate
+  // BEFORE category-balanced selection, so a clearly-unrelated paper never
+  // consumes a selection slot. Gate-excluded records are kept in diagnostics
+  // (with source ID, matched term, original score, exclusion reason) but not
+  // sent to Opus.
   const merged = [...pubmedResult.records, ...elinkRecords, ...europePmcResult.records];
   const candidates = dedupeLiterature(merged);
-  const { selected } = selectCategoryBalancedEvidence(candidates, LITERATURE_LIMIT);
 
-  // Step 4b: rank trials strongest-first and cap — do NOT send every raw
-  // trial CT.gov returns. Gene-specific + active status outrank broader/
-  // inactive records; weakly-relevant records beyond the cap are dropped.
-  const trialRecords = rankAndCapTrials(trialsResult.records, TRIAL_LIMIT);
+  const relevant: LiteratureRecord[] = [];
+  const gateExcluded: LiteratureRecord[] = [];
+  for (const c of candidates) {
+    const verdict = assessRelevance(c);
+    if (verdict.relevant) {
+      relevant.push(c);
+    } else {
+      c.selected = false;
+      c.exclusionReason = `Relevance gate: ${verdict.reason}`;
+      gateExcluded.push(c);
+    }
+  }
+
+  const { selected } = selectCategoryBalancedEvidence(relevant, LITERATURE_LIMIT);
+
+  // Step 4b: extract NCT IDs from the SELECTED literature and resolve each
+  // DIRECTLY from ClinicalTrials.gov (not another gene search), then merge with
+  // the gene-search trials (dedup by NCT ID, prefer the direct registry
+  // record). NCT IDs a paper named but CT.gov can't return become "unverified"
+  // references — the citing paper stays, but no live trial is asserted.
+  const nctReferences = collectNctReferences(
+    selected.map((r) => ({ sourceId: r.sourceId, title: r.title, abstract: r.abstract }))
+  );
+  const geneSearchTrials = rankAndCapTrials(trialsResult.records, TRIAL_LIMIT);
+  const { merged: mergedTrials, unverified: unverifiedTrialReferences } =
+    await mergeLiteratureReferencedTrials(geneSearchTrials, nctReferences);
+  // Re-rank/cap after merging in literature-discovered trials so a paper-named
+  // trial the gene search missed can still surface within the cap.
+  const trialRecords = rankAndCapTrials(mergedTrials, TRIAL_LIMIT);
 
   // Step 5: web-search fallback, ONLY if the SELECTED evidence is thin (and
   // never in --retrieve-only mode, which guarantees zero Anthropic spend).
@@ -200,9 +235,16 @@ export async function assembleSourceBundle(
     },
     elinkPmidCount: elinkPmids.length,
     candidateCount: candidates.length,
+    relevanceExcludedCount: gateExcluded.length,
     selectedCount: selected.length,
     webFallbackCount: webFallbackRecords.length,
-    candidates,
+    nctIdsExtracted: nctReferences.map((r) => r.nctId),
+    nctResolved: trialRecords
+      .filter((t) => t.provenance === "discovered_from_literature")
+      .map((t) => t.nctId),
+    nctUnverified: unverifiedTrialReferences.map((u) => u.nctId),
+    // gate-excluded first (with their reasons), then the ranked candidate pool.
+    candidates: [...gateExcluded, ...relevant],
   };
 
   return {
@@ -215,6 +257,7 @@ export async function assembleSourceBundle(
       trialRecords,
       approvedResources: APPROVED_GENERAL_RESOURCES,
       webFallbackRecords,
+      unverifiedTrialReferences,
     },
     diagnostics,
   };

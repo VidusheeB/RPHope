@@ -165,6 +165,24 @@ Provide only:
 Direct visitors to RP Hope's Clinical Trials Finder for personalized
 screening. Never determine eligibility.
 
+Some trial records carry a provenance of "discovered_from_literature" — these
+were resolved directly from a ClinicalTrials.gov identifier named in a
+publication, and are as authoritative as any other registry record. If the
+bundle lists an unverified trial reference (an NCT ID a paper mentioned that
+could NOT be confirmed against ClinicalTrials.gov), you may note that a
+publication referenced such a study but that its registry record could not be
+verified — do NOT state its recruitment status or present it as a confirmed,
+current trial.
+
+PREVALENCE AND GENE FREQUENCY
+
+On the main patient-facing page, describe gene frequency qualitatively unless a
+number is directly useful for patient understanding. Do not place several
+population-specific prevalence percentages in the main prose. When frequency
+varies across cohorts, prefer wording such as: "LCA5 is a rare cause of LCA,
+and how often it appears varies across populations." Exact cohort percentages
+may appear in a research card, source detail, or review note.
+
 RESEARCH CARDS
 
 Select at most five publications that are most useful for understanding:
@@ -205,6 +223,7 @@ export type UserPromptInput = {
   clinicalTrialRecordsJson: string;
   approvedGeneralResourcesJson: string;
   webFallbackRecordsJson: string;
+  unverifiedTrialReferencesJson: string;
 };
 
 export function buildUserPrompt(input: UserPromptInput): string {
@@ -230,6 +249,10 @@ ${input.approvedGeneralResourcesJson}
 ${input.webFallbackRecordsJson}
 </web_fallback_records>
 
+<unverified_trial_references>
+${input.unverifiedTrialReferencesJson}
+</unverified_trial_references>
+
 <generation_requirements>
 1. Evaluate only the evidence bundle above. Do not add facts from memory.
 2. Produce a patient-first page rather than a literature review.
@@ -246,6 +269,11 @@ ${input.webFallbackRecordsJson}
 11. Create only a brief clinical-trial summary. The main action should direct
     visitors to the RP Hope Clinical Trials Finder with ${input.geneSymbol}
     preselected.
-12. Return reviewStatus as "unreviewed".
+12. Describe gene frequency qualitatively in the main prose; do not stack
+    several population-specific prevalence percentages there (see the prevalence
+    rule above). Exact cohort percentages may go in a research card or note.
+13. For any unverified trial reference above, do not state a recruitment status
+    or present it as a confirmed current trial.
+14. Return reviewStatus as "unreviewed".
 </generation_requirements>`;
 }

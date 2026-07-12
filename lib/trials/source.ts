@@ -197,3 +197,50 @@ export async function fetchTrials(params: FetchTrialsParams): Promise<TrialRecor
   // matching this function's original behavior exactly.
   return result.ok ? result.records : [];
 }
+
+export type FetchStudyResult =
+  | { ok: true; record: TrialRecord | null } // null = registry has no such study
+  | { ok: false; error: string };
+
+/**
+ * Fetch ONE study directly by its NCT ID (CT.gov's /studies/{nctId} endpoint).
+ * Used to resolve an NCT ID extracted from a publication without relying on a
+ * gene-name search — the direct record is the authoritative one. Returns
+ * `record: null` (not an error) when the registry legitimately has no such
+ * study, so the caller can keep the citing publication and flag the trial as
+ * unverified rather than treating a 404 as a hard failure.
+ *
+ * Defensively re-checks that the returned study's own nctId matches the one we
+ * asked for — never map a mismatched record onto the requested ID.
+ */
+export async function fetchStudyByNctId(nctId: string): Promise<FetchStudyResult> {
+  if (!/^NCT\d{8}$/i.test(nctId)) {
+    return { ok: false, error: `malformed NCT ID: ${nctId}` };
+  }
+  const url = `${API}/${encodeURIComponent(nctId.toUpperCase())}?format=json`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { accept: "application/json" },
+      cache: "no-store",
+    });
+    if (res.status === 404) return { ok: true, record: null };
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+    const study = await res.json();
+    const record = mapStudy(study);
+    if (!record) return { ok: true, record: null };
+    if (record.id.toUpperCase() !== nctId.toUpperCase()) {
+      return {
+        ok: false,
+        error: `registry returned ${record.id} for requested ${nctId} (ID mismatch)`,
+      };
+    }
+    return { ok: true, record };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  } finally {
+    clearTimeout(timeout);
+  }
+}

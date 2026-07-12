@@ -29,6 +29,7 @@ function bundle(): GeneSourceBundle {
     trialRecords: [],
     approvedResources: [],
     webFallbackRecords: [],
+    unverifiedTrialReferences: [],
   };
 }
 
