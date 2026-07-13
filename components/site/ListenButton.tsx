@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  speak,
-  cancelSpeech,
-  pauseSpeech,
-  resumeSpeech,
-  isSpeechSupported,
-} from "@/lib/speech";
+import { speak, cancelSpeech, pauseSpeech, resumeSpeech, isTTSAvailable } from "@/lib/speech";
 
 /**
  * "Listen to this page" — a secondary read-aloud aid for users who do NOT run a
@@ -16,34 +10,44 @@ import {
  * is an optional add-on.
  *
  * Rules honored here:
- * - Browser-native Web Speech API (SpeechSynthesis). Free, client-side, no keys.
  * - Never autoplays (WCAG 1.4.2): speech starts only on user action.
  * - Keyboard-operable with an accessible name and visible pause/stop.
  * - `aria-hidden` so it does not duplicate content for an active screen reader.
+ *
+ * Voice is OpenAI TTS (`/api/tts`) — the button checks that it's actually
+ * configured server-side (isTTSAvailable) rather than any browser speech
+ * feature, since playback here is just an <audio> element.
  *
  * Pass the exact `text` to read (verbatim published content) so we never speak
  * an AI paraphrase or unrelated chrome.
  */
 export default function ListenButton({ text }: { text: string }) {
-  // "idle" | "playing" | "paused". `supported` is null until we check on mount
-  // (SpeechSynthesis is a browser API and absent during SSR).
-  const [supported, setSupported] = useState<boolean | null>(null);
-  const [state, setState] = useState<"idle" | "playing" | "paused">("idle");
+  // "idle" | "playing" | "paused" | "error". `available` is null until the
+  // server-side TTS check resolves (async — a browser API is absent during SSR).
+  const [available, setAvailable] = useState<boolean | null>(null);
+  const [state, setState] = useState<"idle" | "playing" | "paused" | "error">("idle");
 
   useEffect(() => {
-    setSupported(isSpeechSupported());
-    // Stop any speech if the user navigates away.
-    return () => cancelSpeech();
+    let cancelled = false;
+    isTTSAvailable().then((ok) => {
+      if (!cancelled) setAvailable(ok);
+    });
+    return () => {
+      cancelled = true;
+      cancelSpeech();
+    };
   }, []);
 
   function play() {
-    speak(text, { onEnd: () => setState("idle") });
     setState("playing");
+    speak(text, {
+      onEnd: () => setState("idle"),
+      onError: () => setState("error"),
+    });
   }
 
   function pause() {
-    // Use the module's pause so its keep-alive timer stops auto-resuming (a raw
-    // speechSynthesis.pause() gets undone within ~5s by the keep-alive).
+    // Use the module's pause so it can resume without restarting the request.
     pauseSpeech();
     setState("paused");
   }
@@ -54,16 +58,16 @@ export default function ListenButton({ text }: { text: string }) {
   }
 
   function stop() {
-    // Use the module's cancel so it bumps the generation token and clears the
-    // keep-alive + chunk queue (a raw cancel() only skips to the next chunk).
+    // Use the module's cancel so it bumps the generation token and drops any
+    // in-flight request (a raw pause only stops the current chunk).
     cancelSpeech();
     setState("idle");
   }
 
-  // Hide entirely until we know it is supported (avoids a dead button on
-  // unsupported browsers and avoids an SSR/client mismatch).
-  if (supported === null) return null;
-  if (!supported) return null;
+  // Hide entirely until we know OpenAI TTS is configured (avoids a dead button
+  // when it isn't, and avoids an SSR/client mismatch).
+  if (available === null) return null;
+  if (!available) return null;
 
   const buttonBase =
     "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-forest focus-visible:ring-offset-2 focus-visible:ring-offset-cream";
@@ -101,6 +105,16 @@ export default function ListenButton({ text }: { text: string }) {
           </button>
           <button type="button" onClick={stop} className={`${buttonBase} border border-forest/30 bg-white text-forest hover:bg-forest/5`}>
             Stop
+          </button>
+        </>
+      )}
+
+      {state === "error" && (
+        <>
+          <span className="text-sm text-maroon">Couldn&rsquo;t play audio.</span>
+          <button type="button" onClick={play} className={`${buttonBase} bg-forest text-white hover:bg-forest/90`}>
+            <SpeakerIcon />
+            Try again
           </button>
         </>
       )}

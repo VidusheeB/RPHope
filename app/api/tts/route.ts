@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-// OpenAI text-to-speech. TRIAL: a more natural voice than the browser-native
-// Web Speech API for both "Listen to this page" and the conversational voice
-// assistant. Uses `gpt-4o-mini-tts`, whose `instructions` field lets us steer
-// tone/inflection (warm, caring) — the thing the browser voice can't do.
+// OpenAI text-to-speech — the sole engine behind the "Listen to this page"
+// button (lib/speech.ts / components/site/ListenButton.tsx; no browser Web
+// Speech fallback). Uses `gpt-4o-mini-tts`, whose `instructions` field lets us
+// steer tone/inflection (warm, caring).
 //
-// Governance/cost note: CLAUDE.md defaults to free client-side Web Speech; this
-// paid path is opt-in and only active when OPENAI_API_KEY is set. Without a key
-// the client falls back to the browser voice, so nothing breaks.
+// Requires OPENAI_API_KEY. Without it this returns 501 and the client's GET
+// probe reports { available: false }, so the button hides rather than showing
+// a dead control.
 
 const KEY = process.env.OPENAI_API_KEY;
 
