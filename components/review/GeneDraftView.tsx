@@ -34,6 +34,54 @@ function ProseSection({ title, body }: { title: string; body?: SourcedText }) {
   );
 }
 
+/** Treatment/trial evidence first, then preclinical, then everything else
+ *  (observational studies, case reports) — makes a treatment-oriented section
+ *  read treatment-forward without discarding the other supporting research. */
+function sortByTreatmentRelevance(cards: ResearchCard[]): ResearchCard[] {
+  const score = (c: ResearchCard) => {
+    const t = (c.evidenceType || "").toLowerCase();
+    if (/clinical trial|randomi[sz]ed|drug trial|therapy trial/.test(t)) return 0;
+    if (/preclinical|animal|laboratory|cell(ular)? model/.test(t)) return 1;
+    return 2;
+  };
+  return [...cards].sort((a, b) => score(a) - score(b));
+}
+
+/** Merged "Treatment & research" section: the short treatment-overview prose
+ *  as a lead-in, then the research cards (reordered treatment-first) below —
+ *  one section, one heading, instead of a separate prose section and a
+ *  separate "Research that matters" cards section. */
+function TreatmentAndResearchSection({
+  body,
+  cards,
+}: {
+  body?: SourcedText;
+  cards?: ResearchCard[];
+}) {
+  const hasBody = !!body?.text;
+  const sorted = cards?.length ? sortByTreatmentRelevance(cards) : [];
+  if (!hasBody && sorted.length === 0) return null;
+  return (
+    <GeneSection
+      title="Treatment & research"
+      preview={
+        hasBody
+          ? lead(body!.text)
+          : "Studies behind this page — what was found, why it matters, and its limitation…"
+      }
+    >
+      {hasBody && <p className={`whitespace-pre-line ${PROSE}`}>{body!.text}</p>}
+      {sorted.length > 0 && (
+        <ul className={`grid gap-3 ${hasBody ? "mt-6" : ""}`}>
+          {sorted.map((c, i) => (
+            <ResearchCardView key={i} card={c} />
+          ))}
+        </ul>
+      )}
+    </GeneSection>
+  );
+}
+
 function ResearchCardView({ card }: { card: ResearchCard }) {
   return (
     <li className="rounded-xl border border-ink/10 bg-cream-header p-4">
@@ -106,13 +154,15 @@ export default function GeneDraftView({
         <ReadingModeToggle />
       </div>
 
-      <div className="mt-2 grid gap-3">
+      {/* All the deep-dive sections tile 2-per-row, like the "Where things
+          stand" status cards above — items-start so one tile expanding
+          doesn't stretch its shorter row-mate. */}
+      <div className="mt-2 grid items-start gap-3 sm:grid-cols-2">
         <ProseSection title="What this gene means" body={draft.whatThisGeneMeans} />
         <ProseSection title="How it may affect vision" body={draft.howItMayAffectVision} />
         <ProseSection title="What is known" body={draft.whatIsKnown} />
         <ProseSection title="What is uncertain" body={draft.whatIsUncertain} />
-        <ProseSection title="Treatment & research, in depth" body={draft.treatmentAndResearch} />
-        <ProseSection title="What you can do next" body={draft.whatYouCanDoNext} />
+        <TreatmentAndResearchSection body={draft.treatmentAndResearch} cards={draft.researchCards} />
         <ProseSection title="For family & caregivers" body={draft.forFamilyAndCaregivers} />
 
         {draft.questionsForClinician?.length ? (
@@ -131,20 +181,11 @@ export default function GeneDraftView({
           </GeneSection>
         ) : null}
 
-        {draft.researchCards?.length ? (
-          <GeneSection
-            title="Research that matters"
-            preview="Studies behind this page — what was found, why it matters, and its limitation…"
-          >
-            <ul className="grid gap-3">
-              {draft.researchCards.map((c, i) => (
-                <ResearchCardView key={i} card={c} />
-              ))}
-            </ul>
-          </GeneSection>
-        ) : null}
+        <ProseSection title="What you can do next" body={draft.whatYouCanDoNext} />
+      </div>
 
-        {draft.sources?.length ? (
+      {draft.sources?.length ? (
+        <div className="mt-3">
           <GeneSection title="Sources" preview="Peer-reviewed and registry references underlying this page…">
             <ol className="grid list-decimal gap-1.5 pl-5 text-sm text-ink/70">
               {draft.sources.map((s) => (
@@ -156,8 +197,8 @@ export default function GeneDraftView({
               ))}
             </ol>
           </GeneSection>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }
