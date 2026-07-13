@@ -116,35 +116,6 @@ export function IdentityCard({
   );
 }
 
-/** Placeholder trial-status chips (see StatusTrials). */
-function TrialChips() {
-  const chips: { n: number; label: string; cls: string }[] = [
-    { n: 1, label: "Recruiting", cls: "bg-mint text-forest-dark border-forest/25" },
-    { n: 1, label: "Active, not recruiting", cls: "bg-butter text-[#7a5a12] border-[#7a5a12]/25" },
-    { n: 0, label: "Completed", cls: "bg-cream-card text-ink/60 border-ink/12" },
-    { n: 4, label: "Preclinical", cls: "bg-lilac text-[#4a3f7a] border-[#4a3f7a]/25" },
-  ];
-  return (
-    <div>
-      <div className="flex flex-wrap gap-2" role="list" aria-label="Trial status (illustrative placeholder)">
-        {chips.map((c) => (
-          <span
-            key={c.label}
-            role="listitem"
-            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${c.cls}`}
-          >
-            <span className="tabular-nums">{c.n}</span> {c.label}
-          </span>
-        ))}
-      </div>
-      <p className="mt-2 text-xs italic text-ink/50">
-        Illustrative layout — live ClinicalTrials.gov counts are not wired to gene pages yet. Use
-        Find clinical trials for current studies.
-      </p>
-    </div>
-  );
-}
-
 /** Small status card wrapper ("Where things stand"). */
 export function StatusCard({
   lead,
@@ -174,8 +145,11 @@ export function StatusTrials({
 }) {
   return (
     <StatusCard lead="Where things stand · Clinical trials" title="Studies that may be relevant to review">
-      <TrialChips />
-      {summary && <p className="mt-3">{summary}</p>}
+      {summary && <p>{summary}</p>}
+      <p className={summary ? "mt-2" : undefined}>
+        Check current clinical trials for this gene — the Finder pulls live studies from
+        ClinicalTrials.gov.
+      </p>
       <Link
         href={`/clinical-trials?gene=${encodeURIComponent(geneSlug)}`}
         className="mt-3 inline-flex items-center gap-2 rounded-lg bg-forest px-4 py-2.5 text-[0.92rem] font-bold text-white hover:bg-forest-dark"

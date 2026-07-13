@@ -4,7 +4,7 @@
 // question per screen, branching on gene knowledge, with an inline "did you mean"
 // confirmation driven by deterministic normalization (no AI round-trip).
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { TrialFinderIntake } from "@/lib/trials/types";
 import { normalizeGene, type GeneNormalization } from "@/lib/trials/normalize";
 import { geneGrid } from "@/lib/geneGrid";
@@ -140,12 +140,27 @@ function OptionButton({
 
 export default function TrialIntakeForm({
   onSubmit,
+  initialGene = null,
 }: {
   onSubmit: (intake: TrialFinderIntake) => void;
+  // Canonical gene display name (e.g. "LCA5") to preselect, already validated.
+  initialGene?: string | null;
 }) {
   const [step, setStep] = useState<StepId>("search_for");
   const [history, setHistory] = useState<StepId[]>([]);
-  const [form, setForm] = useState<FormState>(initialForm);
+  // Seed the gene answer from the ?gene= preselection so the visitor arrives with
+  // it already chosen and confirmed (no need to re-type or confirm a known gene).
+  const [form, setForm] = useState<FormState>(() =>
+    initialGene
+      ? {
+          ...initialForm,
+          gene_status: "known",
+          rawGene: initialGene,
+          normalizedGene: initialGene,
+          geneResolved: true,
+        }
+      : initialForm,
+  );
 
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
@@ -153,6 +168,31 @@ export default function TrialIntakeForm({
     () => (form.rawGene.trim() ? normalizeGene(form.rawGene) : null),
     [form.rawGene],
   );
+
+  // The currently-selected gene (canonical). Drives the visible chip AND the URL.
+  // The form is the single source of truth; the URL mirrors it (below).
+  const selectedGene =
+    form.gene_status === "known"
+      ? form.normalizedGene ?? (geneNorm?.status === "exact" ? geneNorm.normalized ?? null : null)
+      : null;
+
+  // Keep ?gene= in sync with the selected gene, without a server round-trip or a
+  // second fetch (history.replaceState, not router navigation). Canonicalizes the
+  // param (e.g. ?gene=lca5 → ?gene=LCA5) and removes it when the gene is cleared.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("gene") === (selectedGene ?? null)) return;
+    if (selectedGene) url.searchParams.set("gene", selectedGene);
+    else url.searchParams.delete("gene");
+    window.history.replaceState(window.history.state, "", url.toString());
+  }, [selectedGene]);
+
+  function clearGene() {
+    // Revert the gene answer to its default (as if no gene had been provided);
+    // the effect above then drops ?gene= from the URL.
+    set({ gene_status: "", rawGene: "", normalizedGene: undefined, geneResolved: false });
+  }
 
   // Does the gene input need a confirmation screen?
   const needsGeneConfirm =
@@ -307,6 +347,22 @@ export default function TrialIntakeForm({
         Answer a few questions about diagnosis, gene status, location, and research
         goals. We&rsquo;ll show you the clinical trials that match your needs best.
       </p>
+
+      {/* Preselected gene (from a gene page's "Find clinical trials" link). */}
+      {selectedGene && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-forest/25 bg-forest/5 px-4 py-3">
+          <p className="text-sm text-ink">
+            <span className="font-semibold text-forest">Searching for gene:</span> {selectedGene}
+          </p>
+          <button
+            type="button"
+            onClick={clearGene}
+            className="text-sm font-bold text-forest underline underline-offset-2 hover:text-forest-dark"
+          >
+            Clear gene
+          </button>
+        </div>
+      )}
 
       {/* Progress */}
       <div className="mt-7" aria-hidden="true">

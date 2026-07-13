@@ -9,7 +9,13 @@ import TrialResults from "./TrialResults";
 
 type Phase = "intake" | "loading" | "results" | "error";
 
-export default function ClinicalTrialsFinder() {
+export default function ClinicalTrialsFinder({
+  initialGene = null,
+}: {
+  // Canonical gene display name (e.g. "LCA5") to preselect, from the /clinical-trials
+  // ?gene= parameter, already validated server-side. null = no preselection.
+  initialGene?: string | null;
+}) {
   const [phase, setPhase] = useState<Phase>("intake");
   const [data, setData] = useState<TrialMatchResponse | null>(null);
 
@@ -88,5 +94,5 @@ export default function ClinicalTrialsFinder() {
     return <TrialResults data={data} onRestart={restart} />;
   }
 
-  return <TrialIntakeForm onSubmit={runMatch} />;
+  return <TrialIntakeForm onSubmit={runMatch} initialGene={initialGene} />;
 }
