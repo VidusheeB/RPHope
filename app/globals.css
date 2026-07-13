@@ -55,6 +55,42 @@ body {
   font-optical-sizing: auto;
 }
 
+/* ---- Collapsible gene-page sections (see components/site/genePageParts.tsx) ----
+   Native <details> disclosures. These rules handle the open-state behaviours that
+   Tailwind utilities can't express cleanly (hiding the preview when open, swapping
+   the Show more/less label, rotating the chevron). */
+.gene-sec > summary {
+  list-style: none;
+}
+.gene-sec > summary::-webkit-details-marker {
+  display: none;
+}
+.gene-sec[open] .gene-sec-preview {
+  display: none;
+}
+.gene-sec-more::after {
+  content: "Show more";
+}
+.gene-sec[open] .gene-sec-more::after {
+  content: "Show less";
+}
+.gene-sec[open] .gene-sec-chev {
+  transform: rotate(180deg);
+}
+.gene-sec[open] .gene-sec-body {
+  animation: geneSecFade 0.22s ease;
+}
+@keyframes geneSecFade {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* Accessibility preferences set by the voice assistant (data attrs on <html>) */
 :root[data-contrast="high"] body {
   color: #000;

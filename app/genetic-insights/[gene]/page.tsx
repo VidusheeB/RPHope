@@ -1,13 +1,25 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getGene } from "@/lib/genes";
+import { getGene, type Gene } from "@/lib/genes";
 import { geneGrid } from "@/lib/geneGrid";
-import GeneArticles from "@/components/site/GeneArticles";
+import GeneArticles, { type Article } from "@/components/site/GeneArticles";
 import ListenButton from "@/components/site/ListenButton";
 import { getResearchItems } from "@/lib/researchRepo";
 import { getPublishedGeneVersion } from "@/lib/reviewer/publicContent";
 import GeneDraftView from "@/components/review/GeneDraftView";
+import type { GenePageDraft } from "@/lib/geneResearch/types";
+import {
+  GENE_COL,
+  PROSE,
+  GeneCrumb,
+  GeneField,
+  FaceOfRP,
+  IdentityCard,
+  StatusCard,
+  StatusTrials,
+  GeneSection,
+  GeneFooter,
+} from "@/components/site/genePageParts";
 
 export function generateStaticParams() {
   return geneGrid.map((g) => ({ gene: g.slug }));
@@ -17,11 +29,7 @@ export function generateStaticParams() {
 // without a redeploy, while pages still benefit from static generation.
 export const revalidate = 3600;
 
-export function generateMetadata({
-  params,
-}: {
-  params: { gene: string };
-}): Metadata {
+export function generateMetadata({ params }: { params: { gene: string } }): Metadata {
   const gene = getGene(params.gene);
   if (gene) {
     return { title: `${gene.gene} | RP Hope`, description: gene.summary.slice(0, 155) };
@@ -30,52 +38,8 @@ export function generateMetadata({
   return { title: item ? `${item.display} | RP Hope` : "Gene not found — RP Hope" };
 }
 
-function FaceOfRP({
-  name,
-  location,
-  gene,
-}: {
-  name: string;
-  location?: string;
-  gene: string;
-}) {
-  const initial = name.replace(/[^A-Za-z]/g, "").charAt(0).toUpperCase() || "•";
-  return (
-    <div
-      className="flex shrink-0 flex-col items-center text-center"
-      // Voice-reader hook: a clean verbatim string the voice assistant reads
-      // when asked about the "face of RP", instead of scraping the badge (which
-      // would include the decorative initial).
-      data-readable-key="face of rp"
-      data-readable-text={`The face of RP for ${gene} is ${name}${
-        location ? `, from ${location}` : ""
-      }.`}
-    >
-      <span className="text-[10px] font-bold uppercase tracking-widest text-forest/70">
-        A Face of RP
-      </span>
-      <span
-        aria-hidden="true"
-        className="mt-2 grid h-24 w-24 place-items-center rounded-full bg-forest font-display text-3xl font-medium text-white"
-      >
-        {initial}
-      </span>
-      <span className="mt-2 font-semibold text-ink">{name}</span>
-      {location && <span className="text-sm text-ink/60">{location}</span>}
-    </div>
-  );
-}
-
-/**
- * Build the verbatim text the read-aloud button speaks. Only published,
- * human-facing fields — no AI paraphrase, no page chrome. Mirrors the order the
- * page presents content (name, at-a-glance, brief description).
- */
-function readableGeneText(
-  gene: ReturnType<typeof getGene>,
-  articles: import("@/components/site/GeneArticles").Article[]
-): string {
-  if (!gene) return "";
+/** Verbatim listen text for legacy genes (published fields only — no paraphrase). */
+function readableGeneText(gene: Gene, articles: Article[]): string {
   const parts: string[] = [];
   parts.push(gene.fullName ? `${gene.gene}. ${gene.fullName}.` : `${gene.gene}.`);
   if (gene.diseaseCategory) parts.push(`Disease category: ${gene.diseaseCategory}.`);
@@ -91,180 +55,192 @@ function readableGeneText(
   return parts.join(" ");
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+/** Verbatim listen text for a published generated gene page. */
+function readableDraftText(draft: GenePageDraft): string {
+  const parts: string[] = [draft.gene + "."];
+  const push = (label: string, t?: { text?: string }) => {
+    if (t?.text) parts.push(`${label}. ${t.text}`);
+  };
+  push("Summary", draft.summaryCard);
+  push("What this gene means", draft.whatThisGeneMeans);
+  push("How it may affect vision", draft.howItMayAffectVision);
+  push("What is known", draft.whatIsKnown);
+  push("What is uncertain", draft.whatIsUncertain);
+  push("Treatment and research", draft.treatmentAndResearch);
+  push("Clinical trial summary", draft.clinicalTrialSummary);
+  push("What you can do next", draft.whatYouCanDoNext);
+  push("For family and caregivers", draft.forFamilyAndCaregivers);
+  return parts.join(" ");
+}
+
+/** Shared "In the News" section (research items), same look for every gene. */
+function InTheNews({ articles, showSource }: { articles: Article[]; showSource?: boolean }) {
   return (
-    <div className="border-b border-ink/10 py-3">
-      <dt className="text-xs font-bold uppercase tracking-wide text-ink/70">
-        {label}
-      </dt>
-      <dd className="mt-1 font-medium text-ink">{children}</dd>
-    </div>
+    <section className="mt-12">
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 className="font-display text-3xl font-medium tracking-tight text-ink">In the News</h2>
+        {showSource && (
+          <span className="text-xs font-semibold uppercase tracking-wide text-ink/40">
+            AI-curated from RP Hope&rsquo;s research library
+          </span>
+        )}
+      </div>
+      <div className="mt-6">
+        <GeneArticles articles={articles} />
+      </div>
+    </section>
   );
 }
 
 export default async function GenePage({ params }: { params: { gene: string } }) {
-  // Prefer a human-reviewed, PUBLISHED Supabase version when one exists; fall
-  // back to the existing local genesData.json content otherwise (so the site
-  // keeps working during gradual migration). A published version is immutable —
-  // later edits create a new draft + version, never edit this in place.
-  const published = await getPublishedGeneVersion(params.gene);
-  if (published) {
-    const articles = await getResearchItems(params.gene);
-    return (
-      <div className="bg-cream">
-        <div className="mx-auto max-w-5xl px-5 py-12">
-          <Link
-            href="/genetic-insights"
-            className="text-sm font-bold uppercase tracking-[0.06em] text-forest hover:text-forest-dark"
-          >
-            ← Genetic Insights
-          </Link>
-          <div className="mt-6">
-            <GeneDraftView draft={published.content} />
-          </div>
-          <section className="mx-auto mt-12 max-w-3xl">
-            <h2 className="font-display text-2xl font-medium text-ink">In the News</h2>
-            <div className="mt-4">
-              <GeneArticles articles={articles} />
-            </div>
-          </section>
-        </div>
-      </div>
-    );
-  }
-
-  const gene = getGene(params.gene);
   const articles = await getResearchItems(params.gene);
 
-  // Grid-only gene — minimal page.
-  if (!gene) {
-    const item = geneGrid.find((g) => g.slug === params.gene);
-    if (!item) notFound();
+  // ---- Branch A: a human-reviewed, PUBLISHED Supabase version exists ----------
+  // Prefer it; render the rich, brief-by-default format. Immutable — later edits
+  // create a new draft + version, never edit this in place.
+  const published = await getPublishedGeneVersion(params.gene);
+  if (published) {
+    const draft = published.content;
+    const meta = getGene(params.gene); // structured extras when the gene also has legacy data
+    const grid = geneGrid.find((g) => g.slug === params.gene);
+    const glance = (
+      <>
+        {(grid?.label || meta?.diseaseCategory) && (
+          <GeneField label="Disease Category">{meta?.diseaseCategory || grid?.label}</GeneField>
+        )}
+        {meta?.patientPopulation && (
+          <GeneField label="Patient Population">{meta.patientPopulation}</GeneField>
+        )}
+        {meta?.institutions?.length ? (
+          <GeneField label="Institution(s) Conducting Research">
+            {meta.institutions.join(", ")}
+          </GeneField>
+        ) : null}
+      </>
+    );
     return (
       <div className="bg-cream">
-        <article className="mx-auto max-w-5xl px-5 py-12">
-          <Link href="/genetic-insights" className="text-sm font-bold uppercase tracking-[0.06em] text-forest hover:text-forest-dark">
-            ← Genetic Insights
-          </Link>
-          <h1 className="mt-4 font-sans text-5xl font-bold tracking-tight text-ink">
-            {item.display}
-          </h1>
-          <dl className="mt-8 max-w-md rounded-lg border border-ink/12 bg-white px-6 py-2">
-            <Field label="Disease Category">{item.label}</Field>
-          </dl>
-          <section className="mt-12">
-            <h2 className="font-display text-3xl font-medium tracking-tight text-ink">In the News</h2>
-            <div className="mt-6">
-              <GeneArticles articles={articles} />
-            </div>
-          </section>
-          <Disclaimer />
+        <article className={`${GENE_COL} px-5 py-12`}>
+          <GeneCrumb />
+          <div className="mt-2">
+            <GeneDraftView
+              draft={draft}
+              geneSlug={params.gene}
+              listenSlot={<ListenButton text={readableDraftText(draft)} />}
+              face={
+                meta?.faceOfRP?.name && meta.faceOfRP.name !== "—" ? (
+                  <FaceOfRP name={meta.faceOfRP.name} location={meta.faceOfRP.location} gene={draft.gene} />
+                ) : undefined
+              }
+              glance={glance}
+            />
+          </div>
+          <div className={GENE_COL}>
+            <InTheNews articles={articles} showSource />
+            <GeneFooter lastReviewed="published, human-reviewed version" />
+          </div>
         </article>
       </div>
     );
   }
 
-  return (
-    <div className="bg-cream">
-      <article className="mx-auto max-w-5xl px-5 py-12">
-        <Link href="/genetic-insights" className="text-sm font-bold uppercase tracking-[0.06em] text-forest hover:text-forest-dark">
-          ← Genetic Insights
-        </Link>
+  // ---- Branch B: legacy full content from genesData.json ----------------------
+  const gene = getGene(params.gene);
+  if (gene) {
+    const glance = (
+      <>
+        {/* "Disease Category" mirrors the live site, where this field holds the
+            inheritance pattern (a deliberate content choice — kept, not "fixed"). */}
+        <GeneField label="Disease Category">{gene.diseaseCategory}</GeneField>
+        <GeneField label="Patient Population">{gene.patientPopulation || "—"}</GeneField>
+        <GeneField label="Clinical Trials">
+          {gene.clinicalTrials?.url ? (
+            <a
+              href={gene.clinicalTrials.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-forest underline"
+            >
+              {gene.clinicalTrials.label}
+            </a>
+          ) : (
+            gene.clinicalTrials?.label || "—"
+          )}
+        </GeneField>
+        <GeneField label="Institution(s) Conducting Research">
+          {gene.institutions?.length ? gene.institutions.join(", ") : "—"}
+        </GeneField>
+      </>
+    );
+    // Only substantial free-text fields become collapsible sections.
+    const hasEyeHealth = !!gene.eyeHealthStrategies && gene.eyeHealthStrategies.length > 40;
+    return (
+      <div className="bg-cream">
+        <article className={`${GENE_COL} px-5 py-12`} data-gene-scope>
+          <GeneCrumb />
+          <IdentityCard
+            gene={gene.gene}
+            fullName={gene.fullName}
+            listenSlot={<ListenButton text={readableGeneText(gene, articles)} />}
+            face={
+              gene.faceOfRP?.name && gene.faceOfRP.name !== "—" ? (
+                <FaceOfRP name={gene.faceOfRP.name} location={gene.faceOfRP.location} gene={gene.gene} />
+              ) : undefined
+            }
+            glance={glance}
+          />
 
-        {/* Header card: name + at-a-glance table + Face of RP */}
-        <div className="mt-4 rounded-lg border border-ink/12 bg-white p-6 sm:p-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="font-sans text-5xl font-bold tracking-tight text-ink">
-                {gene.gene}
-              </h1>
-              {gene.fullName && (
-                <p className="mt-1 text-lg text-ink/60">{gene.fullName}</p>
-              )}
-              <div className="mt-5">
-                <ListenButton text={readableGeneText(gene, articles)} />
-              </div>
-            </div>
-            {gene.faceOfRP && gene.faceOfRP.name && gene.faceOfRP.name !== "—" && (
-              <FaceOfRP
-                name={gene.faceOfRP.name}
-                location={gene.faceOfRP.location}
-                gene={gene.gene}
-              />
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {gene.treatmentOptions && gene.treatmentOptions !== "—" && (
+              <StatusCard lead="Where things stand · Treatment" title="Treatment options">
+                <p>{gene.treatmentOptions}</p>
+              </StatusCard>
+            )}
+            <StatusTrials geneSlug={params.gene} />
+          </div>
+
+          <div className="mt-6 grid gap-3">
+            <GeneSection title="Brief description" preview="A clear, everyday-language overview of this gene." defaultOpen>
+              <p className={`text-lg ${PROSE}`}>{gene.summary}</p>
+            </GeneSection>
+            {hasEyeHealth && (
+              <GeneSection
+                title="Strategies to preserve eye health"
+                preview="Everyday steps that may help protect remaining vision."
+              >
+                <p className={PROSE}>{gene.eyeHealthStrategies}</p>
+              </GeneSection>
             )}
           </div>
 
-          <dl className="mt-8 grid gap-x-10 sm:grid-cols-2">
-            <Field label="Disease Category">{gene.diseaseCategory}</Field>
-            <Field label="Treatment Options">
-              {gene.treatmentOptions || "—"}
-            </Field>
-            <Field label="Patient Population">
-              {gene.patientPopulation || "—"}
-            </Field>
-            <Field label="Strategies to Preserve Eye Health">
-              {gene.eyeHealthStrategies || "—"}
-            </Field>
-            <Field label="Clinical Trials">
-              {gene.clinicalTrials?.url ? (
-                <a
-                  href={gene.clinicalTrials.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-forest underline"
-                >
-                  {gene.clinicalTrials.label}
-                </a>
-              ) : (
-                gene.clinicalTrials?.label || "—"
-              )}
-            </Field>
-            <Field label="Institution(s) Conducting Research">
-              {gene.institutions && gene.institutions.length > 0
-                ? gene.institutions.join(", ")
-                : "—"}
-            </Field>
-          </dl>
+          <InTheNews articles={articles} showSource />
+          <GeneFooter />
+        </article>
+      </div>
+    );
+  }
+
+  // ---- Branch C: grid-only gene (in the grid, no detailed content yet) ---------
+  const item = geneGrid.find((g) => g.slug === params.gene);
+  if (!item) notFound();
+  return (
+    <div className="bg-cream">
+      <article className={`${GENE_COL} px-5 py-12`}>
+        <GeneCrumb />
+        <IdentityCard
+          gene={item.display}
+          glance={<GeneField label="Disease Category">{item.label}</GeneField>}
+        />
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <StatusTrials geneSlug={params.gene} />
         </div>
-
-        {/* Brief description */}
-        <section className="mt-10">
-          <h2 className="font-display text-3xl font-medium tracking-tight text-ink">
-            Brief Description
-          </h2>
-          <p className="mt-4 max-w-3xl text-lg leading-relaxed text-ink/80">
-            {gene.summary}
-          </p>
-        </section>
-
-        {/* In the News */}
-        <section className="mt-12">
-          <div className="flex items-baseline justify-between">
-            <h2 className="font-display text-3xl font-medium tracking-tight text-ink">
-              In the News
-            </h2>
-            <span className="text-xs font-semibold uppercase tracking-wide text-ink/40">
-              AI-curated from RP Hope&rsquo;s research library
-            </span>
-          </div>
-          <div className="mt-6">
-            <GeneArticles articles={articles} />
-          </div>
-        </section>
-
-        <Disclaimer />
+        <p className="mt-6 rounded-xl border border-ink/12 bg-white p-5 text-ink/70">
+          A clear, everyday-language overview of this gene is being prepared and will appear here
+          once reviewed.
+        </p>
+        <InTheNews articles={articles} showSource />
+        <GeneFooter />
       </article>
     </div>
-  );
-}
-
-function Disclaimer() {
-  return (
-    <p className="mt-12 border-t border-ink/10 pt-6 text-sm text-ink/50">
-      <span className="font-semibold text-ink/70">Medical disclaimer:</span> This
-      page is for education and navigation only — not medical advice, diagnosis,
-      or treatment. These summaries are paraphrases of published research;
-      always confirm details with a qualified clinician and primary sources.
-    </p>
   );
 }
