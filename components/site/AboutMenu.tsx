@@ -10,6 +10,7 @@ import Link from "next/link";
 const items = [
   { href: "/who-we-are", label: "Who We Are" },
   { href: "/contact", label: "Contact Us" },
+  { href: "/policies", label: "Policies & Disclaimers" },
 ];
 
 export default function AboutMenu() {
