@@ -6,6 +6,7 @@
 // absent from the DOM entirely until acknowledged, so nothing to skip past.
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 const STORAGE_KEY = "rphope_disclaimer_ack";
 const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -68,6 +69,13 @@ export default function MedicalDisclaimerGate() {
     setOpen(false);
   }
 
+  // Following a legal link must not leave the visitor reading that page from
+  // behind a still-open modal. Close the gate WITHOUT recording consent —
+  // acknowledgement is only ever recorded by the button below.
+  function dismissForNavigation() {
+    setOpen(false);
+  }
+
   if (!open) return null;
 
   return (
@@ -80,15 +88,52 @@ export default function MedicalDisclaimerGate() {
         aria-describedby="disclaimer-body"
         className="max-w-lg rounded-xl bg-white p-6 shadow-2xl sm:p-8"
       >
-        <h2 id="disclaimer-title" className="font-display text-xl font-semibold text-ink">
-          Before you continue
+        <h2
+          id="disclaimer-title"
+          className="font-display text-2xl font-semibold text-ink"
+        >
+          Before You Continue
         </h2>
-        <p id="disclaimer-body" className="mt-3 text-sm leading-relaxed text-ink/75">
-          RP Hope shares research and education about retinitis pigmentosa — including genetic
-          information, treatment updates, and clinical trial listings. Nothing on this site is
-          medical advice, a diagnosis, or a substitute for care from a qualified clinician. Always
-          talk to your doctor or genetic counselor about your own diagnosis and treatment options.
+
+        <div
+          id="disclaimer-body"
+          className="mt-4 space-y-3 text-sm leading-relaxed text-ink/75"
+        >
+          <p>
+            RP Hope provides general educational information and does not offer
+            medical advice. Community posts reflect individual users&rsquo;
+            views, and external links are not controlled or endorsed by RP Hope.
+          </p>
+          <p>
+            By continuing, you acknowledge that you should consult a qualified
+            professional before making medical or other important decisions.
+          </p>
+        </div>
+
+        <p className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-forest">
+          <Link
+            href="/disclaimer"
+            onClick={dismissForNavigation}
+            className="underline underline-offset-2"
+          >
+            Full Disclaimer
+          </Link>
+          <Link
+            href="/terms-of-use"
+            onClick={dismissForNavigation}
+            className="underline underline-offset-2"
+          >
+            Terms
+          </Link>
+          <Link
+            href="/privacy-policy"
+            onClick={dismissForNavigation}
+            className="underline underline-offset-2"
+          >
+            Privacy Policy
+          </Link>
         </p>
+
         <div className="mt-6 flex justify-end">
           <button
             ref={acknowledgeRef}
@@ -96,7 +141,7 @@ export default function MedicalDisclaimerGate() {
             onClick={acknowledge}
             className="rounded-md bg-forest px-5 py-2.5 text-sm font-semibold text-white hover:bg-forest-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forest"
           >
-            I understand — continue to the site
+            I Understand and Continue
           </button>
         </div>
       </div>
