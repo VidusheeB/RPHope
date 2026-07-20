@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { speak, cancelSpeech, pauseSpeech, resumeSpeech, isTTSAvailable } from "@/lib/speech";
+import {
+  speak,
+  cancelSpeech,
+  pauseSpeech,
+  resumeSpeech,
+  isTTSAvailable,
+  prefetchSpeech,
+  cancelPrefetch,
+} from "@/lib/speech";
 
 /**
  * "Listen to this page" — a secondary read-aloud aid for users who do NOT run a
@@ -35,8 +43,16 @@ export default function ListenButton({ text }: { text: string }) {
     return () => {
       cancelled = true;
       cancelSpeech();
+      cancelPrefetch();
     };
   }, []);
+
+  // Start generating the first bit of audio as soon as intent looks likely
+  // (hover/keyboard focus), so a real click is often instant. Never plays
+  // anything — WCAG 1.4.2 still holds; only the click below does that.
+  function warm() {
+    prefetchSpeech(text);
+  }
 
   function play() {
     setState("playing");
@@ -79,7 +95,13 @@ export default function ListenButton({ text }: { text: string }) {
       className="flex flex-wrap items-center gap-2"
     >
       {state === "idle" && (
-        <button type="button" onClick={play} className={`${buttonBase} bg-forest text-white hover:bg-forest/90`}>
+        <button
+          type="button"
+          onClick={play}
+          onMouseEnter={warm}
+          onFocus={warm}
+          className={`${buttonBase} bg-forest text-white hover:bg-forest/90`}
+        >
           <SpeakerIcon />
           Listen to this page
         </button>

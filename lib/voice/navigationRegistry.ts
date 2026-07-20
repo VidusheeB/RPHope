@@ -14,6 +14,9 @@ const baseRoutes: Destination[] = [
   { href: "/", title: "Home" },
   ...sections.map((s) => ({ href: s.href, title: s.label })),
   { href: "/who-we-are", title: "Who We Are" },
+  { href: "/what-is-rp-hope", title: "What is RP Hope" },
+  { href: "/what-is-rp", title: "What is RP" },
+  { href: "/what-is-a-clinical-trial", title: "What is a Clinical Trial" },
   { href: "/transparency", title: "Financial Transparency" },
   { href: "/privacy-policy", title: "Privacy Policy" },
   { href: "/terms-of-use", title: "Terms of Use" },
@@ -41,6 +44,13 @@ const ALIASES: Record<string, string> = {
   about: "/who-we-are",
   "about us": "/who-we-are",
   "who we are": "/who-we-are",
+  "what is rp hope": "/what-is-rp-hope",
+  "what is rphope": "/what-is-rp-hope",
+  "what is rp": "/what-is-rp",
+  "what is retinitis pigmentosa": "/what-is-rp",
+  "what is a clinical trial": "/what-is-a-clinical-trial",
+  "what are clinical trials": "/what-is-a-clinical-trial",
+  "clinical trial basics": "/what-is-a-clinical-trial",
   genes: "/genetic-insights",
   "gene library": "/genetic-insights",
   "genetic insights": "/genetic-insights",
@@ -100,9 +110,12 @@ export function resolveDestination(input: string): Destination | null {
     return ALL_ROUTES.find((r) => r.href === input) ?? null;
   }
 
-  // Gene symbol (e.g. "RPGR", "USH2A").
-  const upper = input.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  const geneBySymbol = geneGrid.find((g) => g.display.toUpperCase() === upper);
+  // Gene symbol appearing ANYWHERE in the input — so "INPP5E", "the INPP5E
+  // gene", and "open the RPGR gene page" all resolve, not just a bare symbol.
+  const tokens: string[] = input.toUpperCase().match(/[A-Z0-9]+/g) ?? [];
+  const geneBySymbol = geneGrid.find((g) =>
+    tokens.includes(g.display.toUpperCase())
+  );
   if (geneBySymbol) {
     return {
       href: `/genetic-insights/${geneBySymbol.slug}`,

@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { geneImages } from "@/lib/geneImages";
 
 /** The single constant content width every gene page uses (no wide→narrow jump). */
 export const GENE_COL = "mx-auto max-w-[60rem]";
@@ -41,16 +42,21 @@ export function GeneField({
   );
 }
 
-/** Compact "Face of RP" badge. */
+/** Compact "Face of RP" badge — shows the person's real photo when the gene has
+ *  one in /public/genes (the same images the library grid uses), falling back to
+ *  a monogram circle otherwise. */
 export function FaceOfRP({
   name,
   location,
   gene,
+  slug,
 }: {
   name: string;
   location?: string;
   gene: string;
+  slug?: string;
 }) {
+  const hasPhoto = !!slug && geneImages.has(slug);
   const initial = name.replace(/[^A-Za-z]/g, "").charAt(0).toUpperCase() || "•";
   return (
     <div
@@ -63,12 +69,24 @@ export function FaceOfRP({
       <span className="text-[0.62rem] font-bold uppercase tracking-widest text-forest/70">
         A Face of RP
       </span>
-      <span
-        aria-hidden="true"
-        className="mt-2 grid h-24 w-24 place-items-center rounded-full border-[3px] border-gold-soft bg-forest font-display text-3xl font-medium text-white"
-      >
-        {initial}
-      </span>
+      {hasPhoto ? (
+        // Photo carries no meaning beyond the name/location already shown as
+        // text below (and in data-readable-text), so it's decorative for SR.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={`/genes/${slug}.jpg`}
+          alt=""
+          aria-hidden="true"
+          className="mt-2 h-24 w-24 rounded-full border-[3px] border-gold-soft object-cover"
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className="mt-2 grid h-24 w-24 place-items-center rounded-full border-[3px] border-gold-soft bg-forest font-display text-3xl font-medium text-white"
+        >
+          {initial}
+        </span>
+      )}
       <span className="mt-2 font-semibold text-ink">{name}</span>
       {location && <span className="text-sm text-ink/60">{location}</span>}
     </div>

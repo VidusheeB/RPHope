@@ -91,6 +91,19 @@ body {
   }
 }
 
+/* Site-wide disclaimer modal (see components/site/MedicalDisclaimerGate.tsx) */
+.disclaimer-overlay {
+  animation: disclaimerFadeIn 0.15s ease-out;
+}
+@keyframes disclaimerFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Accessibility preferences set by the voice assistant (data attrs on <html>) */
 :root[data-contrast="high"] body {
   color: #000;

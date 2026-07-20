@@ -144,6 +144,36 @@ const curated: KnowledgeRecord[] = [
     contentType: "genetic-testing",
     reviewStatus: "reviewed",
   },
+  {
+    id: "explainer:what-is-rp-hope",
+    url: "/what-is-rp-hope",
+    pageTitle: "What is RP Hope?",
+    heading: "What is RP Hope",
+    text: "RP Hope is a nonprofit for everyone touched by retinitis pigmentosa (RP) — patients, families, caregivers, researchers, and clinicians. It does three things: educates by gathering clear, jargon-free information about RP and where research stands; funds research seeking effective, affordable treatments for non-syndromic RP; and connects the community through events and shared stories. Its vision is a world where treatments for RP are effective and accessible to all patients.",
+    keywords: ["what is rp hope", "about", "mission", "vision", "nonprofit", "who we are"],
+    contentType: "organization",
+    reviewStatus: "reviewed",
+  },
+  {
+    id: "explainer:what-is-rp",
+    url: "/what-is-rp",
+    pageTitle: "What is retinitis pigmentosa (RP)?",
+    heading: "What is RP",
+    text: "Retinitis pigmentosa (RP) is a group of rare, inherited eye diseases that affect the retina, the light-sensitive layer at the back of the eye. In RP the retinal cells slowly break down over time, gradually reducing vision. The usual first sign is trouble seeing at night or in dim light, often in childhood; then side (peripheral) vision narrows, which can create tunnel vision. RP is caused by changes in genes that keep retinal cells healthy, and it can be inherited in autosomal recessive, autosomal dominant, or X-linked patterns. More than 80 genes are linked to RP. It is diagnosed with eye exams, visual field testing, an electroretinogram (ERG), OCT imaging, and genetic testing. There is no cure for most forms yet, but low-vision aids and rehabilitation help, one approved gene therapy exists for an RPE65-related form, and many gene and cell therapies are in clinical trials.",
+    keywords: ["what is rp", "what is retinitis pigmentosa", "symptoms", "night vision", "peripheral vision", "inheritance", "diagnosis"],
+    contentType: "faq",
+    reviewStatus: "reviewed",
+  },
+  {
+    id: "explainer:what-is-a-clinical-trial",
+    url: "/what-is-a-clinical-trial",
+    pageTitle: "What is a clinical trial?",
+    heading: "What is a clinical trial",
+    text: "A clinical trial is a carefully run research study that tests whether a new treatment is safe and whether it helps. There are two kinds of studies: interventional trials, where participants receive a specific treatment so researchers can measure its effect, and observational studies, where researchers follow people over time without giving a new treatment. Trials usually move through phases: Phase 1 tests safety in a small group; Phase 2 looks at whether it works and its side effects; Phase 3 confirms this in a much larger group; and Phase 4 tracks long-term safety after approval. A study's status shows whether people can join: recruiting means it is enrolling now; active, not recruiting means it is running but not enrolling; completed means it has finished; and preclinical research is earlier lab work not yet open to people. Every trial has eligibility criteria, and only the study team can confirm whether a trial fits a given person. RP Hope frames studies as 'may be relevant to review' — never as 'you qualify' or 'you are eligible' — and encourages bringing any trial to your own eye doctor and the study team.",
+    keywords: ["what is a clinical trial", "clinical trial", "phases", "recruiting", "observational", "interventional", "eligibility", "may be relevant to review"],
+    contentType: "faq",
+    reviewStatus: "reviewed",
+  },
 ];
 
 // Built once at module load. Filtered to reviewed/public content only.

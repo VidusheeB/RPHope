@@ -129,7 +129,7 @@ export default async function GenePage({ params }: { params: { gene: string } })
               listenSlot={<ListenButton text={readableDraftText(draft)} />}
               face={
                 meta?.faceOfRP?.name && meta.faceOfRP.name !== "—" ? (
-                  <FaceOfRP name={meta.faceOfRP.name} location={meta.faceOfRP.location} gene={draft.gene} />
+                  <FaceOfRP name={meta.faceOfRP.name} location={meta.faceOfRP.location} gene={draft.gene} slug={params.gene} />
                 ) : undefined
               }
               glance={glance}
@@ -184,7 +184,7 @@ export default async function GenePage({ params }: { params: { gene: string } })
             listenSlot={<ListenButton text={readableGeneText(gene, articles)} />}
             face={
               gene.faceOfRP?.name && gene.faceOfRP.name !== "—" ? (
-                <FaceOfRP name={gene.faceOfRP.name} location={gene.faceOfRP.location} gene={gene.gene} />
+                <FaceOfRP name={gene.faceOfRP.name} location={gene.faceOfRP.location} gene={gene.gene} slug={params.gene} />
               ) : undefined
             }
             glance={glance}

@@ -27,6 +27,17 @@ export default function VoiceAssistant() {
     window.setTimeout(() => launcherRef.current?.focus(), 0);
   }, []);
 
+  // End the live conversation when the guided tour advances to another stop —
+  // a visitor moving on shouldn't carry an open mic session into the next stop.
+  useEffect(() => {
+    function onTourAdvance() {
+      voice.end();
+      setOpen(false);
+    }
+    window.addEventListener("rphope:tour-advance", onTourAdvance);
+    return () => window.removeEventListener("rphope:tour-advance", onTourAdvance);
+  }, [voice]);
+
   // Escape: interrupt speech if speaking, otherwise close the panel.
   useEffect(() => {
     if (!open) return;
