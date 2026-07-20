@@ -156,66 +156,92 @@ This is a medical/research site. The rules:
 - Respect `prefers-reduced-motion`.
 - Consider a built-in text-size / high-contrast toggle.
 
-### Read-aloud / text-to-speech (planned enhancement)
+### Read-aloud / text-to-speech — BUILT
 
-PRIORITY ORDER — get this right in sequence:
+PRIORITY ORDER — still the rule:
 1. **Semantic HTML first.** Our primary audience (blind / low-vision) uses their own screen
    readers (VoiceOver, NVDA, JAWS). Flawless semantic markup is the real "read aloud" feature
    and matters far more than any custom button. Do this regardless.
-2. **Then add an optional "Listen to this page" button** as a secondary aid for users who do
+2. **Then the optional "Listen to this page" button** as a secondary aid for users who do
    NOT run a screen reader — mild low vision, dyslexia/cognitive needs, or aging users (RP
    progresses with age) who prefer listening to dense gene pages.
 
-Build rules:
-- Default to the **browser-native Web Speech API (`SpeechSynthesis`)** — free, client-side, no
-  API keys or per-use billing, volunteer-maintainable. Cloud TTS (ElevenLabs/Google/OpenAI) is
-  an optional future upgrade only if voice quality proves insufficient; do NOT add paid TTS on day one.
-- **Never autoplay** audio (WCAG 1.4.2). Playback starts only on user action and must offer
-  visible pause/stop.
-- The control itself must be keyboard-operable with an accessible name (e.g. "Listen to this page").
+Build rules (as implemented — see `lib/speech.ts`, `components/site/ListenButton.tsx`):
+- **OpenAI TTS is the sole engine**: `/api/tts` → `gpt-4o-mini-tts`, voice **`coral`**. There is
+  **no browser Web Speech / `SpeechSynthesis` fallback**. Playback is just an `<audio>` element.
+  - ⚠️ This **supersedes the original rule** ("default to the free browser Web Speech API; do NOT
+    add paid TTS on day one"). The owner accepted per-use TTS billing for materially better voice
+    quality. `gpt-4o-mini-tts` takes an `instructions` field that steers delivery — currently warm
+    and calm, with gene symbols read letter by letter.
+- Needs `OPENAI_API_KEY`. Without it `/api/tts` returns 501 and its `GET` probe reports
+  `{ available: false }`, so the button **hides itself** rather than showing a dead control.
+- **Never autoplay** audio (WCAG 1.4.2). Playback starts only on user action, with visible
+  Pause / Resume / Stop.
+- Keyboard-operable with an accessible name ("Listen to this page").
 - Reads the main content region; must not fight or duplicate an active screen reader.
 
-### AI voice navigation layer (FUTURE / EXPERIMENTAL — post-MVP)
+### Voice assistant — BUILT (OpenAI Realtime over WebRTC)
 
-Idea: let users navigate the site by voice in plain, messy language. The AI is an
-intent-to-navigation layer that makes wayfinding forgiving and context-aware — NOT a chatbot
-and NOT a content generator. (This is distinct from, and supersedes, an earlier "AI Q&A over
-content" idea, which was rejected because a generative medical chatbot violates content
-governance. Do not build that version.)
+**Read this before touching the voice code.** What shipped is materially different from the
+"navigation-only, verbatim-only" design this file originally specified. The original section said
+the assistant must be an intent-to-navigation layer, "NOT a chatbot and NOT a content generator,"
+and that page content it speaks must be verbatim. **That is no longer accurate** — after repeated
+owner iteration it became a genuinely conversational, reasoning assistant. What replaced the
+verbatim rule as the safety mechanism is **retrieval grounding**: it can only speak from reviewed
+RP Hope content that it retrieves, and it cannot invent facts or links. See Governance below.
 
-What it does:
-- User speaks a fuzzy request ("take me to my kid's gene, the recessive one starting with U").
-- AI maps intent to a real page/section and navigates there, or reads the page aloud (reuses
-  the read-aloud feature).
+**Stack** — `@openai/agents/realtime` SDK. The `RealtimeSession` runs **client-side over WebRTC**;
+the server only mints a short-lived ephemeral token, so `OPENAI_API_KEY` never reaches the browser.
+- Model **`gpt-realtime-2.1`**, voice **`marin`**, input transcription `gpt-4o-mini-transcribe`
+  (`lib/voice/agent.ts` — the single source for model/voice/session config).
+- Session config: audio-only output, `reasoning.effort: "medium"`, parallel tool calls, and
+  **`semantic_vad` turn detection with `interruptResponse: true`** — barge-in is handled by the
+  model's VAD, so the user can just start talking to interrupt. No client-side echo/word filtering.
 
-How it works:
-- **Semantic search (embeddings), not keyword matching** — so a wishy-washy description with no
-  matching keywords ("the thing where they fix your genes with a virus" → gene therapy) still
-  routes correctly. Supabase pgvector + the existing full-text search.
-- **Confidence-tiered response — never a dead end:**
-  - Confident → navigate, announcing it ("Taking you to the gene therapy section").
-  - Fuzzy/ambiguous → suggest + confirm ("Sounds like you might mean Future Therapies — want
-    that?"), or offer 2–3 best guesses.
-  - Nothing found → graceful fallback ("I'm not sure — here are the main sections"), never a
-    flat "no page with those keywords."
+**Flow — there is NO wake phrase.** A launcher button "**Talk to RP Hope**" (bottom-right, mic
+icon) opens the panel; inside, the user presses "**Start conversation**" and simply talks. The mic
+is **never** activated automatically — a session only starts on that explicit action. Status is
+surfaced as Ready / Connecting / Listening / Thinking / Speaking / Microphone muted / error.
+Escape interrupts speech, then closes the panel.
 
-Guardrails (these keep it inside content governance and make it safe):
-- **Bound the AI to the real sitemap/route list** as its action space — it physically cannot
-  navigate to or invent a page that doesn't exist.
-- **AI generates navigation chatter only; page CONTENT it speaks must be verbatim from the
-  published page** — never an AI summary/paraphrase (that would be unreviewed medical content).
-- **Navigate, don't triage.** Map descriptions to pages; never interpret symptoms or imply a
-  diagnosis. "I can't see at night" → route to info, framed as navigation, not advice.
-- **Confirm consequential actions, never auto-execute** — esp. donate/forms. Hand off to the
-  page; let the user act.
-- **Confirm-before-navigating matters more when input is vague** — a wrong guess disorients a
-  low-vision user who relies on knowing where they are.
+**Tools** (`lib/voice/tools.ts` — Zod-typed, all execute in the browser):
+`search_rp_hope`, `get_current_page_context`, `list_current_page_sections`, `read_page_section`,
+`navigate_to_page`, `go_back`, `scroll_to_section`, `set_accessibility_preferences`, `ask_rp_expert`.
+- **Knowledge/retrieval** (`lib/knowledge/`): `records.ts` (the reviewed content), `search.ts`
+  (hybrid keyword/phrase/prefix/fuzzy retrieval via **MiniSearch**, boosting titles, headings, gene
+  symbols and the page the user is on), `synonyms.ts` (query expansion). Runs **both** client-side
+  (bundled in-memory index) and server-side — **no DB and no API key needed**, so this is the
+  pgvector alternative; only reach for embeddings if the library outgrows it.
+- **Bounded navigation** (`lib/voice/navigationRegistry.ts`): a strict internal route allowlist —
+  the assistant physically cannot open a route that doesn't exist. This guardrail survives intact.
+- **`ask_rp_expert`** → `/api/openai/rp-expert`: a server-side reasoner (**`gpt-5.4`**) for
+  questions needing synthesis. It retrieves reviewed excerpts, passes **only those + the question**,
+  and returns structured JSON. Sources are mapped back from the retrieved excerpts, so **returned
+  links are always real** — the model cannot invent a URL. It marks answers as evidence vs.
+  inference (`isSuggestion`) with a confidence level.
+- **Accessibility control by voice** (`lib/voice/accessibilityPreferences.ts`): "make the text
+  bigger", "turn on high contrast" — persisted to localStorage.
 
-Honest scope note: this COMPLEMENTS great semantic HTML, it does not replace it. Hardcore
-screen-reader users already navigate by landmarks/headings; the real sweet spot is low-vision /
-aging / lower-digital-literacy users. Must not fight an active screen reader. Voice in/out via
-Web Speech API (free); intent-mapping via Claude through the Vercel AI SDK, bounded to routes.
-Depends on gene data being in Supabase and reviewed first, so it lands after the core library.
+**Editable personality:** `lib/voice/agentInstructions.ts` (`ASSISTANT_INSTRUCTIONS`) is the single
+source of truth for tone and boundaries — edit the prose, next session picks it up.
+
+**Governance (the deliberate shift):** the assistant reasons and speaks in its own words rather
+than reading verbatim. What keeps that defensible: it is instructed to call `search_rp_hope` before
+any factual answer and to **never invent website content**; `rp-expert` is hard-bound to retrieved
+reviewed excerpts and real source links; navigation is allowlisted; and the medical boundary holds —
+**no diagnosis, no prescribing, no eligibility guarantees**; trials are always framed as options to
+review, with clinician/genetic-counselor handoff.
+
+**Browser support:** WebRTC + `getUserMedia` — works in Chrome, Edge, Safari **and Firefox**. (The
+old "Chrome/Edge only, unsupported in Firefox" note was a Web Speech API limitation and no longer
+applies.) Requires a secure context (https or localhost).
+
+**Rate limiting:** `lib/voice/rateLimit.ts` — in-memory, per server instance, best-effort
+(prototype-grade); `/api/openai/realtime-token` allows 20 sessions/min per client.
+
+Honest scope note (still true): this COMPLEMENTS great semantic HTML, it does not replace it.
+Hardcore screen-reader users already navigate by landmarks/headings; the sweet spot is low-vision /
+aging / lower-digital-literacy users. It must not fight an active screen reader.
 
 ## Brand tokens — implemented (new design direction, from Figma)
 
@@ -248,15 +274,32 @@ New version (live app at repo root):
 - `/clinical-trials` — **Clinical Trials Finder**: guided global intake quiz → live ClinicalTrials.gov
   results, AI-classified as "may be relevant to review" (never eligibility). See feature note below.
 - `/newly-diagnosed`, `/stories` — content pages (stories has sample data)
+- `/what-is-rp-hope` — intro explainer (org mission/vision/audience; drawn from `/who-we-are` copy)
+- `/what-is-rp` — educational RP explainer (sourced from NEI + MedlinePlus, cited)
+- `/what-is-a-clinical-trial` — educational trials explainer (phases, statuses, "may be relevant to
+  review" framing; sourced from ClinicalTrials.gov + FDA, cited)
+  - ⚠️ The last two contain medical/scientific claims summarized from outside sources. They carry an
+    educational disclaimer + last-reviewed date + citations (`components/site/ExplainerNotes.tsx`),
+    but per content governance **a human should verify the wording** before treating them as final.
 - `/donate`, `/events` — recreated (restyle to new brand still pending)
 - `/privacy-policy`, `/terms-of-use` — stubs
-- `/api/navigate` — bounded text nav assistant (homepage `NavAssistant` + voice "take me to")
+- `/review`, `/review/admin`, `/review/login|set-password|reset-password` — reviewer dashboard
+  (auth-gated, `noindex`; see roadmap note)
+- `/api/navigate` — bounded text nav assistant, used by `NavAssistant` inside the **gene library**
+  (`app/genetic-insights/GeneLibrary.tsx`), backed by `lib/searchIndex.ts` + `lib/navTargets.ts`
 - `/api/trials/match` — Clinical Trials Finder matcher (normalize → CT.gov fetch → safety gates →
   Opus relevance classify → rank/group). Opus; deterministic fallback when no key.
-- `/api/assistant` — **conversational voice brain** (Opus, whole-site corpus, pure prose)
-- `/api/explain` — gated per-gene simplify/analogy (Opus, reviewed-content-grounded)
+- `/api/openai/realtime-token` — mints the ephemeral WebRTC token for the **voice assistant**
+  (`gpt-realtime-2.1`); the API key never leaves the server. See the voice section above.
+- `/api/openai/rp-expert` — server-side expert reasoner (**`gpt-5.4`**) behind the voice
+  assistant's `ask_rp_expert` tool; answers only from retrieved reviewed excerpts.
+- `/api/tts` — OpenAI text-to-speech (`gpt-4o-mini-tts`, voice `coral`) behind "Listen to this page".
 - `/api/cron/research-pull` — Opus web-search research drafts; **manual only** (no `vercel.json` cron
   currently — see Implementation log)
+
+> **Note:** `/api/assistant` and `/api/explain` (the old Anthropic-powered voice brain and the
+> per-gene simplify/analogy endpoint) **have been deleted**. The voice assistant now runs on OpenAI
+> Realtime — see "Voice assistant — BUILT" above.
 
 Archived original-site clone (reference only, excluded from build): `StaticDemoOriginal/`
 (`who-we-are`, `learn-more`, `search` + old Nav/Footer/GeneCard).
@@ -370,84 +413,57 @@ Archived original-site clone (reference only, excluded from build): `StaticDemoO
     natural than verbatim field-stitching. Not built yet.
 - **Accessibility pass** — fixed low-contrast disease-category label (gray → forest, larger,
   non-italic; ~3.9:1 → ~9:1), plus result counts, notes, and gene-page field labels to meet AA.
+- **Guided demo tour** (`lib/tour/steps.ts` + `components/site/tour/TourCompanion.tsx`) — built for
+  in-person events (a kiosk someone walks up to). An **overlay on the real site**, not a separate
+  mock: a full-screen "Welcome to RP Hope" with a Start button, then a collapsible companion panel
+  (docked bottom-**left**, clear of the voice launcher bottom-right) that walks through 12 ordered
+  stops, each explaining a page and then `router.push`-ing to it. Ends on a "Thanks for taking the
+  tour!" screen with contact details, looping back to Start.
+  - **Env-gated**: only mounts when `NEXT_PUBLIC_TOUR_MODE === "1"` (checked in `app/layout.tsx`).
+    Set **only** on the separate `rphopedemo` Vercel project → **https://rphopedemo.vercel.app**.
+    The live `rp-hope.vercel.app` never renders it, so this code is safe to ship to main.
+  - `rphopedemo` is **not connected to Git** — it only updates via `vercel deploy --prod` from a
+    working tree. (Its project settings needed `framework: nextjs` set explicitly, and Deployment
+    Protection turned off so event visitors aren't hit with an SSO login.)
+  - State is deliberately **in-memory only**: client-side nav keeps the panel's place, while a full
+    page reload resets to Welcome — the clean "next visitor" state for a kiosk.
+  - `MedicalDisclaimerGate` is `z-[110]`, above the tour's `z-[100]`, so the "before you continue"
+    gate is answered first rather than being covered while it still traps focus.
+  - **Keep the tour copy in sync with the real UI.** Its "try it" prompts name actual controls
+    ("Talk to RP Hope" → "Start conversation", "Listen to this page"). An earlier draft told
+    visitors to say "Hello Claude" — a wake phrase that does not exist.
 - **Read-aloud button** (`components/site/ListenButton.tsx` + `lib/speech.ts`) — "Listen to this
-  page" on gene detail pages. Browser-native `SpeechSynthesis` (free, no keys); never autoplays
-  (starts on click), keyboard-operable with visible Pause/Resume/Stop, `aria-hidden` so it doesn't
-  duplicate content for an active screen reader, hidden on unsupported browsers. Speaks VERBATIM
-  published fields only via `readableGeneText()` (name → at-a-glance → brief description → In-the-News
-  titles) — no AI paraphrase, so it stays inside content governance.
-- **Hands-free conversational voice assistant** (`components/site/VoiceAssistant.tsx` +
-  `lib/useVoiceAgent.ts` + `app/api/assistant/route.ts`) — mounted globally in `app/layout.tsx`,
-  **opt-in / OFF by default** so it never fights an active screen reader (targets the low-vision /
-  aging / non-screen-reader audience). This evolved a LOT through owner iteration — it is now a
-  **fully conversational Claude, grounded to the website**, not a keyword router. Read this whole
-  block before changing it.
-  - **Flow**: one tap **"Click to use mic"** (the single unavoidable gesture — browsers require a
-    user action before mic/audio) → mic permission + audio unlock → spoken intro → listens for the
-    wake phrase **"Hello Claude"** (continuous `webkitSpeechRecognition` + auto-restart loop). After
-    the first "Hello Claude" the conversation **stays open indefinitely** (no silence timeout — it
-    kept dropping users mid-thought) until they say **"goodbye"** (ends session) or **"turn off"**
-    (disables). Enable-preference stored in cookie `rphope_voice`; client-side navigation keeps the
-    mic session alive.
-  - **The brain (`app/api/assistant/route.ts`, Opus `claude-opus-4-8`).** Owner decision, arrived at
-    over several rounds (superseded the original verbatim-only + JSON-envelope + keyword-routing
-    designs): the assistant **talks naturally like Claude and may freely answer / simplify /
-    analogize / rephrase** — its ONE boundary is that its **knowledge is fenced to the RP Hope
-    website**. Mechanics:
-    - **Whole-site corpus, cached.** `SITE_CORPUS` (built once at module load) = all sections +
-      **every gene's full record** (summary, inheritance, population, treatments, eye-health,
-      institutions, trials, **Face of RP**, **+ a visual description of the gene-card photo**) + the
-      research-article list. Sent every turn as a **cached** system prefix (`cache_control:
-      ephemeral`; warm turns ≈3.5s vs ≈6s cold). Small site (66 genes ≈ ~20–25k tokens) → hand the
-      model everything instead of per-turn retrieval, so it "knows the whole site" regardless of
-      page. Current page is a one-line hint on the **user** turn (keeps the cached prefix byte-stable).
-    - **Pure natural prose — NO JSON.** Earlier designs made the model emit a `{reply, navigate}` JSON
-      envelope; when it answered in prose instead, `JSON.parse` threw and the user got a canned "I had
-      trouble with that". Removed entirely — the endpoint returns `{ reply }` = exactly what Claude
-      said. Only a real network/model error falls back now.
-    - **"See the screen" (visual matching).** The gene cards show real Face-of-RP **photos**
-      (`/public/genes/*.jpg`). `scripts/describe-faces.mjs` ran Haiku vision once over them → short
-      visual descriptions in **`lib/geneFaceImages.json`** (38 real portraits; the 15 from-scratch
-      genes have placeholder "iris" graphics, auto-filtered out). Folded into the corpus, so "the bald
-      man with black sunglasses" → resolves to **LRAT**. Re-run `node scripts/describe-faces.mjs` if
-      photos change.
-  - **✏️ Editable instructions:** the entire personality + rules is one hand-editable file,
-    `lib/assistantInstructions.ts` (`ASSISTANT_SYSTEM_PROMPT`, with a `{{WEBSITE_CONTEXT}}`
-    placeholder). It's intentionally **minimal** (owner asked to "remove all bars"): be a natural,
-    capable Claude; answer from the site; one optional clinician-handoff line the owner can delete.
-    Edit the prose, save, next turn changes — no other code edits.
-  - **Voice commands** (fast, client-side, before any model call — in `lib/useVoiceAgent.ts`):
-    - **"stop"** — barge-in: the mic now stays **live while Claude speaks**, so the visitor can cut it
-      off. To stop Claude hearing its own TTS echo, only a **short utterance (≤8 words) containing an
-      interrupt word** acts; long transcripts (Claude's own voice) are ignored. "stop, tell me about X"
-      stops *and* runs the remainder.
-    - **"pause"** / **"continue"** — `pauseSpeech()/resumeSpeech()` in `lib/speech.ts` (a `paused` flag
-      stops the keep-alive from auto-resuming) so a long answer holds and resumes **without resetting**.
-    - **"take me to X" / "go to / open / show me"** → bounded navigation via `/api/navigate`
-      (resolves a real href, confirms, `router.push`, then reads the page). Vague "take me there"
-      resolves from the last thing Claude said.
-    - **"read this page"** → reads the `<main>` text **verbatim** (the one place output is guaranteed
-      not AI-paraphrased); **"go back"**; **"turn off"**; **"goodbye"**.
-    - Everything else → `converse()` → the conversational brain above (keeps rolling history).
-  - **Confirm flow handles "no, but…"**: only a clean affirmative navigates; "no", "no but tell me
-    about X", "yes but actually…", or any new question all flow back into the natural conversation.
-  - **Governance (the deliberate shift):** this is a conscious move **past** CLAUDE.md's original
-    "verbatim-only / no generative medical content" line — the owner chose conversational-but-
-    site-grounded after repeated discussion. What keeps it defensible: knowledge **fenced to reviewed
-    site content** (can't pull outside medical facts), an **audit log** (every reply → `ai_explanations`
-    `mode='chat'`, `supabase/migrations/0002_ai_explanations.sql`, service-role only), the panel's
-    "not medical advice" note, and an optional clinician-handoff line. If the gene library ever grows
-    large, swap the whole-corpus approach for retrieval/pgvector (it currently fits because the site is
-    small). The voice TTS read-aloud (`lib/speech.ts`, chunked + keep-alive to dodge Chrome's
-    ~15s cutoff) is shared with the **Read-aloud button**.
-  - **Other endpoints:** `app/api/explain/route.ts` (gated per-gene simplify/analogy, Opus) and
-    `app/api/navigate` (typed homepage `NavAssistant` + the "take me to" path) both remain; the main
-    voice conversation goes through `/api/assistant`.
-  - **Browser support**: reliable in Chrome/Edge, partial in Safari, **unsupported in Firefox** —
-    component renders nothing when unsupported; those users use the typed `NavAssistant`.
-  - **Phase 2 (TODO)**: smoother live captions, returning-visitor auto-enable, pgvector semantic
-    search (only if the library outgrows the whole-corpus approach), and reviewed **FAQ** drafting
-    (see research element) so common answers come from human-approved Q/A.
+  page" on gene detail pages. **OpenAI TTS** via `/api/tts` (`gpt-4o-mini-tts`, voice `coral`) —
+  **no browser Web Speech fallback**; playback is an `<audio>` element, so there is no Chrome ~15s
+  cutoff to work around and no browser-support gate. Never autoplays (starts on click),
+  keyboard-operable with visible Pause/Resume/Stop, `aria-hidden` so it doesn't duplicate content
+  for an active screen reader. Gates on `isTTSAvailable()` (a server-config probe) and hides itself
+  when `OPENAI_API_KEY` is absent. Speaks VERBATIM published fields only via `readableGeneText()`
+  (name → at-a-glance → brief description → In-the-News titles) — no AI paraphrase.
+- **Conversational voice assistant — OpenAI Realtime over WebRTC.** Mounted globally in
+  `app/layout.tsx`. **The full architecture, governance, and browser support are documented in
+  "Voice assistant — BUILT" in the Accessibility section above — read that before changing this.**
+  Quick map of the code:
+  - UI: `components/site/voice-assistant/` (`VoiceAssistant` launcher "Talk to RP Hope" → panel →
+    "Start conversation"; plus `VoiceAssistantPanel`, `VoiceControls`, `VoiceStatus`,
+    `VoiceTranscript`, `VoiceSources`). **No wake phrase**; the mic never auto-activates.
+  - Session: `hooks/useRPVoiceAssistant.ts` owns the live `RealtimeSession`; `lib/voice/agent.ts`
+    holds the agent + session config (`gpt-realtime-2.1`, voice `marin`, `semantic_vad` barge-in).
+  - Instructions: `lib/voice/agentInstructions.ts` (`ASSISTANT_INSTRUCTIONS`) — edit the prose here.
+  - Tools: `lib/voice/tools.ts` (9 Zod-typed, browser-executed) + `navigationRegistry.ts` (route
+    allowlist), `pageContext.ts`, `bridge.ts` (router + ARIA live region), `transcript.ts`
+    (captions), `accessibilityPreferences.ts`, `rateLimit.ts`.
+  - Retrieval: `lib/knowledge/` (MiniSearch over reviewed records — no DB, no key, client+server).
+  - Server: `app/api/openai/realtime-token/` (ephemeral token) and `app/api/openai/rp-expert/`
+    (`gpt-5.4` reasoner, grounded to retrieved excerpts).
+  - ⚠️ **Dead code to clean up** (superseded by the above, currently unreferenced):
+    `lib/assistantInstructions.ts`, and `lib/geneFaceImages.json` + `scripts/describe-faces.mjs`
+    (the old "see the screen" photo-matching fed the deleted whole-site-corpus prompt).
+    `supabase/migrations/0002_ai_explanations.sql` also related to the deleted `/api/assistant`
+    audit log — the Realtime session does not write it.
+  - **Phase 2 (TODO)**: smoother live captions, returning-visitor auto-enable, and reviewed **FAQ**
+    drafting (see research element) so common answers come from human-approved Q/A. Embeddings /
+    pgvector are **not** needed — `lib/knowledge/search.ts` (MiniSearch) covers retrieval today.
 - **Clinical Trials Finder** (`app/clinical-trials/`, `components/site/trials/`, `lib/trials/`,
   `app/api/trials/match/route.ts`) — a guided, global, AI-assisted trial-discovery flow. NOT an
   eligibility tool: every result is framed "may be relevant to review" / "ask the study team."
@@ -568,17 +584,19 @@ search + tokens). Low volume by design; swap the cron schedule/limit in `vercel.
   - **Zelle can't be embedded** (no merchant API) — only a manual "send to this email/phone" display option.
 - Move gene **detail** reads into Supabase (add `face_of_rp`, articles columns; seed full data).
 - Fill the 15 from-scratch genes as `pending_review` (human-reviewed before publish).
-- Read-aloud ✅ and the **conversational voice assistant** ✅ shipped (whole-site-grounded Claude,
-  pure-prose, barge-in "stop", "pause"/"continue", persistent listening, "take me to" navigation,
-  and **"see the screen"** visual photo matching via `lib/geneFaceImages.json`). Gated simplify/analogy
-  (`/api/explain`) ✅ too. **Manual steps:** (1) run `supabase/migrations/0002_ai_explanations.sql`
-  in Supabase to enable the AI-reply audit log (`mode='chat'`; the assistant works without it —
-  logging is best-effort). (2) `node scripts/describe-faces.mjs` is already run; re-run only if the
-  gene-card photos change. Remaining: voice Phase 2 (smoother captions, returning-visitor auto-enable),
-  research→FAQ extraction, and pgvector semantic search (only if the gene library outgrows the
-  whole-corpus prompt).
-- Apply to Vercel's nonprofit program; build an admin/review UI for the `pending_review` queue
-  (currently reviewed in the Supabase Table Editor); pull `og:image` thumbnails for discovered studies.
+- Read-aloud ✅ and the **conversational voice assistant** ✅ shipped — both now run on **OpenAI**
+  (Realtime `gpt-realtime-2.1` voice `marin` over WebRTC; `gpt-5.4` expert reasoner; `gpt-4o-mini-tts`
+  read-aloud). **No manual setup beyond `OPENAI_API_KEY`** — retrieval is MiniSearch over bundled
+  reviewed records, so there's no DB/migration/index step. Remaining: voice Phase 2 (smoother
+  captions, returning-visitor auto-enable) and research→FAQ extraction. **pgvector is not needed.**
+- Apply to Vercel's nonprofit program; pull `og:image` thumbnails for discovered studies.
+- ✅ **The admin/review UI is BUILT** (this used to be listed as "still to do — reviewed in the
+  Supabase Table Editor"; that is out of date). Reviewer dashboard at `/review` with auth
+  (`/review/login`, `set-password`, `reset-password`) and `/review/admin`; code in `app/review/`
+  (+ `actions.ts`), `lib/reviewer/` (`session.ts`, `data.ts`, `publishGate.ts`, `publishPlan.ts`,
+  `dashboardStatus.ts`, `publicContent.ts`) and `components/review/`. Pages are `noindex` +
+  `force-dynamic`, gated by `requireReviewer()` / `requireAdmin()`. **This subsystem still needs a
+  proper write-up here** by whoever built it — the above is just a file map.
 
 Clinical-trial matching must remain in the dedicated Clinical Trials Finder.
 

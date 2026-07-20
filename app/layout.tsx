@@ -5,6 +5,8 @@ import SkipLink from "@/components/SkipLink";
 import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
 import VoiceAssistant from "@/components/site/voice-assistant/VoiceAssistant";
+import MedicalDisclaimerGate from "@/components/site/MedicalDisclaimerGate";
+import TourCompanion from "@/components/site/tour/TourCompanion";
 
 const display = Fraunces({
   subsets: ["latin"],
@@ -39,6 +41,8 @@ export default function RootLayout({
         <main id="main">{children}</main>
         <Footer />
         <VoiceAssistant />
+        <MedicalDisclaimerGate />
+        {process.env.NEXT_PUBLIC_TOUR_MODE === "1" && <TourCompanion />}
       </body>
     </html>
   );
