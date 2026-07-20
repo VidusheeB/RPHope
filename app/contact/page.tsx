@@ -10,10 +10,9 @@ export const metadata: Metadata = {
 
 // Recreation of the Wix "Contact Us" page (an About sub-page).
 //
-// ⚠️ ADDRESS CONFLICT — needs confirming. The live Wix contact page reads
-// "Mission Viejo, CA 92692" (see reference/content/pages/contact-us.md), which
-// is what is used here. The site footer and /who-we-are instead carry
-// "P.O. Box 1163, Pleasanton, CA 94566". One of these is out of date.
+// Address: the live Wix page showed "Mission Viejo, CA 92692", but RP Hope
+// confirmed the P.O. Box is correct, so it is used site-wide (here, the footer
+// and the legal copy) for consistency.
 export default function ContactPage() {
   return (
     <div className="bg-cream">
@@ -28,7 +27,7 @@ export default function ContactPage() {
         </p>
 
         <address className="mt-6 not-italic text-ink/80">
-          Mission Viejo, CA 92692 &nbsp;|&nbsp;{" "}
+          P.O. Box 1163, Pleasanton, CA 94566 &nbsp;|&nbsp;{" "}
           <a
             href="mailto:information@rphope.org"
             className="font-semibold text-forest underline"
