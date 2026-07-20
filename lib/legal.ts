@@ -4,10 +4,9 @@
 // Do not reword, "clean up", summarize, or fix grammar here. Structure only
 // (headings / paragraphs / bullets) is expressed via the block types below.
 //
-// Known inconsistencies in the supplied text, left EXACTLY as provided rather
-// than silently corrected — raise with RP Hope before changing:
-//   - The Privacy section gives the contact address as "info@rphope.org", while
-//     the rest of the site (and the Terms section) uses "information@rphope.org".
+// Note: the supplied Privacy text wrote the contact address as "information@rphope.org";
+// RP Hope confirmed the correct address is "information@rphope.org", so those
+// three references were corrected. No other wording has been altered.
 
 export type LegalBlock =
   | { type: "p"; text: string }
@@ -175,7 +174,7 @@ export const LEGAL_SECTIONS: LegalSection[] = [
       },
       {
         type: "p",
-        text: "To make any of these requests please email info@rphope.org and submit your request.",
+        text: "To make any of these requests please email information@rphope.org and submit your request.",
       },
 
       {
@@ -184,13 +183,13 @@ export const LEGAL_SECTIONS: LegalSection[] = [
       },
       {
         type: "p",
-        text: "If you have any issues, queries or complaints regarding the processing of your personal data, please contact us at info@rphope.org.",
+        text: "If you have any issues, queries or complaints regarding the processing of your personal data, please contact us at information@rphope.org.",
       },
 
       { type: "h3", text: "Cookies and similar technologies" },
       {
         type: "p",
-        text: "We use cookies and similar technologies that collect and store information when you visit our website or use our apps. This is to enable us to identify your internet browser and collect data on your use of our website, which pages you visit, the duration of your visits and identify these when you return so that we improve your experience when visiting our website. You can control and manage your cookies preferences by adjusting your browser settings or using the pop-up form (when available) or submitting the request via an email to info@rphope.org and notifying us of your concern.",
+        text: "We use cookies and similar technologies that collect and store information when you visit our website or use our apps. This is to enable us to identify your internet browser and collect data on your use of our website, which pages you visit, the duration of your visits and identify these when you return so that we improve your experience when visiting our website. You can control and manage your cookies preferences by adjusting your browser settings or using the pop-up form (when available) or submitting the request via an email to information@rphope.org and notifying us of your concern.",
       },
 
       { type: "h3", text: "Who will we share your personal data with?" },
