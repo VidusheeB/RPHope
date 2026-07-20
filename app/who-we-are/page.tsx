@@ -11,6 +11,8 @@ export const metadata: Metadata = {
 // Content faithful to the original Wix "Who We Are" page (Mission / Vision /
 // Fundraising), restyled in the current brand. Contact details match the site
 // footer: P.O. Box 1163, Pleasanton, CA · information@rphope.org · 925.209.1440.
+const board = ["Lyndon Elam", "Tim Geistlinger", "Kevin Unger", "Eric Elam"];
+
 const pillars = [
   {
     heading: "Mission",
@@ -73,47 +75,46 @@ export default function WhoWeArePage() {
           ))}
         </div>
 
+        <section id="board" className="mt-14 scroll-mt-24">
+          <h2 className="font-display text-2xl font-medium tracking-tight text-ink">
+            Board of Directors
+          </h2>
+          {/* Names transcribed from the live Wix page. The originals link to each
+              director's LinkedIn; those URLs weren't in the scrape, so they are
+              rendered as plain names rather than invented links. */}
+          <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {board.map((person) => (
+              <li
+                key={person}
+                className="rounded-lg bg-cream-header px-4 py-3 font-semibold text-ink"
+              >
+                {person}
+              </li>
+            ))}
+          </ul>
+        </section>
+
         <section
-          id="contact"
+          id="tax-filings"
           className="mt-14 scroll-mt-24 rounded-lg border border-ink/10 bg-white p-8"
         >
-          <h2 className="font-display text-2xl font-medium tracking-tight text-ink">Contact us</h2>
+          <h2 className="font-display text-2xl font-medium tracking-tight text-ink">
+            Tax Filings
+          </h2>
           <p className="mt-3 text-ink/75">
-            Questions, ideas, or want to get involved? We&rsquo;d love to hear
-            from you.
+            RP Hope&rsquo;s annual filings are available to download.
           </p>
-          <address className="mt-5 space-y-2 not-italic text-ink/80">
-            <p>
-              <span className="font-semibold text-ink">Email:</span>{" "}
-              <a
-                href="mailto:information@rphope.org"
-                className="font-semibold text-forest underline"
-              >
-                information@rphope.org
-              </a>
-            </p>
-            <p>
-              <span className="font-semibold text-ink">Phone:</span>{" "}
-              <a href="tel:+19252091440" className="text-forest underline">
-                925.209.1440
-              </a>
-            </p>
-            <p>
-              <span className="font-semibold text-ink">Mail:</span> P.O. Box
-              1163, Pleasanton, CA 94566
-            </p>
-          </address>
           <p className="mt-5 font-mono text-sm text-ink/55">
             RP Hope · EIN 86-3745576 · 501(c)(3) nonprofit
           </p>
         </section>
 
         <div className="mt-12 flex flex-wrap gap-4">
-          <CTAButton href="/donate" variant="primary" arrow>
-            Support our research
+          <CTAButton href="/transparency" variant="primary" arrow>
+            View annual filings
           </CTAButton>
-          <CTAButton href="/transparency" variant="secondary" arrow>
-            Financial transparency
+          <CTAButton href="/contact" variant="secondary" arrow>
+            Contact us
           </CTAButton>
         </div>
       </div>

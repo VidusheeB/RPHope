@@ -142,10 +142,10 @@ export default function Footer() {
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-5 py-6 text-xs text-white/55 sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 RP Hope. All rights reserved.</p>
           <div className="flex gap-6">
-            <Link href="/privacy-policy" className="hover:text-white">
+            <Link href="/policies#privacy" className="hover:text-white">
               Privacy Policy
             </Link>
-            <Link href="/terms-of-use" className="hover:text-white">
+            <Link href="/policies#terms" className="hover:text-white">
               Terms of Use
             </Link>
             <Link href="/explore" className="hover:text-white">

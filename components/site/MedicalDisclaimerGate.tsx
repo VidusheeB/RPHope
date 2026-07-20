@@ -112,21 +112,21 @@ export default function MedicalDisclaimerGate() {
 
         <p className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-forest">
           <Link
-            href="/disclaimer"
+            href="/policies#disclaimer"
             onClick={dismissForNavigation}
             className="underline underline-offset-2"
           >
             Full Disclaimer
           </Link>
           <Link
-            href="/terms-of-use"
+            href="/policies#terms"
             onClick={dismissForNavigation}
             className="underline underline-offset-2"
           >
             Terms
           </Link>
           <Link
-            href="/privacy-policy"
+            href="/policies#privacy"
             onClick={dismissForNavigation}
             className="underline underline-offset-2"
           >
