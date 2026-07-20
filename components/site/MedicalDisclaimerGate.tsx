@@ -1,7 +1,17 @@
 "use client";
 
-// Site-wide "before you continue" medical disclaimer, shown once per browser
-// (localStorage — a UI preference, not medical data; same pattern as
+// Site-wide "before you continue" medical disclaimer, shown ONCE per browser —
+// a returning visitor on the same computer is never asked again.
+//
+// Acknowledgement is stored two ways, and either one suppresses the gate:
+//   1. localStorage — instant, works offline.
+//   2. a cookie set SERVER-side by /api/disclaimer, with a one-year expiry.
+// The cookie exists because Safari's tracking prevention caps script-writable
+// storage (localStorage) at ~7 days of inactivity, which would otherwise bring
+// the gate back for Safari/iOS visitors roughly once a week. A server-set
+// cookie is not subject to that cap.
+//
+// It remains a UI preference, not medical data (same pattern as
 // lib/voice/accessibilityPreferences.ts). Never blocks screen readers: it is
 // absent from the DOM entirely until acknowledged, so nothing to skip past.
 
@@ -11,18 +21,25 @@ import Link from "next/link";
 const STORAGE_KEY = "rphope_disclaimer_ack";
 const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+function hasAcknowledged(): boolean {
+  try {
+    if (window.localStorage.getItem(STORAGE_KEY)) return true;
+  } catch {
+    // localStorage unavailable (private mode / disabled) — fall through to the
+    // cookie rather than treating it as "not acknowledged".
+  }
+  return document.cookie
+    .split("; ")
+    .some((row) => row.startsWith(`${STORAGE_KEY}=`));
+}
+
 export default function MedicalDisclaimerGate() {
   const [open, setOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const acknowledgeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    try {
-      if (!window.localStorage.getItem(STORAGE_KEY)) setOpen(true);
-    } catch {
-      // localStorage unavailable (private mode / disabled) — skip the gate
-      // rather than nag on every load with no way to persist dismissal.
-    }
+    if (!hasAcknowledged()) setOpen(true);
   }, []);
 
   useEffect(() => {
@@ -64,8 +81,11 @@ export default function MedicalDisclaimerGate() {
     try {
       window.localStorage.setItem(STORAGE_KEY, "1");
     } catch {
-      // ignore quota/availability errors — worst case it asks again next visit
+      // ignore quota/availability errors — the cookie below still records it
     }
+    // Fire-and-forget: the long-lived cookie is what keeps Safari/iOS visitors
+    // from being asked again in a week. Failure here is not worth blocking on.
+    void fetch("/api/disclaimer", { method: "POST" }).catch(() => {});
     setOpen(false);
   }
 
