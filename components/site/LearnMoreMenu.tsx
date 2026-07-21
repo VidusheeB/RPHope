@@ -8,7 +8,7 @@ import Link from "next/link";
 // hover menus are unusable on touch and hostile to keyboard/screen-reader
 // users).
 const items = [
-  { href: "/what-is-rp", label: "What is RP" },
+  { href: "/what-is-rp", label: "Understanding RP" },
   { href: "/future-therapies", label: "Future Therapies" },
   { href: "/what-is-a-clinical-trial", label: "What is a Clinical Trial" },
 ];

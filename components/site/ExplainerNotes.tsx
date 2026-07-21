@@ -3,25 +3,31 @@
 // from outside sources, so per RP Hope's content governance they carry an
 // educational disclaimer, a last-reviewed line, and visible source citations.
 
-export type Source = { label: string; href: string };
+export type Source = { label: string; href?: string };
 
 export function SourcesList({ sources }: { sources: Source[] }) {
   return (
     <section className="mt-12 rounded-lg border border-ink/10 bg-white p-6">
       <h2 className="font-display text-lg font-bold text-ink">Sources</h2>
       <ul className="mt-3 space-y-2 text-sm text-ink/75">
-        {sources.map((s) => (
-          <li key={s.href}>
-            <a
-              href={s.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-forest underline"
-            >
+        {sources.map((s) =>
+          s.href ? (
+            <li key={s.label}>
+              <a
+                href={s.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-forest underline"
+              >
+                {s.label}
+              </a>
+            </li>
+          ) : (
+            <li key={s.label} className="font-semibold text-ink/75">
               {s.label}
-            </a>
-          </li>
-        ))}
+            </li>
+          ),
+        )}
       </ul>
     </section>
   );
