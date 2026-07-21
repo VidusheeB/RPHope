@@ -68,9 +68,9 @@ export default function FutureTherapiesPage() {
           RP
         </h1>
         <p className="mt-6 text-xl leading-relaxed text-ink/80">
-          There's no cure yet for most forms of RP. But researchers are
-          actively working on several different approaches — here's what they
-          are, in plain language.
+          There&rsquo;s no cure yet for most forms of RP. But researchers are
+          actively working on several different approaches — here&rsquo;s
+          what they are, in plain language.
         </p>
 
         <section className="mt-12">
@@ -99,8 +99,9 @@ export default function FutureTherapiesPage() {
           <p className="mt-3 text-lg leading-relaxed text-cream/90">
             Before any of these approaches can become a treatment a doctor can
             offer, they have to be tested in people through a clinical trial —
-            first for safety, then to see whether they actually help. That's
-            true even for approaches that look promising in the lab.
+            first for safety, then to see whether they actually help.
+            That&rsquo;s true even for approaches that look promising in the
+            lab.
           </p>
         </section>
 
