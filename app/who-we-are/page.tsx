@@ -8,25 +8,25 @@ export const metadata: Metadata = {
     "The mission, vision, and story behind RP Hope — a nonprofit educating and funding research toward treatments for retinitis pigmentosa.",
 };
 
-// Content faithful to the original Wix "Who We Are" page (Mission / Vision /
-// Fundraising), restyled in the current brand. Contact details match the site
+// Updated "Who We Are" copy (Mission / Vision / Where funds go / Our
+// approach), restyled in the current brand. Contact details match the site
 // footer: P.O. Box 1163, Pleasanton, CA · information@rphope.org · 925.209.1440.
 const board = ["Lyndon Elam", "Tim Geistlinger", "Kevin Unger", "Eric Elam"];
 
 const pillars = [
   {
     heading: "Mission",
-    body: "We serve to educate and fund research in pursuit of effective and affordable treatments for retinitis pigmentosa (RP). RP Hope is a resource for those affected by RP and looking for information about this rare genetic retinal disease.",
+    body: "To help people with RP and those who support them understand the condition, navigate research, and find relevant resources, while funding work that can move promising treatments closer to patients.",
     tint: "bg-mint",
   },
   {
     heading: "Vision",
-    body: "A world where treatments for RP are operative, effective, and accessible to all patients.",
+    body: "A future in which every person with RP has access to clear information, informed care, and an effective treatment suited to their form of the condition.",
     tint: "bg-butter",
   },
   {
-    heading: "Fundraising",
-    body: "Funds raised go toward research seeking treatments for non-syndromic retinitis pigmentosa.",
+    heading: "Where funds go",
+    body: "Donations support research focused on non-syndromic retinitis pigmentosa, including work that improves our understanding of the disease and advances potential treatments.",
     tint: "bg-lilac",
   },
 ];
@@ -49,17 +49,26 @@ export default function WhoWeArePage() {
               Who We Are
             </p>
             <h1 className="mt-2 font-display text-4xl font-medium tracking-tight text-ink sm:text-5xl">
-              Hope, grounded in{" "}
+              Hope built on{" "}
               <span className="italic font-medium text-gold">research.</span>
             </h1>
           </div>
         </div>
 
-        <p className="mt-8 max-w-2xl text-lg leading-relaxed text-ink/75">
-          RP Hope is a nonprofit for everyone touched by retinitis pigmentosa —
-          patients, families, caregivers, researchers, and clinicians. We gather
-          clear information and fund the science working toward treatments.
-        </p>
+        <div className="mt-8 max-w-2xl space-y-4 text-lg leading-relaxed text-ink/75">
+          <p>
+            RP Hope is a nonprofit created first and foremost for people
+            living with retinitis pigmentosa. We also support families and
+            caregivers trying to understand the condition, as well as
+            researchers and clinicians working to improve care and develop
+            treatments.
+          </p>
+          <p>
+            We make complex information easier to understand, organize
+            research gene by gene, and support scientific work aimed at
+            developing effective and accessible treatments.
+          </p>
+        </div>
 
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           {pillars.map((p) => (
@@ -74,6 +83,30 @@ export default function WhoWeArePage() {
             </section>
           ))}
         </div>
+
+        <section className="mt-14">
+          <h2 className="font-display text-2xl font-medium tracking-tight text-ink">
+            Our approach
+          </h2>
+          <div className="mt-4 max-w-2xl space-y-4 text-lg leading-relaxed text-ink/75">
+            <p>
+              RP is not one condition with one cause. Changes in many
+              different genes can lead to RP, and each genetic form may have
+              its own progression, research, and treatment possibilities.
+            </p>
+            <p>
+              That is why RP Hope organizes information gene by gene. We
+              bring together published research, clinical trials, and clear
+              explanations so patients and families can understand what is
+              known, what is still being studied, and what may be relevant to
+              them.
+            </p>
+            <p>
+              We also aim to make that information useful to caregivers,
+              clinicians, and researchers working across the RP community.
+            </p>
+          </div>
+        </section>
 
         <section id="board" className="mt-14 scroll-mt-24">
           <h2 className="font-display text-2xl font-medium tracking-tight text-ink">
