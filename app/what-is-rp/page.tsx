@@ -49,9 +49,16 @@ const sections = [
   {
     heading: "Causes and genetics",
     body: [
-      "RP is caused by changes (variants) in genes that keep retinal cells healthy. Those gene changes are passed from parents to children.",
-      "More than 80 different genes have been linked to RP, and it can be inherited in different patterns — autosomal recessive, autosomal dominant, or X-linked. Knowing the specific gene matters, because it shapes how RP progresses and which research and trials may be relevant.",
+      "RP is caused by changes (variants) in genes that keep retinal cells healthy. Those gene changes are passed from parents to children, in patterns that can be autosomal recessive, autosomal dominant, or X-linked depending on the gene.",
       "Sometimes RP occurs as part of a broader condition, such as Usher syndrome, which affects both vision and hearing.",
+    ],
+  },
+  {
+    heading: "RP is organized by gene",
+    body: [
+      "RP isn't one single condition with one single cause — it's a group of conditions that all lead to vision loss, but each is driven by a change in a different gene. More than 80 genes have been linked to RP so far, and the specific gene involved shapes how a person's RP behaves: how early it starts, how quickly it progresses, which symptoms come first, and — increasingly — which treatments or trials may be relevant.",
+      "A few genes account for a large share of cases. RHO is the most common gene linked to autosomal dominant RP, responsible for an estimated 20–30% of those cases. USH2A is the most common gene linked to autosomal recessive RP, and also the most common cause of Usher syndrome type II (RP combined with hearing loss). RPGR is a common cause of X-linked RP, and PDE6A and PDE6B together account for roughly 2–5% of autosomal recessive cases. Dozens of other genes — including ABCA4, RP1, KCNV2, and CYP4V2 — each cause a smaller share of cases.",
+      "This is why RP Hope organizes its Genetic Insights library gene by gene rather than treating RP as one disease: the research, the treatment outlook, and even the patient community can look very different depending on which gene is involved.",
     ],
   },
   {
@@ -60,6 +67,15 @@ const sections = [
       "Eye doctors use several tests together: a dilated eye exam, visual field testing to map side vision, an electroretinogram (ERG) to measure how the retina responds to light, and OCT imaging for a detailed picture of the retina.",
       "Genetic testing identifies the specific gene involved. This is how the exact form of RP is confirmed — not from symptoms alone.",
     ],
+  },
+  {
+    heading: "Finding out your gene — and what to do next",
+    body: [
+      "The only way to know for certain which gene is involved is genetic testing — usually a blood or saliva sample, ordered by an eye doctor or genetic counselor. Symptoms alone can't tell you the gene, because different genes can cause very similar vision changes.",
+      "Knowing your gene matters: it can explain how your RP is likely to progress, connect you with the research and clinical trials most relevant to that specific gene, and — for a small but growing number of genes — point to an approved or investigational treatment aimed at it directly.",
+      "If you already know your gene, you can go straight to its page in Genetic Insights. If you don't yet, or aren't sure where to start, My RP Pathway will ask a few quick questions and build a short, guided tour of the site for you.",
+    ],
+    cta: { href: "/my-pathway", label: "Start My RP Pathway" },
   },
   {
     heading: "Where treatment and research stand",
@@ -98,6 +114,13 @@ export default function WhatIsRpPage() {
                   <p key={i}>{p}</p>
                 ))}
               </div>
+              {"cta" in s && s.cta && (
+                <div className="mt-5">
+                  <CTAButton href={s.cta.href} variant="primary" arrow>
+                    {s.cta.label}
+                  </CTAButton>
+                </div>
+              )}
             </section>
           ))}
         </div>

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import AboutMenu from "./AboutMenu";
+import LearnMoreMenu from "./LearnMoreMenu";
 
-// "About" is rendered separately as a dropdown (Who We Are / Contact Us).
+// "About" and "Learn More" are rendered separately as dropdowns.
 const nav = [
   { href: "/genetic-insights", label: "Genetic Insights" },
   { href: "/my-pathway", label: "My RP Pathway" },
@@ -36,6 +37,9 @@ export default function Header() {
         <ul className="hidden items-center gap-7 text-[0.9rem] font-semibold text-ink/75 md:flex">
           <li>
             <AboutMenu />
+          </li>
+          <li>
+            <LearnMoreMenu />
           </li>
           {nav.map((n) => (
             <li key={n.href}>
