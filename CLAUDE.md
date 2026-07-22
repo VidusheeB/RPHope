@@ -281,6 +281,14 @@ New version (live app at repo root):
   - ⚠️ The last two contain medical/scientific claims summarized from outside sources. They carry an
     educational disclaimer + last-reviewed date + citations (`components/site/ExplainerNotes.tsx`),
     but per content governance **a human should verify the wording** before treating them as final.
+- `/stories` — curated external stories + first-party RP-Hope-hosted stories (Supabase-backed)
+- `/stories/[id]` — a single published, RP-Hope-hosted story
+- `/share-your-story` — story submission flow (how it works → private info →
+  public content & story input → review → submit)
+- `/stories/approve/[token]` — token-gated, unauthenticated page for a
+  submitter to approve or request changes to their edited draft
+- `/review/stories`, `/review/stories/[id]` — reviewer dashboard for story
+  submissions (separate, lightweight pipeline — see below)
 - `/donate`, `/events` — recreated (restyle to new brand still pending)
 - `/privacy-policy`, `/terms-of-use` — stubs
 - `/review`, `/review/admin`, `/review/login|set-password|reset-password` — reviewer dashboard
@@ -296,6 +304,16 @@ New version (live app at repo root):
 - `/api/tts` — OpenAI text-to-speech (`gpt-4o-mini-tts`, voice `coral`) behind "Listen to this page".
 - `/api/cron/research-pull` — Opus web-search research drafts; **manual only** (no `vercel.json` cron
   currently — see Implementation log)
+- `/api/stories/submit` — inserts a story as `pending_review`, sends the "received" + reviewer-notification emails.
+- `/api/stories/upload-video` — mints a Supabase Storage signed UPLOAD url/token (private `story-videos`
+  bucket) so a multi-minute video uploads directly from the browser, never through this function's own
+  request body (Vercel's body-size limit would reject it otherwise).
+- `/api/transcribe` — generic OpenAI transcription (`gpt-4o-mini-transcribe`, same model the voice
+  assistant already uses for input transcription), accepts either a multipart audio clip or
+  `{ videoPath }` (fetched server-side from Storage). Not story-specific; reusable elsewhere.
+- `/api/stories/synthesize` — cleans up a dictated/typed draft (`gpt-5.4`, `reasoning_effort: "medium"`,
+  same call shape as `/api/openai/rp-expert`): removes filler words, light grammar only, preserves the
+  submitter's own wording.
 
 > **Note:** `/api/assistant` and `/api/explain` (the old Anthropic-powered voice brain and the
 > per-gene simplify/analogy endpoint) **have been deleted**. The voice assistant now runs on OpenAI
@@ -556,6 +574,39 @@ review the `pending_review` queue and publish what passes. Nothing medical goes 
 
 Cost note: each gene run makes one Opus call with up to 5 web searches (web search is billed per
 search + tokens). Low volume by design; swap the cron schedule/limit in `vercel.json` to tune.
+
+### Share Your Story — CODE BUILT, needs manual setup
+
+Visitors can submit their own RP story (typed, dictated by voice, or a short uploaded video) at
+`/share-your-story`. It goes to Supabase as `pending_review`, a reviewer edits it at `/review/stories`,
+and it's published to `/stories` either after the submitter approves the final draft (a token-gated
+link at `/stories/approve/[token]`, no login needed) or immediately if they granted "free edit"
+permission — their choice, captured in the form. Nothing publishes without either the submitter's own
+approval or that explicit upfront trust; same content-governance spirit as the rest of the site.
+
+- `supabase/migrations/0004_story_submissions.sql` — the `story_submissions` table (private Section-1
+  contact/consent columns never rendered publicly; public Section-2 columns once published) + the
+  private `story-videos` Storage bucket. **Apply this migration in the Supabase SQL editor** before the
+  feature works at all.
+- **Real email, finally** (`lib/email.ts`, Resend) — the "send the final draft back for approval" loop
+  needs to actually email the submitter, so this project's first real email service was added here (not
+  just for stories — `app/contact/ContactForm.tsx`'s `mailto:` interim can be swapped to this too when
+  convenient). Config-null-safe like every other integration here: without `RESEND_API_KEY` the pipeline
+  still works end-to-end (DB insert, reviewer dashboard, publish), emails just log and no-op.
+- **Set on Vercel:** `RESEND_API_KEY` (sign up at resend.com), optionally `STORY_EMAIL_FROM` (defaults to
+  `RP Hope <information@rphope.org>` — the sending domain needs to be verified in Resend for this to
+  actually deliver) and `STORY_REVIEWER_EMAIL` (defaults to `information@rphope.org`).
+- **Publishing is gated on `reviewer_profiles.can_publish`**, same privilege check the gene-draft flow
+  uses — any active reviewer can view/edit/send-for-approval, only publish-permitted reviewers can
+  actually flip a story to `published`.
+- Voice assistant: `submit_story` (`lib/voice/tools.ts`) lets the assistant walk someone through
+  submitting by voice — it's instructed to always spell back name/email (and phone digit-by-digit)
+  for confirmation before calling it, and to do a final full read-back first. This is the most
+  experimental piece of the feature (accuracy depends on Realtime transcription of a full spoken
+  story); a user who'd rather type/dictate/upload video themselves should just be navigated to the page.
+- Known constraint: `/api/transcribe` (OpenAI, 25MB cap) auto-transcribes an uploaded video's audio to
+  prefill the story text box; a video over that cap still uploads fine, it just isn't auto-transcribed —
+  a reviewer can watch it and type the story text themselves.
 
 ### Still to do (roadmap)
 - **Donations (`/donate`) — CODE BUILT, blocked on Stripe login/keys from Carin.** Uses **Stripe

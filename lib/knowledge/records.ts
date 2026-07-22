@@ -28,7 +28,8 @@ export type KnowledgeRecord = {
     | "article"
     | "organization"
     | "faq"
-    | "genetic-testing";
+    | "genetic-testing"
+    | "feature";
   reviewStatus: "reviewed" | "draft" | "unknown";
   lastReviewedAt?: string;
 };
@@ -172,6 +173,16 @@ const curated: KnowledgeRecord[] = [
     text: "A clinical trial is a carefully run research study that tests whether a new treatment is safe and whether it helps. There are two kinds of studies: interventional trials, where participants receive a specific treatment so researchers can measure its effect, and observational studies, where researchers follow people over time without giving a new treatment. Trials usually move through phases: Phase 1 tests safety in a small group; Phase 2 looks at whether it works and its side effects; Phase 3 confirms this in a much larger group; and Phase 4 tracks long-term safety after approval. A study's status shows whether people can join: recruiting means it is enrolling now; active, not recruiting means it is running but not enrolling; completed means it has finished; and preclinical research is earlier lab work not yet open to people. Every trial has eligibility criteria, and only the study team can confirm whether a trial fits a given person. RP Hope frames studies as 'may be relevant to review' — never as 'you qualify' or 'you are eligible' — and encourages bringing any trial to your own eye doctor and the study team.",
     keywords: ["what is a clinical trial", "clinical trial", "phases", "recruiting", "observational", "interventional", "eligibility", "may be relevant to review"],
     contentType: "faq",
+    reviewStatus: "reviewed",
+  },
+  {
+    id: "feature:share-your-story",
+    url: "/share-your-story",
+    pageTitle: "Share Your Story",
+    heading: "Share Your Story",
+    text: "RP Hope's Stories page includes real accounts from people living with RP, and a way to share your own. On Share Your Story, you can type your story, dictate it by voice, or upload a short video — an AI 'synthesize' step can clean up filler words while preserving your own wording. You choose whether to review the final edited version before it's published, or trust RP Hope to edit and publish it directly. You also choose your display name (or Anonymous) and whether to show contact info. RP Hope follows up within about 10 business days.",
+    keywords: ["share your story", "submit my story", "tell my story", "stories", "personal account", "testimonial"],
+    contentType: "feature",
     reviewStatus: "reviewed",
   },
 ];

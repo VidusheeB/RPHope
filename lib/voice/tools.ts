@@ -236,6 +236,64 @@ const ask_rp_expert = tool({
   },
 });
 
+const submit_story = tool({
+  name: "submit_story",
+  description:
+    "Submit a story to RP Hope's Share Your Story feature. Only call this AFTER reading the name and email back to the user letter-by-letter (and phone digit-by-digit, if given) and getting explicit confirmation, then doing one final full read-back of everything and getting an explicit yes to submit. Never call this without that confirmation.",
+  parameters: z.object({
+    fullName: z.string().describe("The submitter's full name, confirmed by spelling."),
+    email: z.string().describe("The submitter's email, confirmed by spelling."),
+    phone: z.string().nullable().describe("Phone number, if given and confirmed."),
+    contactMethod: z.enum(["email", "phone"]).describe("How RP Hope should follow up."),
+    consentToPublish: z
+      .boolean()
+      .describe("Must be true — the user explicitly agreed their story may be published."),
+    editPermission: z
+      .enum(["review_first", "free_edit"])
+      .describe("review_first = send the final draft back for approval; free_edit = RP Hope may edit and publish without checking back."),
+    displayName: z.string().describe('Name to show publicly, or "Anonymous".'),
+    displayContact: z.enum(["email", "phone", "none"]).describe("What contact info, if any, to show publicly."),
+    geneSlug: z.string().nullable().describe("Their gene, if known and mentioned (e.g. 'rpgr')."),
+    storyText: z.string().describe("The story itself, in the user's own words as captured from the conversation."),
+  }),
+  execute: async (input) => {
+    try {
+      const res = await fetch("/api/stories/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: input.fullName,
+          email: input.email,
+          phone: input.phone ?? undefined,
+          contactMethod: input.contactMethod,
+          consentToPublish: input.consentToPublish,
+          editPermission: input.editPermission,
+          displayName: input.displayName,
+          displayContact: input.displayContact,
+          geneSlug: input.geneSlug ?? undefined,
+          storyText: input.storyText,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        return JSON.stringify({
+          submitted: false,
+          error: body?.error || "Submission failed. Suggest the Share Your Story page as a fallback.",
+        });
+      }
+      return JSON.stringify({
+        submitted: true,
+        message: "Story submitted. RP Hope will follow up within about 10 business days.",
+      });
+    } catch {
+      return JSON.stringify({
+        submitted: false,
+        error: "Couldn't reach the server. Suggest the Share Your Story page as a fallback.",
+      });
+    }
+  },
+});
+
 export const rpHopeTools = [
   search_rp_hope,
   get_current_page_context,
@@ -246,4 +304,5 @@ export const rpHopeTools = [
   scroll_to_section,
   set_accessibility_preferences,
   ask_rp_expert,
+  submit_story,
 ];
