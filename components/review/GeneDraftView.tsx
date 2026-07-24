@@ -15,6 +15,7 @@ import {
   PROSE,
 } from "@/components/site/genePageParts";
 import ReadingModeToggle from "@/components/site/ReadingModeToggle";
+import { renderWithGlossary } from "@/lib/glossaryLinkify";
 
 /** First sentence (or a trimmed lead) for a section preview / status card. */
 function lead(text?: string, max = 160): string {
@@ -29,7 +30,7 @@ function ProseSection({ title, body }: { title: string; body?: SourcedText }) {
   if (!body?.text) return null;
   return (
     <GeneSection title={title} preview={lead(body.text)}>
-      <p className={`whitespace-pre-line ${PROSE}`}>{body.text}</p>
+      <p className={`whitespace-pre-line ${PROSE}`}>{renderWithGlossary(body.text)}</p>
     </GeneSection>
   );
 }
@@ -70,7 +71,7 @@ function TreatmentAndResearchSection({
           : "Studies behind this page — what was found, why it matters, and its limitation…"
       }
     >
-      {hasBody && <p className={`whitespace-pre-line ${PROSE}`}>{body!.text}</p>}
+      {hasBody && <p className={`whitespace-pre-line ${PROSE}`}>{renderWithGlossary(body!.text)}</p>}
       {sorted.length > 0 && (
         <ul className={`grid gap-3 ${hasBody ? "mt-6" : ""}`}>
           {sorted.map((c, i) => (

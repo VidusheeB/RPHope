@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import CTAButton from "@/components/site/CTAButton";
+import { renderWithGlossary } from "@/lib/glossaryLinkify";
 
 // Shared rendering for long-form educational explainer pages (Understanding
 // RP, Future Therapies). Lets page content be authored as data — paragraphs,
@@ -28,7 +29,7 @@ export function renderInline(text: string): ReactNode {
         </strong>
       );
     }
-    return <span key={i}>{part}</span>;
+    return <span key={i}>{renderWithGlossary(part)}</span>;
   });
 }
 

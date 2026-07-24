@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getGene, type Gene } from "@/lib/genes";
+import { renderWithGlossary } from "@/lib/glossaryLinkify";
 import { geneGrid } from "@/lib/geneGrid";
 import GeneArticles, { type Article } from "@/components/site/GeneArticles";
 import ListenButton from "@/components/site/ListenButton";
@@ -201,14 +202,14 @@ export default async function GenePage({ params }: { params: { gene: string } })
 
           <div className="mt-6 grid gap-3">
             <GeneSection title="Brief description" preview="A clear, everyday-language overview of this gene." defaultOpen>
-              <p className={`text-lg ${PROSE}`}>{gene.summary}</p>
+              <p className={`text-lg ${PROSE}`}>{renderWithGlossary(gene.summary)}</p>
             </GeneSection>
             {hasEyeHealth && (
               <GeneSection
                 title="Strategies to preserve eye health"
                 preview="Everyday steps that may help protect remaining vision."
               >
-                <p className={PROSE}>{gene.eyeHealthStrategies}</p>
+                <p className={PROSE}>{renderWithGlossary(gene.eyeHealthStrategies || "")}</p>
               </GeneSection>
             )}
           </div>
