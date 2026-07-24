@@ -35,11 +35,16 @@ export type PublishedStory = {
   contactValue?: string; // only populated when displayContact !== "none"
   geneSlug?: string;
   storyText: string;
-  /** Present when the story was submitted as video — the video IS the
-   *  story on the public page; storyText becomes its transcript/caption
-   *  (kept for screen-reader and low-vision visitors who can't watch it —
-   *  required by this site's accessibility bar, not just a nice-to-have). */
+  /** A published story is one of three formats: video, audio, or text —
+   *  whichever the submitter deliberately chose to tell it with (typing or
+   *  quick voice-to-text dictation always produce text; a deliberate
+   *  "record it as audio" or an uploaded file produce audio or video).
+   *  At most one of these is set. When either is, storyText becomes its
+   *  transcript/caption — kept for screen-reader and low-vision visitors
+   *  who can't watch or listen to it, required by this site's
+   *  accessibility bar, not just a nice-to-have. */
   videoUrl?: string;
+  audioUrl?: string;
   publishedAt: string;
 };
 

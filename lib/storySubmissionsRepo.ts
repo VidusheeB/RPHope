@@ -11,7 +11,7 @@ import { getServiceSupabase } from "./supabaseAdmin";
 import type { DisplayContact, PublishedStory } from "./stories/types";
 
 const PUBLIC_COLUMNS =
-  "id, display_name, display_contact, email, phone, gene_slug, story_text, video_path, published_at";
+  "id, display_name, display_contact, email, phone, gene_slug, story_text, video_path, audio_path, published_at";
 
 type Row = {
   id: string;
@@ -22,16 +22,17 @@ type Row = {
   gene_slug: string | null;
   story_text: string;
   video_path: string | null;
+  audio_path: string | null;
   published_at: string;
 };
 
 // The story-videos bucket has no public/anon read policy (see
-// 0004_story_submissions.sql), so a playable URL has to be minted with the
-// service-role client. Safe to do here because it's only ever called on a
-// row the anon+RLS query above already confirmed is `published` — this
-// doesn't widen what's readable, it just signs a URL for a path we already
-// know is meant to be public.
-async function signVideoUrl(path: string | null): Promise<string | undefined> {
+// 0004_story_submissions.sql / 0005_story_audio.sql), so a playable URL has
+// to be minted with the service-role client. Safe to do here because it's
+// only ever called on a row the anon+RLS query above already confirmed is
+// `published` — this doesn't widen what's readable, it just signs a URL for
+// a path we already know is meant to be public.
+async function signStoryMediaUrl(path: string | null): Promise<string | undefined> {
   if (!path) return undefined;
   const service = getServiceSupabase();
   if (!service) return undefined;
@@ -41,6 +42,10 @@ async function signVideoUrl(path: string | null): Promise<string | undefined> {
 
 async function toPublishedStory(r: Row): Promise<PublishedStory> {
   const displayContact = r.display_contact;
+  const [videoUrl, audioUrl] = await Promise.all([
+    signStoryMediaUrl(r.video_path),
+    signStoryMediaUrl(r.audio_path),
+  ]);
   return {
     id: r.id,
     displayName: r.display_name,
@@ -53,7 +58,8 @@ async function toPublishedStory(r: Row): Promise<PublishedStory> {
           : undefined,
     geneSlug: r.gene_slug ?? undefined,
     storyText: r.story_text,
-    videoUrl: await signVideoUrl(r.video_path),
+    videoUrl,
+    audioUrl,
     publishedAt: r.published_at,
   };
 }

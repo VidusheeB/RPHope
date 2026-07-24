@@ -11,15 +11,18 @@ export const runtime = "nodejs";
 //
 // Two request shapes:
 //  - multipart/form-data with an "audio" field — a short browser-recorded
-//    dictation clip (MediaRecorder), sent directly.
-//  - JSON { videoPath } — an already-uploaded story video. Fetched from
-//    Supabase Storage SERVER-SIDE rather than re-uploaded here, so it never
-//    hits this route's own request-body size (the signed-upload flow in
-//    /api/stories/upload-video exists specifically to avoid that limit).
+//    clip (MediaRecorder or a small uploaded audio file), sent directly.
+//  - JSON { mediaPath } — an already-uploaded story video or audio file.
+//    Fetched from Supabase Storage SERVER-SIDE rather than re-uploaded
+//    here, so it never hits this route's own request-body size (the
+//    signed-upload flow in /api/stories/upload-video and upload-audio
+//    exists specifically to avoid that limit) — used for video always,
+//    and for any audio file large enough that sending it directly wasn't
+//    a safe assumption.
 //
 // OpenAI's transcription endpoint caps input at 25MB — fine for a dictation
-// clip, but a heavier video may exceed it; in that case a reviewer can still
-// watch the video and type the story text themselves.
+// clip, but a heavier file may exceed it; in that case a reviewer can still
+// watch/listen to it and type the story text themselves.
 
 const KEY = process.env.OPENAI_API_KEY;
 const MODEL = "gpt-4o-mini-transcribe";
@@ -70,26 +73,31 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const videoPath = String(body?.videoPath ?? "");
-    if (!videoPath) {
-      return NextResponse.json({ error: "No video path provided." }, { status: 400 });
+    const mediaPath = String(body?.mediaPath ?? body?.videoPath ?? "");
+    if (!mediaPath) {
+      return NextResponse.json({ error: "No media path provided." }, { status: 400 });
     }
     const service = getServiceSupabase();
     if (!service) {
       return NextResponse.json({ error: "Not configured." }, { status: 503 });
     }
-    const { data, error } = await service.storage.from("story-videos").download(videoPath);
+    const { data, error } = await service.storage.from("story-videos").download(mediaPath);
     if (error || !data) {
-      return NextResponse.json({ error: "Could not read the uploaded video." }, { status: 502 });
+      return NextResponse.json({ error: "Could not read the uploaded file." }, { status: 502 });
     }
     if (data.size > MAX_BYTES) {
       return NextResponse.json(
-        { error: "Video is too large to auto-transcribe. A reviewer can transcribe it manually from the video." },
+        { error: "File is too large to auto-transcribe. A reviewer can transcribe it manually." },
         { status: 413 }
       );
     }
+    const isAudio = mediaPath.endsWith(".webm") || mediaPath.endsWith(".mp3") || mediaPath.endsWith(".wav");
     const buffer = Buffer.from(await data.arrayBuffer());
-    const text = await transcribeBuffer(buffer, "video.mp4", "video/mp4");
+    const text = await transcribeBuffer(
+      buffer,
+      isAudio ? "audio.webm" : "video.mp4",
+      isAudio ? "audio/webm" : "video/mp4"
+    );
     return NextResponse.json({ text });
   } catch (err) {
     console.error("Transcription error:", err instanceof Error ? err.message : "unknown");

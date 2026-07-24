@@ -64,6 +64,22 @@ export default async function StoryDetailPage({
               <p className="mt-3 whitespace-pre-wrap text-ink/80">{story.storyText}</p>
             </details>
           </>
+        ) : story.audioUrl ? (
+          <>
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+            <audio
+              controls
+              src={story.audioUrl}
+              className="mt-6 w-full"
+              aria-label={`${story.displayName}'s story, as audio`}
+            />
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm font-semibold text-forest">
+                Read the transcript
+              </summary>
+              <p className="mt-3 whitespace-pre-wrap text-ink/80">{story.storyText}</p>
+            </details>
+          </>
         ) : (
           <>
             <div className="mt-4">

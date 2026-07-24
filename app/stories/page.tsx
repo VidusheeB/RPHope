@@ -47,7 +47,7 @@ export default async function StoriesPage() {
               key={s.id}
               name={s.displayName}
               excerpt={excerptOf(s.storyText)}
-              tag={s.videoUrl ? "🎥 Video story" : "Community story"}
+              tag={s.videoUrl ? "🎥 Video story" : s.audioUrl ? "🎙 Audio story" : "Community story"}
               href={`/stories/${s.id}`}
             />
           ))}

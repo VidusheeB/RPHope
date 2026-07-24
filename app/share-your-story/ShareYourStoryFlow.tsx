@@ -512,8 +512,10 @@ function PublicContentStep({
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [transcribing, setTranscribing] = useState(false);
-  const [uploadingVideo, setUploadingVideo] = useState(false);
-  const [videoFileName, setVideoFileName] = useState<string | null>(null);
+  const [dictating, setDictating] = useState(false);
+  const [transcribingDictation, setTranscribingDictation] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [synthesizing, setSynthesizing] = useState(false);
   const [listening, setListening] = useState(false);
@@ -522,7 +524,9 @@ function PublicContentStep({
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const videoInputRef = useRef<HTMLInputElement>(null);
+  const dictateRecorderRef = useRef<MediaRecorder | null>(null);
+  const dictateChunksRef = useRef<Blob[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -543,6 +547,51 @@ function PublicContentStep({
       "storyText",
       form.storyText.trim() ? `${form.storyText.trim()}\n\n${text.trim()}` : text.trim()
     );
+  }
+
+  // Quick voice-to-text dictation, inline in the text box — separate from
+  // "record it as audio" below. This is purely an input method: the
+  // recording is transcribed and then discarded, never uploaded or
+  // attached. The deliberate audio recording further down is the one that
+  // becomes the published story itself.
+  async function startDictation() {
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      dictateChunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) dictateChunksRef.current.push(e.data);
+      };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        setTranscribingDictation(true);
+        try {
+          const blob = new Blob(dictateChunksRef.current, { type: "audio/webm" });
+          const body = new FormData();
+          body.append("audio", blob, "dictation.webm");
+          const res = await fetch("/api/transcribe", { method: "POST", body });
+          if (res.ok) {
+            const data = await res.json();
+            appendStoryText(data.text || "");
+          }
+        } catch {
+          setError("Couldn't transcribe that. You can still type your story.");
+        } finally {
+          setTranscribingDictation(false);
+        }
+      };
+      dictateRecorderRef.current = recorder;
+      recorder.start();
+      setDictating(true);
+    } catch {
+      setError("Couldn't access your microphone. Check your browser permissions, or just type your story.");
+    }
+  }
+
+  function stopDictation() {
+    dictateRecorderRef.current?.stop();
+    setDictating(false);
   }
 
   async function startRecording() {
@@ -621,12 +670,15 @@ function PublicContentStep({
     setAudioStage("idle");
   }
 
-  async function handleVideoSelected(file: File) {
+  async function handleFileSelected(file: File) {
     setError(null);
-    setUploadingVideo(true);
-    setVideoFileName(file.name);
+    const isAudio = file.type.startsWith("audio/");
+    setUploadingFile(true);
+    setUploadedFileName(file.name);
     try {
-      const prep = await fetch("/api/stories/upload-video", { method: "POST" });
+      const prep = await fetch(isAudio ? "/api/stories/upload-audio" : "/api/stories/upload-video", {
+        method: "POST",
+      });
       if (!prep.ok) throw new Error("Couldn't prepare the upload.");
       const { path, token } = await prep.json();
 
@@ -636,13 +688,13 @@ function PublicContentStep({
         .uploadToSignedUrl(path, token, file);
       if (uploadErr) throw uploadErr;
 
-      update("videoPath", path);
+      update(isAudio ? "audioPath" : "videoPath", path);
       setTranscribing(true);
       try {
         const res = await fetch("/api/transcribe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ videoPath: path }),
+          body: JSON.stringify({ mediaPath: path }),
         });
         if (res.ok) {
           const data = await res.json();
@@ -652,16 +704,17 @@ function PublicContentStep({
         setTranscribing(false);
       }
     } catch {
-      setError("Couldn't upload that video. You can still type or dictate your story.");
-      setVideoFileName(null);
+      setError("Couldn't upload that file. You can still type or dictate your story.");
+      setUploadedFileName(null);
     } finally {
-      setUploadingVideo(false);
+      setUploadingFile(false);
     }
   }
 
-  function removeVideo() {
+  function removeUploadedFile() {
     update("videoPath", "");
-    setVideoFileName(null);
+    update("audioPath", "");
+    setUploadedFileName(null);
   }
 
   async function handleSynthesize() {
@@ -766,15 +819,41 @@ function PublicContentStep({
         <label htmlFor="story-text" className="block font-semibold text-ink">
           Your story
         </label>
-        <textarea
-          id="story-text"
-          rows={10}
-          required
-          placeholder="Tell your story in your own words…"
-          value={form.storyText}
-          onChange={(e) => update("storyText", e.target.value)}
-          className={`mt-1.5 ${inputClass}`}
-        />
+        <div className="relative mt-1.5">
+          <textarea
+            id="story-text"
+            rows={10}
+            required
+            placeholder="Tell your story in your own words, or tap the mic to dictate…"
+            value={form.storyText}
+            onChange={(e) => update("storyText", e.target.value)}
+            className={`${inputClass} pb-14`}
+          />
+          <button
+            type="button"
+            onClick={dictating ? stopDictation : startDictation}
+            disabled={transcribingDictation}
+            aria-label={
+              dictating
+                ? "Stop dictating"
+                : transcribingDictation
+                  ? "Transcribing your dictation"
+                  : "Dictate your story by voice"
+            }
+            title={dictating ? "Stop dictating" : "Dictate by voice"}
+            className={`absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-60 ${
+              dictating ? "animate-pulse bg-maroon text-white" : "bg-forest text-white hover:bg-forest-dark"
+            }`}
+          >
+            {transcribingDictation ? (
+              <span aria-hidden="true" className="text-xs">
+                …
+              </span>
+            ) : (
+              <MicIcon muted={dictating} />
+            )}
+          </button>
+        </div>
         <p className="mt-1.5 text-sm text-ink/60">{wordCountHint(form.storyText)}</p>
 
         {error && <p className="mt-2 text-sm text-maroon">{error}</p>}
@@ -803,9 +882,11 @@ function PublicContentStep({
       </div>
 
       <div>
-        <p className="font-semibold text-ink">Record your story instead (optional)</p>
+        <p className="font-semibold text-ink">Or record it as audio, like a podcast (optional)</p>
         <p className="mt-1 text-sm text-ink/60">
-          Speak it out loud — you can listen back and download it before deciding to use it.
+          This becomes your published story — visitors will hear you tell it, not just read
+          it. You can listen back and download it before deciding to use it. (For quick
+          dictation into the text box instead, use the mic above.)
         </p>
 
         {audioStage === "idle" && (
@@ -888,7 +969,13 @@ function PublicContentStep({
       </div>
 
       <div>
-        <p className="font-semibold text-ink">Or upload a video instead (optional, 3–5 min)</p>
+        <p className="font-semibold text-ink">
+          Or upload a video or audio recording (optional, 3–5 min)
+        </p>
+        <p className="mt-1 text-sm text-ink/60">
+          Already have one recorded elsewhere? Upload it and it becomes your published story,
+          the same as recording it here would.
+        </p>
         <div
           onDragOver={(e) => {
             e.preventDefault();
@@ -899,31 +986,31 @@ function PublicContentStep({
             e.preventDefault();
             setDragOver(false);
             const file = e.dataTransfer.files?.[0];
-            if (file) void handleVideoSelected(file);
+            if (file) void handleFileSelected(file);
           }}
-          onClick={() => videoInputRef.current?.click()}
+          onClick={() => fileInputRef.current?.click()}
           role="button"
           tabIndex={0}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              videoInputRef.current?.click();
+              fileInputRef.current?.click();
             }
           }}
           className={`mt-3 cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
             dragOver ? "border-forest bg-forest/5" : "border-ink/25 bg-white hover:border-forest/40"
           }`}
         >
-          {uploadingVideo ? (
-            <p className="text-ink/70">Uploading {videoFileName}…</p>
-          ) : videoFileName && form.videoPath ? (
+          {uploadingFile ? (
+            <p className="text-ink/70">Uploading {uploadedFileName}…</p>
+          ) : uploadedFileName && (form.videoPath || form.audioPath) ? (
             <div className="flex flex-wrap items-center justify-center gap-3">
-              <span className="font-semibold text-forest">✓ {videoFileName} attached</span>
+              <span className="font-semibold text-forest">✓ {uploadedFileName} attached</span>
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  removeVideo();
+                  removeUploadedFile();
                 }}
                 className="text-sm font-semibold text-maroon underline"
               >
@@ -931,16 +1018,18 @@ function PublicContentStep({
               </button>
             </div>
           ) : (
-            <p className="text-ink/70">📹 Click to upload, or drag and drop a video here</p>
+            <p className="text-ink/70">
+              📎 Click to upload, or drag and drop a video or audio file here
+            </p>
           )}
           <input
-            ref={videoInputRef}
+            ref={fileInputRef}
             type="file"
-            accept="video/mp4,video/webm,video/quicktime"
+            accept="video/mp4,video/webm,video/quicktime,audio/mpeg,audio/mp4,audio/wav,audio/webm,audio/x-m4a"
             className="sr-only"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) void handleVideoSelected(file);
+              if (file) void handleFileSelected(file);
               e.target.value = "";
             }}
           />
@@ -1047,5 +1136,29 @@ function ThankYou() {
         Back to Stories
       </Link>
     </div>
+  );
+}
+
+// Inline dictation control, styled like a chat app's embedded mic (e.g.
+// Claude's message box) rather than the site's usual full-width emoji
+// buttons — it lives inside the text field itself since it's just an
+// alternate way to type, not a deliberate "record my story" action.
+function MicIcon({ muted }: { muted?: boolean }) {
+  if (muted) {
+    return (
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="9" y="4" width="6" height="6" rx="3" />
+        <path d="M6 12a6 6 0 0 0 6.7 6M18 12a6 6 0 0 1-.34 2" />
+        <path d="M12 18v3" />
+      </svg>
+    );
+  }
+  return (
+    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="2" width="6" height="11" rx="3" />
+      <path d="M5 10a7 7 0 0 0 14 0" />
+      <path d="M12 17v4" />
+      <path d="M8 21h8" />
+    </svg>
   );
 }
