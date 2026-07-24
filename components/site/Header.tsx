@@ -53,24 +53,33 @@ export default function Header() {
           ))}
         </ul>
 
-        <Link
-          href="/donate"
-          className="inline-flex items-center gap-2 rounded-md bg-forest px-5 py-2.5 font-semibold text-white hover:bg-forest-dark"
-        >
-          <svg
-            aria-hidden="true"
-            className="h-4 w-4"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        <div className="flex items-center gap-3">
+          <Link
+            href="/share-your-story"
+            className="hidden rounded-md border border-forest/30 px-5 py-2.5 font-semibold text-forest transition-colors hover:border-forest hover:bg-forest/5 sm:inline-flex"
           >
-            <path d="M20.8 8.6a5 5 0 0 0-8.8-3.2A5 5 0 0 0 3.2 8.6c0 4.2 5.6 8 8.8 10.4 3.2-2.4 8.8-6.2 8.8-10.4Z" />
-          </svg>
-          Donate
-        </Link>
+            Share your story
+          </Link>
+
+          <Link
+            href="/donate"
+            className="inline-flex items-center gap-2 rounded-md bg-forest px-5 py-2.5 font-semibold text-white hover:bg-forest-dark"
+          >
+            <svg
+              aria-hidden="true"
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20.8 8.6a5 5 0 0 0-8.8-3.2A5 5 0 0 0 3.2 8.6c0 4.2 5.6 8 8.8 10.4 3.2-2.4 8.8-6.2 8.8-10.4Z" />
+            </svg>
+            Donate
+          </Link>
+        </div>
       </nav>
     </header>
   );

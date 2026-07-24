@@ -31,10 +31,23 @@ export default async function ReviewStoryDetailPage({
     videoUrl = data?.signedUrl ?? null;
   }
 
+  let audioUrl: string | null = null;
+  if (story.audio_path) {
+    const { data } = await service.storage
+      .from("story-videos")
+      .createSignedUrl(story.audio_path, 60 * 30);
+    audioUrl = data?.signedUrl ?? null;
+  }
+
   return (
     <main className="min-h-screen bg-cream px-5 py-12">
       <div className="mx-auto max-w-3xl">
-        <StoryReviewEditor story={story} videoUrl={videoUrl} canPublish={session.profile.can_publish} />
+        <StoryReviewEditor
+          story={story}
+          videoUrl={videoUrl}
+          audioUrl={audioUrl}
+          canPublish={session.profile.can_publish}
+        />
       </div>
     </main>
   );

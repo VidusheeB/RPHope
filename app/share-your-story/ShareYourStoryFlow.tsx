@@ -35,6 +35,7 @@ type FormState = {
   storyText: string;
   storyTextRaw: string;
   videoPath: string;
+  audioPath: string;
 };
 
 const emptyForm: FormState = {
@@ -50,10 +51,40 @@ const emptyForm: FormState = {
   storyText: "",
   storyTextRaw: "",
   videoPath: "",
+  audioPath: "",
 };
 
 const inputClass =
   "w-full rounded-md border border-ink/25 bg-white px-4 py-3 text-ink placeholder:text-ink/50 focus:border-forest focus:outline-none focus:ring-2 focus:ring-gold";
+
+// What's missing before Continue unlocks, spelled out rather than just
+// silently disabling the button — the previous version left people stuck
+// with no explanation (e.g. a hard, unstated 20-character story minimum).
+function missingStep1(form: FormState): string[] {
+  const missing: string[] = [];
+  if (!form.fullName.trim()) missing.push("your name");
+  if (!/\S+@\S+\.\S+/.test(form.email)) missing.push("a valid email");
+  if (!form.contactMethod) missing.push("a contact preference");
+  if (form.contactMethod === "phone" && !form.phone.trim()) missing.push("a phone number");
+  if (!form.consentToPublish) missing.push("consent to publish");
+  if (!form.editPermission) missing.push("an edit-permission choice");
+  return missing;
+}
+
+function missingStep2(form: FormState): string[] {
+  const missing: string[] = [];
+  if (!form.displayName.trim()) missing.push("a display name");
+  if (!form.displayContact) missing.push("whether to show contact info");
+  if (form.displayContact === "phone" && !form.phone.trim()) missing.push("a phone number");
+  if (!form.storyText.trim()) missing.push("your story");
+  return missing;
+}
+
+function englishList(items: string[]): string {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
 
 export default function ShareYourStoryFlow() {
   const [step, setStep] = useState(0);
@@ -92,19 +123,10 @@ export default function ShareYourStoryFlow() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  const canContinueStep1 =
-    form.fullName.trim().length > 0 &&
-    /\S+@\S+\.\S+/.test(form.email) &&
-    form.contactMethod !== "" &&
-    (form.contactMethod !== "phone" || form.phone.trim().length > 0) &&
-    form.consentToPublish &&
-    form.editPermission !== "";
-
-  const canContinueStep2 =
-    form.displayName.trim().length > 0 &&
-    form.displayContact !== "" &&
-    (form.displayContact !== "phone" || form.phone.trim().length > 0) &&
-    form.storyText.trim().length >= 20;
+  const step1Missing = missingStep1(form);
+  const step2Missing = missingStep2(form);
+  const canContinueStep1 = step1Missing.length === 0;
+  const canContinueStep2 = step2Missing.length === 0;
 
   async function handleSubmit() {
     setSubmitting(true);
@@ -126,6 +148,7 @@ export default function ShareYourStoryFlow() {
           storyText: form.storyText,
           storyTextRaw: form.storyTextRaw || undefined,
           videoPath: form.videoPath || undefined,
+          audioPath: form.audioPath || undefined,
         }),
       });
       if (!res.ok) {
@@ -177,7 +200,18 @@ export default function ShareYourStoryFlow() {
         <ReviewStep form={form} error={submitError} submitting={submitting} />
       )}
 
-      <div className="mt-8 flex items-center justify-between">
+      {step === 1 && !canContinueStep1 && (
+        <p className="mt-4 text-right text-sm text-ink/55">
+          Add {englishList(step1Missing)} to continue.
+        </p>
+      )}
+      {step === 2 && !canContinueStep2 && (
+        <p className="mt-4 text-right text-sm text-ink/55">
+          Add {englishList(step2Missing)} to continue.
+        </p>
+      )}
+
+      <div className="mt-4 flex items-center justify-between">
         <button
           type="button"
           onClick={() => setStep((s) => Math.max(0, s - 1))}
@@ -250,6 +284,8 @@ function IntroStep() {
             name={example.name}
             excerpt={example.blurb}
             tag={example.tag}
+            externalHref={example.href}
+            source={example.source}
           />
         </div>
       </div>
@@ -395,6 +431,8 @@ function PrivateInfoStep({
 
 // ---- Step 2: Public content + story input ----------------------------------
 
+type AudioStage = "idle" | "recording" | "reviewing" | "processing" | "attached";
+
 function PublicContentStep({
   form,
   update,
@@ -402,9 +440,13 @@ function PublicContentStep({
   form: FormState;
   update: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
 }) {
-  const [recording, setRecording] = useState(false);
+  const [audioStage, setAudioStage] = useState<AudioStage>("idle");
+  const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [transcribing, setTranscribing] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoFileName, setVideoFileName] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const [synthesizing, setSynthesizing] = useState(false);
   const [listening, setListening] = useState(false);
   const [ttsAvailable, setTtsAvailable] = useState(false);
@@ -412,6 +454,7 @@ function PublicContentStep({
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -421,7 +464,9 @@ function PublicContentStep({
     return () => {
       cancelled = true;
       cancelSpeech();
+      if (recordedUrl) URL.revokeObjectURL(recordedUrl);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function appendStoryText(text: string) {
@@ -441,26 +486,16 @@ function PublicContentStep({
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
-      recorder.onstop = async () => {
+      recorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
-        setTranscribing(true);
-        try {
-          const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-          const body = new FormData();
-          body.append("audio", blob, "story.webm");
-          const res = await fetch("/api/transcribe", { method: "POST", body });
-          if (!res.ok) throw new Error("Transcription failed.");
-          const data = await res.json();
-          appendStoryText(data.text || "");
-        } catch {
-          setError("Couldn't transcribe that recording. You can still type your story.");
-        } finally {
-          setTranscribing(false);
-        }
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        setRecordedBlob(blob);
+        setRecordedUrl(URL.createObjectURL(blob));
+        setAudioStage("reviewing");
       };
       mediaRecorderRef.current = recorder;
       recorder.start();
-      setRecording(true);
+      setAudioStage("recording");
     } catch {
       setError("Couldn't access your microphone. Check your browser permissions, or just type your story.");
     }
@@ -468,12 +503,60 @@ function PublicContentStep({
 
   function stopRecording() {
     mediaRecorderRef.current?.stop();
-    setRecording(false);
+  }
+
+  function discardRecording() {
+    if (recordedUrl) URL.revokeObjectURL(recordedUrl);
+    setRecordedUrl(null);
+    setRecordedBlob(null);
+    setAudioStage("idle");
+  }
+
+  async function useRecording() {
+    if (!recordedBlob) return;
+    setError(null);
+    setAudioStage("processing");
+    try {
+      const prep = await fetch("/api/stories/upload-audio", { method: "POST" });
+      if (!prep.ok) throw new Error("Couldn't prepare the upload.");
+      const { path, token } = await prep.json();
+
+      const supabase = getBrowserSupabase();
+      const { error: uploadErr } = await supabase.storage
+        .from("story-videos")
+        .uploadToSignedUrl(path, token, recordedBlob);
+      if (uploadErr) throw uploadErr;
+      update("audioPath", path);
+
+      setTranscribing(true);
+      const body = new FormData();
+      body.append("audio", recordedBlob, "story.webm");
+      const res = await fetch("/api/transcribe", { method: "POST", body });
+      if (res.ok) {
+        const data = await res.json();
+        appendStoryText(data.text || "");
+      }
+      setAudioStage("attached");
+    } catch {
+      setError("Couldn't save that recording. You can try again, or just type your story.");
+      setAudioStage("reviewing");
+    } finally {
+      setTranscribing(false);
+    }
+  }
+
+  function removeAttachedRecording() {
+    if (recordedUrl) URL.revokeObjectURL(recordedUrl);
+    setRecordedUrl(null);
+    setRecordedBlob(null);
+    update("audioPath", "");
+    setAudioStage("idle");
   }
 
   async function handleVideoSelected(file: File) {
     setError(null);
     setUploadingVideo(true);
+    setVideoFileName(file.name);
     try {
       const prep = await fetch("/api/stories/upload-video", { method: "POST" });
       if (!prep.ok) throw new Error("Couldn't prepare the upload.");
@@ -502,9 +585,15 @@ function PublicContentStep({
       }
     } catch {
       setError("Couldn't upload that video. You can still type or dictate your story.");
+      setVideoFileName(null);
     } finally {
       setUploadingVideo(false);
     }
+  }
+
+  function removeVideo() {
+    update("videoPath", "");
+    setVideoFileName(null);
   }
 
   async function handleSynthesize() {
@@ -625,30 +714,6 @@ function PublicContentStep({
         <div className="mt-3 flex flex-wrap gap-3">
           <button
             type="button"
-            onClick={recording ? stopRecording : startRecording}
-            disabled={transcribing}
-            className="rounded-md border border-ink/25 bg-white px-4 py-2.5 font-semibold text-ink hover:border-forest/40 disabled:opacity-50"
-          >
-            {recording ? "⏹ Stop recording" : transcribing ? "Transcribing…" : "🎤 Record my story"}
-          </button>
-
-          <label className="inline-flex cursor-pointer items-center rounded-md border border-ink/25 bg-white px-4 py-2.5 font-semibold text-ink hover:border-forest/40">
-            {uploadingVideo ? "Uploading…" : "📹 Upload a video (3–5 min)"}
-            <input
-              type="file"
-              accept="video/mp4,video/webm,video/quicktime"
-              className="sr-only"
-              disabled={uploadingVideo}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void handleVideoSelected(file);
-                e.target.value = "";
-              }}
-            />
-          </label>
-
-          <button
-            type="button"
             onClick={handleSynthesize}
             disabled={synthesizing || !form.storyText.trim()}
             className="rounded-md border border-ink/25 bg-white px-4 py-2.5 font-semibold text-ink hover:border-forest/40 disabled:opacity-50"
@@ -667,11 +732,157 @@ function PublicContentStep({
             </button>
           )}
         </div>
-        <p className="mt-2 text-sm text-ink/55">
-          Recording or uploading fills in the text above — it&rsquo;s always
-          editable afterward.
-        </p>
       </div>
+
+      <div>
+        <p className="font-semibold text-ink">Record your story instead (optional)</p>
+        <p className="mt-1 text-sm text-ink/60">
+          Speak it out loud — you can listen back and download it before deciding to use it.
+        </p>
+
+        {audioStage === "idle" && (
+          <button
+            type="button"
+            onClick={startRecording}
+            className="mt-3 rounded-md border border-ink/25 bg-white px-4 py-2.5 font-semibold text-ink hover:border-forest/40"
+          >
+            🎤 Start recording
+          </button>
+        )}
+
+        {audioStage === "recording" && (
+          <button
+            type="button"
+            onClick={stopRecording}
+            className="mt-3 rounded-md border border-maroon/40 bg-white px-4 py-2.5 font-semibold text-maroon hover:bg-maroon/5"
+          >
+            ⏹ Stop recording
+          </button>
+        )}
+
+        {(audioStage === "reviewing" || audioStage === "processing") && recordedUrl && (
+          <div className="mt-3 space-y-3 rounded-lg border border-ink/15 bg-white p-4">
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+            <audio controls src={recordedUrl} className="w-full" />
+            <div className="flex flex-wrap items-center gap-4">
+              <a
+                href={recordedUrl}
+                download="my-story-recording.webm"
+                className="text-sm font-semibold text-forest underline"
+              >
+                Download recording
+              </a>
+              <button
+                type="button"
+                onClick={useRecording}
+                disabled={audioStage === "processing"}
+                className="rounded-md bg-forest px-4 py-2 text-sm font-bold text-white enabled:hover:bg-forest-dark disabled:opacity-50"
+              >
+                {audioStage === "processing"
+                  ? transcribing
+                    ? "Transcribing…"
+                    : "Saving…"
+                  : "Use this recording"}
+              </button>
+              <button
+                type="button"
+                onClick={discardRecording}
+                disabled={audioStage === "processing"}
+                className="rounded-md border border-ink/25 px-4 py-2 text-sm font-semibold text-ink hover:border-forest/40 disabled:opacity-50"
+              >
+                Discard &amp; re-record
+              </button>
+            </div>
+          </div>
+        )}
+
+        {audioStage === "attached" && recordedUrl && (
+          <div className="mt-3 flex flex-wrap items-center gap-4 rounded-lg border border-forest/30 bg-forest/5 p-4">
+            <span className="font-semibold text-forest">✓ Recording attached</span>
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+            <audio controls src={recordedUrl} className="max-w-xs" />
+            <a
+              href={recordedUrl}
+              download="my-story-recording.webm"
+              className="text-sm font-semibold text-forest underline"
+            >
+              Download
+            </a>
+            <button
+              type="button"
+              onClick={removeAttachedRecording}
+              className="text-sm font-semibold text-maroon underline"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <p className="font-semibold text-ink">Or upload a video instead (optional, 3–5 min)</p>
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            const file = e.dataTransfer.files?.[0];
+            if (file) void handleVideoSelected(file);
+          }}
+          onClick={() => videoInputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              videoInputRef.current?.click();
+            }
+          }}
+          className={`mt-3 cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-gold ${
+            dragOver ? "border-forest bg-forest/5" : "border-ink/25 bg-white hover:border-forest/40"
+          }`}
+        >
+          {uploadingVideo ? (
+            <p className="text-ink/70">Uploading {videoFileName}…</p>
+          ) : videoFileName && form.videoPath ? (
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <span className="font-semibold text-forest">✓ {videoFileName} attached</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeVideo();
+                }}
+                className="text-sm font-semibold text-maroon underline"
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <p className="text-ink/70">📹 Click to upload, or drag and drop a video here</p>
+          )}
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept="video/mp4,video/webm,video/quicktime"
+            className="sr-only"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleVideoSelected(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
+      </div>
+
+      <p className="text-sm text-ink/55">
+        Recording or uploading fills in the story text above automatically —
+        it&rsquo;s always editable afterward.
+      </p>
     </div>
   );
 }

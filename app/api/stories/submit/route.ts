@@ -49,6 +49,7 @@ export async function POST(req: Request) {
       story_text: v.storyText,
       story_text_raw: v.storyTextRaw || null,
       video_path: v.videoPath || null,
+      audio_path: v.audioPath || null,
       status: "pending_review",
     })
     .select("id")

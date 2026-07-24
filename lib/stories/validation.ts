@@ -24,6 +24,7 @@ export const storySubmissionSchema = z
     storyText: z.string().trim().min(1, "Your story can't be empty."),
     storyTextRaw: z.string().optional(),
     videoPath: z.string().optional(),
+    audioPath: z.string().optional(),
   })
   .superRefine((val, ctx) => {
     if (val.contactMethod === "phone" && !val.phone?.trim()) {

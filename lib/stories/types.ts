@@ -23,6 +23,7 @@ export type StorySubmissionInput = {
   storyText: string;
   storyTextRaw?: string;
   videoPath?: string;
+  audioPath?: string;
 };
 
 /** A published story as read back for the public /stories pages — private

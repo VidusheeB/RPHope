@@ -17,6 +17,7 @@ type StoryRow = {
   story_text: string;
   story_text_raw: string | null;
   video_path: string | null;
+  audio_path: string | null;
   status: "pending_review" | "published" | "rejected";
   approval_token: string | null;
   final_story_sent_at: string | null;
@@ -27,10 +28,12 @@ type StoryRow = {
 export default function StoryReviewEditor({
   story,
   videoUrl,
+  audioUrl,
   canPublish,
 }: {
   story: StoryRow;
   videoUrl: string | null;
+  audioUrl: string | null;
   canPublish: boolean;
 }) {
   const [text, setText] = useState(story.story_text);
@@ -103,6 +106,14 @@ export default function StoryReviewEditor({
         <section>
           <h2 className="font-display text-lg font-bold text-ink">Submitted video</h2>
           <video controls src={videoUrl} className="mt-3 w-full rounded-lg border border-ink/10" />
+        </section>
+      )}
+
+      {audioUrl && (
+        <section>
+          <h2 className="font-display text-lg font-bold text-ink">Submitted recording</h2>
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <audio controls src={audioUrl} className="mt-3 w-full" />
         </section>
       )}
 
