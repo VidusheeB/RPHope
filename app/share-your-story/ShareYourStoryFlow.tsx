@@ -14,10 +14,12 @@ import StoryCard, { excerptOf } from "@/components/site/StoryCard";
 import { wordCountHint } from "@/lib/stories/validation";
 import { speak, cancelSpeech, isTTSAvailable } from "@/lib/speech";
 import { getBrowserSupabase } from "@/lib/supabaseBrowser";
+import { setStoryFormBridge } from "@/lib/voice/storyFormBridge";
 import type {
   ContactMethod,
   DisplayContact,
   EditPermission,
+  StorySubmissionInput,
 } from "@/lib/stories/types";
 
 const STORAGE_KEY = "rphope_share_story";
@@ -128,28 +130,20 @@ export default function ShareYourStoryFlow() {
   const canContinueStep1 = step1Missing.length === 0;
   const canContinueStep2 = step2Missing.length === 0;
 
-  async function handleSubmit() {
+  // The actual submission call, decoupled from `form` state — takes an
+  // explicit payload so it behaves identically whether it's called from the
+  // manual Submit button (payload built from current `form`) or from the
+  // voice assistant's visible replay below (payload built from what the
+  // assistant already confirmed by voice, independent of whatever the
+  // on-screen fields happen to show at that exact instant).
+  async function submitPayload(payload: StorySubmissionInput): Promise<{ ok: boolean; error?: string }> {
     setSubmitting(true);
     setSubmitError(null);
     try {
       const res = await fetch("/api/stories/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullName: form.fullName,
-          email: form.email,
-          phone: form.phone || undefined,
-          contactMethod: form.contactMethod,
-          consentToPublish: form.consentToPublish,
-          editPermission: form.editPermission,
-          displayName: form.displayName,
-          displayContact: form.displayContact,
-          geneSlug: form.geneSlug || undefined,
-          storyText: form.storyText,
-          storyTextRaw: form.storyTextRaw || undefined,
-          videoPath: form.videoPath || undefined,
-          audioPath: form.audioPath || undefined,
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
@@ -161,12 +155,86 @@ export default function ShareYourStoryFlow() {
       } catch {
         /* ignore */
       }
+      return { ok: true };
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      setSubmitError(message);
+      return { ok: false, error: message };
     } finally {
       setSubmitting(false);
     }
   }
+
+  async function handleSubmit() {
+    await submitPayload({
+      fullName: form.fullName,
+      email: form.email,
+      phone: form.phone || undefined,
+      contactMethod: form.contactMethod as ContactMethod,
+      consentToPublish: form.consentToPublish,
+      editPermission: form.editPermission as EditPermission,
+      displayName: form.displayName,
+      displayContact: form.displayContact as DisplayContact,
+      geneSlug: form.geneSlug || undefined,
+      storyText: form.storyText,
+      storyTextRaw: form.storyTextRaw || undefined,
+      videoPath: form.videoPath || undefined,
+      audioPath: form.audioPath || undefined,
+    });
+  }
+
+  // Registered once (below) for the voice assistant's submit_story tool.
+  // Visibly fills the REAL form — field by field, paced so it's actually
+  // perceptible on screen — advances through its steps, and submits
+  // through the same submitPayload() the manual button uses, so the user
+  // ends up on the real Thank You screen, not just a spoken confirmation.
+  async function fillAndSubmit(data: StorySubmissionInput): Promise<{ ok: boolean; error?: string }> {
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    setStep(1);
+    await wait(700);
+    update("fullName", data.fullName);
+    await wait(350);
+    update("email", data.email);
+    await wait(350);
+    if (data.phone) {
+      update("phone", data.phone);
+      await wait(300);
+    }
+    update("contactMethod", data.contactMethod);
+    await wait(300);
+    update("consentToPublish", data.consentToPublish);
+    await wait(300);
+    update("editPermission", data.editPermission);
+    await wait(700);
+
+    setStep(2);
+    await wait(700);
+    update("displayName", data.displayName);
+    await wait(350);
+    update("displayContact", data.displayContact);
+    await wait(350);
+    if (data.geneSlug) {
+      update("geneSlug", data.geneSlug);
+      await wait(300);
+    }
+    update("storyText", data.storyText);
+    await wait(700);
+
+    setStep(3);
+    await wait(1200);
+
+    return submitPayload(data);
+  }
+
+  // The bridge's behavior never actually depends on which render created
+  // it (every function above closes only over stable setState references,
+  // not over `form` itself), so registering it once on mount is safe.
+  useEffect(() => {
+    setStoryFormBridge({ fillAndSubmit });
+    return () => setStoryFormBridge(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (submitted) return <ThankYou />;
 

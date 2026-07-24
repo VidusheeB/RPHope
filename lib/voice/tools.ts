@@ -18,6 +18,7 @@ import {
   type AccessibilityPreferences,
 } from "./accessibilityPreferences";
 import { getVoiceBridge } from "./bridge";
+import { getStoryFormBridge } from "./storyFormBridge";
 
 const search_rp_hope = tool({
   name: "search_rp_hope",
@@ -239,7 +240,7 @@ const ask_rp_expert = tool({
 const submit_story = tool({
   name: "submit_story",
   description:
-    "Submit a story to RP Hope's Share Your Story feature. Only call this AFTER reading the name and email back to the user letter-by-letter (and phone digit-by-digit, if given) and getting explicit confirmation, then doing one final full read-back of everything and getting an explicit yes to submit. Never call this without that confirmation.",
+    "Submit a story to RP Hope's Share Your Story feature. Only call this AFTER reading the name and email back to the user letter-by-letter (and phone digit-by-digit, if given) and getting explicit confirmation, then doing one final full read-back of everything and getting an explicit yes to submit. Never call this without that confirmation. If the user is on the Share Your Story page, this visibly fills in and submits the real on-screen form (several seconds of visible activity) so they end up on the actual confirmation screen — say a brief line like 'let me fill that in and submit it now' right before calling this, since there will be a short pause while it runs.",
   parameters: z.object({
     fullName: z.string().describe("The submitter's full name, confirmed by spelling."),
     email: z.string().describe("The submitter's email, confirmed by spelling."),
@@ -257,22 +258,49 @@ const submit_story = tool({
     storyText: z.string().describe("The story itself, in the user's own words as captured from the conversation."),
   }),
   execute: async (input) => {
+    const payload = {
+      fullName: input.fullName,
+      email: input.email,
+      phone: input.phone ?? undefined,
+      contactMethod: input.contactMethod,
+      consentToPublish: input.consentToPublish,
+      editPermission: input.editPermission,
+      displayName: input.displayName,
+      displayContact: input.displayContact,
+      geneSlug: input.geneSlug ?? undefined,
+      storyText: input.storyText,
+    };
+
+    // Prefer the visible, on-page replay (real form, real Thank You screen)
+    // when the Share Your Story page is actually mounted.
+    const formBridge = getStoryFormBridge();
+    if (formBridge) {
+      try {
+        const result = await formBridge.fillAndSubmit(payload);
+        if (result.ok) {
+          return JSON.stringify({
+            submitted: true,
+            message:
+              "Story submitted through the visible on-screen form. The user is now looking at the real confirmation screen.",
+          });
+        }
+        return JSON.stringify({
+          submitted: false,
+          error: result.error || "The on-screen submission failed.",
+        });
+      } catch {
+        /* fall through to a direct submit below */
+      }
+    }
+
+    // Fallback: the page isn't mounted (e.g. the user navigated away
+    // mid-conversation). Submit directly so the story isn't lost — the
+    // user just won't see the visible form or the real Thank You screen.
     try {
       const res = await fetch("/api/stories/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullName: input.fullName,
-          email: input.email,
-          phone: input.phone ?? undefined,
-          contactMethod: input.contactMethod,
-          consentToPublish: input.consentToPublish,
-          editPermission: input.editPermission,
-          displayName: input.displayName,
-          displayContact: input.displayContact,
-          geneSlug: input.geneSlug ?? undefined,
-          storyText: input.storyText,
-        }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
@@ -283,7 +311,8 @@ const submit_story = tool({
       }
       return JSON.stringify({
         submitted: true,
-        message: "Story submitted. RP Hope will follow up within about 10 business days.",
+        message:
+          "Story submitted directly (the on-screen form wasn't open, so there's no visible confirmation screen to show). RP Hope will follow up within about 10 business days.",
       });
     } catch {
       return JSON.stringify({
