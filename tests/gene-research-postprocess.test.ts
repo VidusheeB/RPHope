@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { enforceLimits } from "@/lib/geneResearch/postprocess";
-import type { GenePageDraft } from "@/lib/geneResearch/types";
+import type { GenePageDraft, SentencedText } from "@/lib/geneResearch/types";
 
 function baseDraft(overrides: Partial<GenePageDraft> = {}): GenePageDraft {
-  const sourced = { text: "x", sourceIds: [] };
+  const sourced: SentencedText = { sentences: [{ text: "x", sourceIds: [] }] };
   return {
     gene: "TESTGENE",
     summaryCard: sourced,

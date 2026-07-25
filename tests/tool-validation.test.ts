@@ -35,6 +35,7 @@ describe("tool input validation", () => {
         "scroll_to_section",
         "search_rp_hope",
         "set_accessibility_preferences",
+        "submit_story",
       ].sort()
     );
   });

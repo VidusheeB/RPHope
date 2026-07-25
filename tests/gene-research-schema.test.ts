@@ -31,7 +31,7 @@ describe("GENE_PAGE_SCHEMA", () => {
     expect(GENE_PAGE_SCHEMA.additionalProperties).toBe(false);
   });
 
-  it("every SourcedText-shaped field requires text and sourceIds", () => {
+  it("every SentencedText-shaped field requires a sentences array of {text, sourceIds}", () => {
     for (const key of [
       "summaryCard",
       "whatThisGeneMeans",
@@ -44,7 +44,9 @@ describe("GENE_PAGE_SCHEMA", () => {
       "clinicalTrialSummary",
     ] as const) {
       const field = GENE_PAGE_SCHEMA.properties[key];
-      expect(field.required).toEqual(["text", "sourceIds"]);
+      expect(field.required).toEqual(["sentences"]);
+      const sentenceItem = field.properties.sentences.items;
+      expect(sentenceItem.required).toEqual(["text", "sourceIds"]);
     }
   });
 });

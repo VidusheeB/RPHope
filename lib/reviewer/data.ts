@@ -9,6 +9,7 @@ import { requiredSectionsComplete, unresolvedFlagCount, type FlagResolutionStatu
 import { deriveDashboardStatus, type DashboardStatus, type DraftReviewStatus } from "./dashboardStatus";
 import { normalizeSentencedText } from "../geneResearch/types";
 import type { GenePageDraft } from "../geneResearch/types";
+import type { SentenceReviewRow } from "./sentenceVerification";
 
 export type FlagResolutionRow = {
   flag_index: number;
@@ -163,6 +164,31 @@ export function draftRowToContent(d: Record<string, any>): GenePageDraft {
     reviewStatus: "unreviewed",
     generatedAt: d.generated_at ?? new Date().toISOString(),
   };
+}
+
+/** All sentence-review rows for a draft (RLS-scoped: only if assigned or
+ *  admin). Missing rows just mean "unreviewed, never touched" — the
+ *  workspace fills gaps from the draft content itself, this only returns
+ *  what's actually been saved. */
+export async function getSentenceReviews(draftId: string): Promise<SentenceReviewRow[]> {
+  const supabase = getServerSupabase();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("draft_sentence_reviews")
+    .select("*")
+    .eq("draft_id", draftId);
+  return (data ?? []).map((r) => ({
+    sectionKey: r.section_key,
+    sentenceIndex: r.sentence_index,
+    originalText: r.original_text,
+    finalText: r.final_text,
+    originalSourceIds: r.original_source_ids ?? [],
+    finalSourceIds: r.final_source_ids ?? [],
+    status: r.status,
+    reviewerNote: r.reviewer_note,
+    reviewedBy: r.reviewed_by,
+    reviewedAt: r.reviewed_at,
+  }));
 }
 
 // ---- Admin reads (service-role, behind an admin check by the caller) -------

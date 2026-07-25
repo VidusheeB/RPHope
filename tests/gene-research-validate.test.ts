@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { validateDraft } from "@/lib/geneResearch/validate";
-import type { GeneSourceBundle, GenePageDraft } from "@/lib/geneResearch/types";
+import type { GeneSourceBundle, GenePageDraft, SentencedText } from "@/lib/geneResearch/types";
 
 function bundle(overrides: Partial<GeneSourceBundle> = {}): GeneSourceBundle {
   return {
@@ -35,8 +35,8 @@ function bundle(overrides: Partial<GeneSourceBundle> = {}): GeneSourceBundle {
   };
 }
 
-function sourced(sourceIds: string[] = []) {
-  return { text: "some text", sourceIds };
+function sourced(sourceIds: string[] = []): SentencedText {
+  return { sentences: [{ text: "some text", sourceIds }] };
 }
 
 function draft(overrides: Partial<GenePageDraft> = {}): GenePageDraft {

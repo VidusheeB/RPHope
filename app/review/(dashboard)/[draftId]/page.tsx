@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getReviewerSession } from "@/lib/reviewer/session";
-import { getDraftForReview } from "@/lib/reviewer/data";
+import { getDraftForReview, getSentenceReviews } from "@/lib/reviewer/data";
 import ReviewEditor from "@/components/review/ReviewEditor";
 
 export const metadata: Metadata = { title: "Review draft | RP Hope", robots: { index: false } };
@@ -16,6 +16,7 @@ export default async function ReviewDraftPage({ params }: { params: { draftId: s
   // admin-specific bypass needed here, the database already handles it.
   const draft = await getDraftForReview(params.draftId);
   if (!draft) notFound();
+  const sentenceReviews = await getSentenceReviews(params.draftId);
 
   return (
     <div>
@@ -45,6 +46,7 @@ export default async function ReviewDraftPage({ params }: { params: { draftId: s
           initialContent={draft.content}
           reviewFlags={draft.reviewFlags}
           initialResolutions={draft.resolutions}
+          initialSentenceReviews={sentenceReviews}
           reviewerCanPublish={session.profile.can_publish}
           isAdmin={session.profile.role === "admin"}
           reviewStatus={draft.reviewStatus}

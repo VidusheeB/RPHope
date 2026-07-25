@@ -101,33 +101,38 @@ describe("public content query filters status = 'published' at the DB layer", ()
 
 describe("deriveDashboardStatus", () => {
   const base = {
-    assignmentStatus: "assigned" as const,
+    hasAssignment: true,
+    reviewStatus: "unreviewed" as const,
     hasPublishedVersion: false,
-    flagCount: 3,
-    unresolvedFlags: 3,
-    sectionsComplete: false,
+    hasBlockingTicket: false,
     hasEdits: false,
-    reopened: false,
   };
 
-  it("Not started for a fresh assignment", () => {
-    expect(deriveDashboardStatus(base)).toBe("Not started");
+  it("Unassigned when no assignment exists", () => {
+    expect(deriveDashboardStatus({ ...base, hasAssignment: false })).toBe("Unassigned");
   });
-  it("Draft in progress once editing begins", () => {
-    expect(deriveDashboardStatus({ ...base, unresolvedFlags: 1 })).toBe("Draft in progress");
+  it("Assigned for a fresh, untouched assignment", () => {
+    expect(deriveDashboardStatus(base)).toBe("Assigned");
   });
-  it("Ready to publish when flags resolved + sections complete", () => {
-    expect(
-      deriveDashboardStatus({ ...base, unresolvedFlags: 0, sectionsComplete: true })
-    ).toBe("Ready to publish");
+  it("In review once editing begins", () => {
+    expect(deriveDashboardStatus({ ...base, hasEdits: true })).toBe("In review");
   });
-  it("Published when a version exists or the assignment is completed", () => {
-    expect(deriveDashboardStatus({ ...base, assignmentStatus: "completed" })).toBe("Published");
+  it("Submitted for approval once the reviewer submits", () => {
+    expect(deriveDashboardStatus({ ...base, reviewStatus: "submitted_for_approval" })).toBe(
+      "Submitted for approval"
+    );
+  });
+  it("Published once a version exists (and review_status isn't changes_requested)", () => {
     expect(deriveDashboardStatus({ ...base, hasPublishedVersion: true })).toBe("Published");
   });
-  it("Changes requested when re-opened after publication", () => {
+  it("Changes requested overrides a published version (re-opened for changes)", () => {
     expect(
-      deriveDashboardStatus({ ...base, hasPublishedVersion: true, reopened: true })
+      deriveDashboardStatus({ ...base, hasPublishedVersion: true, reviewStatus: "changes_requested" })
     ).toBe("Changes requested");
+  });
+  it("Blocked overrides everything else when a blocking ticket is open", () => {
+    expect(
+      deriveDashboardStatus({ ...base, reviewStatus: "submitted_for_approval", hasBlockingTicket: true })
+    ).toBe("Blocked");
   });
 });

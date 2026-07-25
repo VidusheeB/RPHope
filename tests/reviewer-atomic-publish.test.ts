@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { GenePageDraft } from "@/lib/geneResearch/types";
+import type { GenePageDraft, SentencedText } from "@/lib/geneResearch/types";
 
 // ---- Mock the session, service client, and next/cache -----------------------
 const revalidateSpy = vi.fn();
@@ -15,8 +15,8 @@ vi.mock("@/lib/supabaseAdmin", () => ({ getServiceSupabase: () => serviceMock() 
 
 import { publishAction } from "@/app/review/actions";
 
-function sourced(text = "Real content.", sourceIds = ["pubmed:1"]) {
-  return { text, sourceIds };
+function sourced(text = "Real content.", sourceIds = ["pubmed:1"]): SentencedText {
+  return { sentences: [{ text, sourceIds }] };
 }
 function completeDraft(): GenePageDraft {
   return {
@@ -42,10 +42,13 @@ function completeDraft(): GenePageDraft {
   };
 }
 
-// Minimal chainable Supabase-like service double.
+// Minimal chainable Supabase-like service double. Publishing is admin-only
+// now, so the mocked draft row carries review_status: 'submitted_for_approval'
+// (the normal, non-override path) and the session is an admin.
 function makeService(opts: {
   rpc: { data: unknown; error: unknown };
   saveError?: unknown;
+  reviewStatus?: string;
 }) {
   const builder = (table: string) => {
     const b: Record<string, unknown> = {};
@@ -57,8 +60,18 @@ function makeService(opts: {
         return b;
       },
       eq: () => b,
+      order: () => b,
+      limit: () => b,
       maybeSingle: () => {
-        if (table === "gene_page_drafts") return Promise.resolve({ data: { id: "d1", gene_slug: "lca5", review_flags: [] } });
+        if (table === "gene_page_drafts")
+          return Promise.resolve({
+            data: {
+              id: "d1",
+              gene_slug: "lca5",
+              review_flags: [],
+              review_status: opts.reviewStatus ?? "submitted_for_approval",
+            },
+          });
         if (table === "draft_assignments") return Promise.resolve({ data: { id: "a1", status: "assigned" } });
         return Promise.resolve({ data: null });
       },
@@ -80,10 +93,12 @@ beforeEach(() => {
   revalidateSpy.mockReset();
   sessionMock.mockReset();
   serviceMock.mockReset();
+  // publishAction is admin-only — see reviewer-security.test.ts for the
+  // "a reviewer can never publish" coverage.
   sessionMock.mockResolvedValue({
     userId: "u1",
-    email: "r@x.org",
-    profile: { user_id: "u1", display_name: "R", role: "reviewer", can_publish: true, active: true },
+    email: "a@x.org",
+    profile: { user_id: "u1", display_name: "A", role: "admin", can_publish: true, active: true },
   });
 });
 
@@ -115,7 +130,29 @@ describe("publishAction — atomic publish via RPC", () => {
     const rpc = { single: vi.fn() };
     serviceMock.mockReturnValue({
       from: () => ({
-        select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { id: "d1", gene_slug: "lca5", review_flags: [] } }) }), maybeSingle: () => Promise.resolve({ data: { id: "d1", gene_slug: "lca5", review_flags: [] } }), then: (r: (v: unknown) => unknown) => r({ data: [] }) }) }),
+        select: () => ({
+          eq: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { id: "d1", gene_slug: "lca5", review_flags: [], review_status: "submitted_for_approval" },
+                }),
+            }),
+            order: () => ({
+              limit: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({
+                    data: { id: "d1", gene_slug: "lca5", review_flags: [], review_status: "submitted_for_approval" },
+                  }),
+              }),
+            }),
+            maybeSingle: () =>
+              Promise.resolve({
+                data: { id: "d1", gene_slug: "lca5", review_flags: [], review_status: "submitted_for_approval" },
+              }),
+            then: (r: (v: unknown) => unknown) => r({ data: [] }),
+          }),
+        }),
       }),
       rpc: () => rpc,
     });
@@ -124,6 +161,20 @@ describe("publishAction — atomic publish via RPC", () => {
     expect(res.ok).toBe(false);
     expect(rpc.single).not.toHaveBeenCalled();
     expect(revalidateSpy).not.toHaveBeenCalled();
+  });
+
+  it("blocks a non-admin before any DB read (reviewers can never publish)", async () => {
+    sessionMock.mockResolvedValue({
+      userId: "u2",
+      email: "r@x.org",
+      profile: { user_id: "u2", display_name: "R", role: "reviewer", can_publish: true, active: true },
+    });
+    const service = vi.fn();
+    serviceMock.mockReturnValue(service);
+    const res = await publishAction({ draftId: "d1", content: completeDraft(), confirmationChecked: true });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/admin/i);
+    expect(serviceMock).not.toHaveBeenCalled();
   });
 });
 
@@ -160,5 +211,20 @@ describe("atomic publish — SQL guarantees (static)", () => {
   it("grants EXECUTE on the publish RPC only to service_role (no reviewer path)", () => {
     expect(sql).toMatch(/revoke execute on function public\.publish_gene_version[\s\S]*from public/);
     expect(sql).toMatch(/grant execute on function public\.publish_gene_version[\s\S]*to service_role/);
+  });
+});
+
+describe("admin access — SQL guarantees for the bug that was fixed (static)", () => {
+  const sql = readFileSync(
+    join(process.cwd(), "supabase/migrations/0003_reviewer_portal.sql"),
+    "utf8"
+  );
+
+  it("gene_page_drafts SELECT policy already allows admins regardless of assignment", () => {
+    expect(sql).toMatch(/gpd_select_assigned[\s\S]*auth_is_assigned\(id\) or auth_is_admin\(\)/);
+  });
+
+  it("gene_page_drafts UPDATE policy already allows admins regardless of assignment", () => {
+    expect(sql).toMatch(/gpd_update_active_assignee[\s\S]*auth_is_active_assignee\(id\) or auth_is_admin\(\)/);
   });
 });

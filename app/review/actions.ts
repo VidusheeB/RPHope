@@ -19,6 +19,7 @@ import {
   type FlagResolutionStatus,
 } from "@/lib/reviewer/publishGate";
 import type { DraftReviewStatus } from "@/lib/reviewer/dashboardStatus";
+import { resolveStatusOnEdit, sameSourceIds, type SentenceVerificationStatus } from "@/lib/reviewer/sentenceVerification";
 import type { GenePageDraft } from "@/lib/geneResearch/types";
 
 export type ActionResult<T = undefined> =
@@ -72,6 +73,67 @@ export async function resolveFlagAction(input: {
       resolved_at: input.status === "unresolved" ? null : new Date().toISOString(),
     },
     { onConflict: "draft_id,flag_index" }
+  );
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+/** Save one sentence's verification state. RLS enforces active-assignee or
+ *  admin (draft_sentence_reviews policies, 0009). Applies the "editing a
+ *  verified sentence resets it to unreviewed" rule server-side — the
+ *  client applies it too for instant feedback, but this is the real
+ *  enforcement point. */
+export async function saveSentenceReviewAction(input: {
+  draftId: string;
+  sectionKey: string;
+  sentenceIndex: number;
+  originalText: string;
+  finalText: string;
+  originalSourceIds: string[];
+  finalSourceIds: string[];
+  requestedStatus: SentenceVerificationStatus;
+  reviewerNote?: string;
+}): Promise<ActionResult> {
+  const supabase = getServerSupabase();
+  if (!supabase) return { ok: false, error: "Not configured." };
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const { data: existing } = await supabase
+    .from("draft_sentence_reviews")
+    .select("final_text, final_source_ids, status")
+    .eq("draft_id", input.draftId)
+    .eq("section_key", input.sectionKey)
+    .eq("sentence_index", input.sentenceIndex)
+    .maybeSingle();
+
+  const textChanged = existing ? existing.final_text !== input.finalText : false;
+  const sourceIdsChanged = existing
+    ? !sameSourceIds(existing.final_source_ids ?? [], input.finalSourceIds)
+    : false;
+  const status = resolveStatusOnEdit({
+    currentStatus: input.requestedStatus,
+    textChanged,
+    sourceIdsChanged,
+  });
+
+  const { error } = await supabase.from("draft_sentence_reviews").upsert(
+    {
+      draft_id: input.draftId,
+      section_key: input.sectionKey,
+      sentence_index: input.sentenceIndex,
+      original_text: input.originalText,
+      final_text: input.finalText,
+      original_source_ids: input.originalSourceIds,
+      final_source_ids: input.finalSourceIds,
+      status,
+      reviewer_note: input.reviewerNote ?? null,
+      reviewed_by: status === "unreviewed" ? null : user.id,
+      reviewed_at: status === "unreviewed" ? null : new Date().toISOString(),
+    },
+    { onConflict: "draft_id,section_key,sentence_index" }
   );
   if (error) return { ok: false, error: error.message };
   return { ok: true };

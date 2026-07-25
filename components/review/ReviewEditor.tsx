@@ -1,5 +1,13 @@
 "use client";
 
+// The gene review workspace: sentence-to-source verification, side by side.
+// Each section renders its sentences on the left, each with numbered
+// citation badges, and the sources those citations point to on the right —
+// scoped per section rather than one giant sidebar for the whole gene, so
+// the sources shown are always the ones actually relevant to what's on
+// screen. Autosave/dirty-tracking/beforeunload-warning are the same pattern
+// this file has always used; they now cover sentence-level edits too.
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -14,22 +22,36 @@ import {
   publishAction,
   submitReviewAction,
   requestChangesAction,
+  saveSentenceReviewAction,
 } from "@/app/review/actions";
-import { flattenSentencedText, normalizeSentencedText } from "@/lib/geneResearch/types";
-import type { GenePageDraft, SentencedText } from "@/lib/geneResearch/types";
+import { normalizeSentencedText, NARRATIVE_SECTION_KEYS } from "@/lib/geneResearch/types";
+import type { GenePageDraft, SourceCitation } from "@/lib/geneResearch/types";
 import type { FlagResolutionRow } from "@/lib/reviewer/data";
+import {
+  verificationProgress,
+  type SentenceReviewRow,
+  type SentenceVerificationStatus,
+} from "@/lib/reviewer/sentenceVerification";
 
-const SECTIONS: { key: keyof GenePageDraft; label: string }[] = [
-  { key: "summaryCard", label: "Summary" },
-  { key: "whatThisGeneMeans", label: "What this gene means" },
-  { key: "howItMayAffectVision", label: "How it may affect vision" },
-  { key: "whatIsKnown", label: "What is known" },
-  { key: "whatIsUncertain", label: "What is uncertain" },
-  { key: "treatmentAndResearch", label: "Treatment and research" },
-  { key: "clinicalTrialSummary", label: "Clinical trial summary" },
-  { key: "whatYouCanDoNext", label: "What you can do next" },
-  { key: "forFamilyAndCaregivers", label: "For family and caregivers" },
-];
+const SECTION_LABELS: Record<string, string> = {
+  summaryCard: "Summary",
+  whatThisGeneMeans: "What this gene means",
+  howItMayAffectVision: "How it may affect vision",
+  whatIsKnown: "What is known",
+  whatIsUncertain: "What is uncertain",
+  treatmentAndResearch: "Treatment and research",
+  clinicalTrialSummary: "Clinical trial summary",
+  whatYouCanDoNext: "What you can do next",
+  forFamilyAndCaregivers: "For family and caregivers",
+};
+
+const VERIFICATION_LABELS: Record<SentenceVerificationStatus, string> = {
+  unreviewed: "Unreviewed",
+  verified_as_written: "Verified as written",
+  edited_and_verified: "Edited and verified",
+  removed: "Removed",
+  not_applicable: "Not applicable",
+};
 
 function serialize(d: GenePageDraft): Record<string, unknown> {
   return {
@@ -48,12 +70,17 @@ function serialize(d: GenePageDraft): Record<string, unknown> {
   };
 }
 
+function reviewKey(sectionKey: string, sentenceIndex: number): string {
+  return `${sectionKey}:${sentenceIndex}`;
+}
+
 export default function ReviewEditor(props: {
   draftId: string;
   geneSlug: string;
   initialContent: GenePageDraft;
   reviewFlags: string[];
   initialResolutions: FlagResolutionRow[];
+  initialSentenceReviews: SentenceReviewRow[];
   reviewerCanPublish: boolean;
   isAdmin: boolean;
   reviewStatus: DraftReviewStatus;
@@ -66,18 +93,32 @@ export default function ReviewEditor(props: {
   const [notes, setNotes] = useState<Map<number, string>>(
     new Map(props.initialResolutions.map((r) => [r.flag_index, r.reviewer_note ?? ""]))
   );
+  const [sentenceReviews, setSentenceReviews] = useState<Map<string, SentenceReviewRow>>(
+    new Map(props.initialSentenceReviews.map((r) => [reviewKey(r.sectionKey, r.sentenceIndex), r]))
+  );
   const [dirty, setDirty] = useState(false);
-  const [saveState, setSaveState] = useState<"saved" | "saving" | "unsaved">("saved");
+  const [saveState, setSaveState] = useState<"saved" | "saving" | "unsaved" | "error">("saved");
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [publishMsg, setPublishMsg] = useState<string | null>(null);
   const [changesNote, setChangesNote] = useState("");
+  const [highlightedSourceId, setHighlightedSourceId] = useState<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Read-only for the reviewer once submitted/approved — admins can always
-  // edit (matches the RLS policy in 0008_review_status_lifecycle.sql).
   const reviewerLocked =
     !props.isAdmin &&
     (props.reviewStatus === "submitted_for_approval" || props.reviewStatus === "approved");
+
+  // Flat list of every sentence's current verification status, for the
+  // overall progress readout and the submission gate.
+  const allSentenceStates = NARRATIVE_SECTION_KEYS.flatMap((key) => {
+    const { sentences } = normalizeSentencedText(content[key]);
+    return sentences.map((s, i) => {
+      const row = sentenceReviews.get(reviewKey(String(key), i));
+      return { sourceIds: s.sourceIds, status: row?.status ?? "unreviewed" };
+    });
+  });
+  const progress = verificationProgress(allSentenceStates);
 
   const flagResolutionInput = {
     draft: content,
@@ -96,6 +137,13 @@ export default function ReviewEditor(props: {
     reviewStatus: props.reviewStatus,
     adminOverride: props.reviewStatus !== "submitted_for_approval",
   });
+  // Sentence verification is a submission requirement even though the pure
+  // gate function (shared with the admin publish gate) doesn't know about
+  // it yet — checked here, surfaced the same way as the other blockers.
+  const sentenceBlockers =
+    progress.verified < progress.total
+      ? [`${progress.total - progress.verified} statement(s) still need verification against their sources.`]
+      : [];
 
   const doSave = useCallback(async () => {
     setSaveState("saving");
@@ -103,13 +151,13 @@ export default function ReviewEditor(props: {
     if (res.ok) {
       setDirty(false);
       setSaveState("saved");
+      setLastSavedAt(new Date());
     } else {
-      setSaveState("unsaved");
+      setSaveState("error");
       setPublishMsg(res.error);
     }
   }, [content, props.draftId]);
 
-  // Defensive autosave: debounce edits.
   useEffect(() => {
     if (!dirty) return;
     setSaveState("unsaved");
@@ -120,10 +168,9 @@ export default function ReviewEditor(props: {
     };
   }, [content, dirty, doSave]);
 
-  // Warn before leaving with unsaved changes.
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
-      if (dirty || saveState !== "saved") {
+      if (dirty || saveState === "unsaved" || saveState === "saving") {
         e.preventDefault();
         e.returnValue = "";
       }
@@ -132,17 +179,11 @@ export default function ReviewEditor(props: {
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty, saveState]);
 
-  // INTERIM: this editor still edits a whole section as one text block (the
-  // sentence-level side-by-side workspace replaces this component entirely
-  // — see the review dashboard rebuild). Editing here collapses the
-  // section's sentences into one, preserving the union of their source IDs
-  // so nothing gets silently dropped in the meantime.
-  function editSection(key: keyof GenePageDraft, text: string) {
+  function editSentenceText(sectionKey: keyof GenePageDraft, sentenceIndex: number, text: string) {
     setContent((c) => {
-      const prior = normalizeSentencedText(c[key]);
-      const sourceIds = Array.from(new Set(prior.sentences.flatMap((s) => s.sourceIds)));
-      const next: SentencedText = { sentences: [{ text, sourceIds }] };
-      return { ...c, [key]: next };
+      const section = normalizeSentencedText(c[sectionKey]);
+      const nextSentences = section.sentences.map((s, i) => (i === sentenceIndex ? { ...s, text } : s));
+      return { ...c, [sectionKey]: { sentences: nextSentences } };
     });
     setDirty(true);
   }
@@ -158,6 +199,45 @@ export default function ReviewEditor(props: {
     });
   }
 
+  async function setSentenceVerification(
+    sectionKey: string,
+    sentenceIndex: number,
+    originalText: string,
+    finalText: string,
+    sourceIds: string[],
+    status: SentenceVerificationStatus,
+    note?: string
+  ) {
+    const key = reviewKey(sectionKey, sentenceIndex);
+    setSentenceReviews((m) => {
+      const next = new Map(m);
+      next.set(key, {
+        sectionKey,
+        sentenceIndex,
+        originalText,
+        finalText,
+        originalSourceIds: sourceIds,
+        finalSourceIds: sourceIds,
+        status,
+        reviewerNote: note ?? m.get(key)?.reviewerNote ?? null,
+        reviewedBy: null,
+        reviewedAt: null,
+      });
+      return next;
+    });
+    await saveSentenceReviewAction({
+      draftId: props.draftId,
+      sectionKey,
+      sentenceIndex,
+      originalText,
+      finalText,
+      originalSourceIds: sourceIds,
+      finalSourceIds: sourceIds,
+      requestedStatus: status,
+      reviewerNote: note,
+    });
+  }
+
   async function submit() {
     setPublishMsg(null);
     if (dirty || saveState !== "saved") await doSave();
@@ -170,7 +250,7 @@ export default function ReviewEditor(props: {
       setPublishMsg("Submitted for admin approval.");
       router.refresh();
     } else {
-      setPublishMsg([res.error, ...(res.blockers ?? [])].join(" — "));
+      setPublishMsg([res.error, ...(res.blockers ?? []), ...sentenceBlockers].join(" — "));
     }
   }
 
@@ -204,36 +284,190 @@ export default function ReviewEditor(props: {
   }
 
   const statusBadge =
-    saveState === "saved" ? "All changes saved" : saveState === "saving" ? "Saving…" : "Unsaved changes";
+    saveState === "saved"
+      ? lastSavedAt
+        ? `Saved ${lastSavedAt.toLocaleTimeString()}`
+        : "All changes saved"
+      : saveState === "saving"
+        ? "Saving…"
+        : saveState === "error"
+          ? "Save failed — retry"
+          : "Unsaved changes";
+
+  const sourcesById = new Map(content.sources.map((s, i) => [s.id, { source: s, number: i + 1 }]));
 
   return (
     <div className="space-y-8">
-      <div className="sticky top-0 z-10 -mx-5 flex items-center justify-between border-b border-ink/10 bg-cream/95 px-5 py-2 text-sm">
-        <span className={saveState === "saved" ? "text-forest" : "text-ink/70"}>{statusBadge}</span>
+      <div className="sticky top-0 z-10 -mx-5 flex flex-wrap items-center justify-between gap-2 border-b border-ink/10 bg-cream/95 px-5 py-2 text-sm">
+        <span
+          className={
+            saveState === "saved" ? "text-forest" : saveState === "error" ? "text-maroon" : "text-ink/70"
+          }
+          role="status"
+        >
+          {statusBadge}
+        </span>
+        <span className="text-ink/60">
+          {progress.verified} of {progress.total} statements verified
+        </span>
         <button onClick={doSave} className="rounded bg-forest px-3 py-1 font-semibold text-white">
           Save draft
         </button>
       </div>
 
-      {/* Section editors */}
-      {SECTIONS.map(({ key, label }) => {
-        const section = normalizeSentencedText(content[key]);
-        const text = flattenSentencedText(section);
-        const sourceIds = Array.from(new Set(section.sentences.flatMap((s) => s.sourceIds)));
+      {/* Sentence-to-source review, section by section */}
+      {NARRATIVE_SECTION_KEYS.map((sectionKey) => {
+        const { sentences } = normalizeSentencedText(content[sectionKey]);
+        const sectionSourceIds = Array.from(new Set(sentences.flatMap((s) => s.sourceIds)));
+        const sectionSources = sectionSourceIds
+          .map((id) => sourcesById.get(id))
+          .filter((x): x is { source: SourceCitation; number: number } => Boolean(x));
+
         return (
-          <section key={String(key)} id={`section-${String(key)}`}>
-            <label className="block">
-              <span className="font-display text-lg font-medium text-ink">{label}</span>
-              <textarea
-                value={text}
-                onChange={(e) => editSection(key, e.target.value)}
-                rows={Math.max(3, Math.ceil(text.length / 90))}
-                className="mt-1 w-full rounded border border-ink/20 p-3 leading-relaxed"
-              />
-            </label>
-            {sourceIds.length ? (
-              <p className="mt-1 text-xs text-ink/50">Sources: {sourceIds.join(", ")}</p>
-            ) : null}
+          <section key={String(sectionKey)} id={`section-${String(sectionKey)}`}>
+            <h2 className="font-display text-xl font-medium text-ink">
+              {SECTION_LABELS[String(sectionKey)]}
+            </h2>
+            <div className="mt-3 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+              {/* Left: sentences */}
+              <div className="space-y-3">
+                {sentences.map((sentence, i) => {
+                  const key = reviewKey(String(sectionKey), i);
+                  const row = sentenceReviews.get(key);
+                  const status = row?.status ?? "unreviewed";
+                  return (
+                    <div
+                      key={i}
+                      className="rounded-lg border border-ink/12 bg-white p-3"
+                    >
+                      <textarea
+                        value={sentence.text}
+                        disabled={reviewerLocked}
+                        onChange={(e) =>
+                          editSentenceText(sectionKey, i, e.target.value)
+                        }
+                        onBlur={() =>
+                          setSentenceVerification(
+                            String(sectionKey),
+                            i,
+                            sentence.text,
+                            sentence.text,
+                            sentence.sourceIds,
+                            status,
+                            row?.reviewerNote ?? undefined
+                          )
+                        }
+                        rows={Math.max(1, Math.ceil(sentence.text.length / 70))}
+                        className="w-full resize-none rounded border border-ink/15 p-2 text-sm leading-relaxed disabled:bg-ink/5"
+                      />
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {sentence.sourceIds.map((id) => {
+                          const entry = sourcesById.get(id);
+                          if (!entry) return null;
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => setHighlightedSourceId(id)}
+                              className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                                highlightedSourceId === id
+                                  ? "bg-forest text-white"
+                                  : "bg-mint text-forest hover:bg-forest/20"
+                              }`}
+                            >
+                              [{entry.number}]
+                            </button>
+                          );
+                        })}
+                        {sentence.sourceIds.length === 0 && (
+                          <span className="text-xs text-ink/40">No citation</span>
+                        )}
+                        <select
+                          value={status}
+                          disabled={reviewerLocked}
+                          onChange={(e) =>
+                            setSentenceVerification(
+                              String(sectionKey),
+                              i,
+                              sentence.text,
+                              sentence.text,
+                              sentence.sourceIds,
+                              e.target.value as SentenceVerificationStatus,
+                              row?.reviewerNote ?? undefined
+                            )
+                          }
+                          className="ml-auto rounded border border-ink/20 px-2 py-1 text-xs disabled:bg-ink/5"
+                        >
+                          {Object.entries(VERIFICATION_LABELS).map(([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <input
+                        placeholder="Reviewer note (optional)"
+                        defaultValue={row?.reviewerNote ?? ""}
+                        disabled={reviewerLocked}
+                        onBlur={(e) =>
+                          setSentenceVerification(
+                            String(sectionKey),
+                            i,
+                            sentence.text,
+                            sentence.text,
+                            sentence.sourceIds,
+                            status,
+                            e.target.value
+                          )
+                        }
+                        className="mt-2 w-full rounded border border-ink/15 px-2 py-1 text-xs disabled:bg-ink/5"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Right: sources for this section */}
+              <div className="space-y-2">
+                {sectionSources.length === 0 && (
+                  <p className="text-sm text-ink/50">No sources cited in this section.</p>
+                )}
+                {sectionSources.map(({ source, number }) => (
+                  <div
+                    key={source.id}
+                    id={`source-${source.id}`}
+                    className={`rounded-lg border p-3 text-sm transition ${
+                      highlightedSourceId === source.id
+                        ? "border-forest bg-forest/5"
+                        : "border-ink/12 bg-cream-header"
+                    }`}
+                  >
+                    <p className="font-display font-bold text-forest">[{number}] {source.title}</p>
+                    <p className="mt-1 text-xs text-ink/60">
+                      {[
+                        source.authors?.join(", "),
+                        source.journal,
+                        source.year,
+                        source.provenance,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                    {source.abstract && (
+                      <p className="mt-1.5 text-xs text-ink/70">{source.abstract.slice(0, 220)}{source.abstract.length > 220 ? "…" : ""}</p>
+                    )}
+                    <div className="mt-1.5 flex flex-wrap gap-3 text-xs">
+                      {source.pmid && <span>PMID {source.pmid}</span>}
+                      {source.doi && <span>DOI {source.doi}</span>}
+                      {source.trialId && <span>{source.trialId}</span>}
+                      <a href={source.url} target="_blank" rel="noreferrer" className="font-semibold text-forest underline">
+                        Open source
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </section>
         );
       })}
@@ -290,7 +524,7 @@ export default function ReviewEditor(props: {
         </p>
       )}
 
-      {/* Submit (reviewer) / Approve & Publish + Request changes (admin) */}
+      {/* Submit (reviewer) / Approve & Publish (admin) */}
       <section className="rounded-lg border border-forest/20 bg-forest/5 p-4">
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" checked={confirmChecked} onChange={(e) => setConfirmChecked(e.target.checked)} className="mt-1" />
@@ -304,7 +538,7 @@ export default function ReviewEditor(props: {
           {!props.isAdmin && (
             <button
               onClick={submit}
-              disabled={!submissionReadiness.canProceed || reviewerLocked}
+              disabled={!submissionReadiness.canProceed || sentenceBlockers.length > 0 || reviewerLocked}
               className="rounded bg-forest px-5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               Submit review
@@ -321,11 +555,11 @@ export default function ReviewEditor(props: {
           )}
         </div>
 
-        {!props.isAdmin && !reviewerLocked && submissionReadiness.blockers.length > 0 && (
+        {!props.isAdmin && !reviewerLocked && (submissionReadiness.blockers.length > 0 || sentenceBlockers.length > 0) && (
           <div className="mt-3 text-sm text-ink/70">
             <p className="font-semibold">Remaining before you can submit:</p>
             <ul className="mt-1 list-disc pl-5">
-              {submissionReadiness.blockers.map((b, i) => (
+              {[...submissionReadiness.blockers, ...sentenceBlockers].map((b, i) => (
                 <li key={i}>{b}</li>
               ))}
             </ul>
