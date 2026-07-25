@@ -22,6 +22,7 @@ import type { DraftReviewStatus } from "@/lib/reviewer/dashboardStatus";
 import { resolveStatusOnEdit, sameSourceIds, type SentenceVerificationStatus } from "@/lib/reviewer/sentenceVerification";
 import { countBlockingOpenTickets, type TicketStatus } from "@/lib/reviewer/tickets";
 import { notify, notifyAdmins, notifyDraftAssignee } from "@/lib/reviewer/notifications";
+import { logAudit } from "@/lib/reviewer/audit";
 import type { GenePageDraft } from "@/lib/geneResearch/types";
 
 export type ActionResult<T = undefined> =
@@ -42,6 +43,7 @@ export async function saveDraftAction(
 
   const { error } = await supabase.from("gene_page_drafts").update(patch).eq("id", draftId);
   if (error) return { ok: false, error: error.message };
+  await logAudit({ actor: user.id, action: "draft_content_saved", draftId, after: patch });
   return { ok: true };
 }
 
@@ -77,6 +79,12 @@ export async function resolveFlagAction(input: {
     { onConflict: "draft_id,flag_index" }
   );
   if (error) return { ok: false, error: error.message };
+  await logAudit({
+    actor: user.id,
+    action: "flag_resolved",
+    draftId: input.draftId,
+    after: { flagIndex: input.flagIndex, status: input.status },
+  });
   return { ok: true };
 }
 
@@ -138,6 +146,13 @@ export async function saveSentenceReviewAction(input: {
     { onConflict: "draft_id,section_key,sentence_index" }
   );
   if (error) return { ok: false, error: error.message };
+  await logAudit({
+    actor: user.id,
+    action: "sentence_verification_saved",
+    draftId: input.draftId,
+    before: existing ? { status: existing.status } : null,
+    after: { sectionKey: input.sectionKey, sentenceIndex: input.sentenceIndex, status },
+  });
   return { ok: true };
 }
 
@@ -226,6 +241,7 @@ export async function submitReviewAction(input: {
     href: `/review/${input.draftId}`,
     draftId: input.draftId,
   });
+  await logAudit({ actor: session.userId, action: "review_submitted", draftId: input.draftId });
 
   return { ok: true };
 }
@@ -267,6 +283,12 @@ export async function requestChangesAction(input: {
     title: `Changes requested on ${draft?.gene_symbol ?? "a draft"}`,
     body: input.note,
     href: `/review/${input.draftId}`,
+  });
+  await logAudit({
+    actor: session.userId,
+    action: "changes_requested",
+    draftId: input.draftId,
+    after: { note: input.note },
   });
 
   revalidatePath("/review");
@@ -380,6 +402,12 @@ export async function publishAction(input: {
     title: `${draft.gene_symbol} published`,
     href: `/genetic-insights/${published.gene_slug}`,
   });
+  await logAudit({
+    actor: session.userId,
+    action: "draft_published",
+    draftId: input.draftId,
+    after: { versionId: published.version_id, geneSlug: published.gene_slug },
+  });
 
   return {
     ok: true,
@@ -449,6 +477,12 @@ export async function inviteReviewerAction(input: {
     });
     if (profileErr) return { ok: false, error: profileErr.message };
   }
+  await logAudit({
+    actor: ctx.session.userId,
+    action: "reviewer_invited",
+    reviewerId: userId,
+    after: { email: input.email, role: input.role, canPublish: input.canPublish },
+  });
   return { ok: true };
 }
 
@@ -483,6 +517,12 @@ export async function assignDraftAction(input: {
     href: `/review/${input.draftId}`,
     draftId: input.draftId,
   });
+  await logAudit({
+    actor: ctx.session.userId,
+    action: "draft_assigned",
+    draftId: input.draftId,
+    reviewerId: input.reviewerId,
+  });
 
   return { ok: true };
 }
@@ -500,5 +540,21 @@ export async function updateReviewerAction(input: {
   if (typeof input.canPublish === "boolean") patch.can_publish = input.canPublish;
   const { error } = await ctx.service.from("reviewer_profiles").update(patch).eq("user_id", input.userId);
   if (error) return { ok: false, error: error.message };
+
+  if (typeof input.active === "boolean") {
+    await logAudit({
+      actor: ctx.session.userId,
+      action: input.active ? "reviewer_activated" : "reviewer_deactivated",
+      reviewerId: input.userId,
+    });
+  }
+  if (typeof input.canPublish === "boolean") {
+    await logAudit({
+      actor: ctx.session.userId,
+      action: "reviewer_publish_permission_changed",
+      reviewerId: input.userId,
+      after: { canPublish: input.canPublish },
+    });
+  }
   return { ok: true };
 }

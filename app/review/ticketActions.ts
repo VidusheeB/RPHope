@@ -11,6 +11,7 @@ import { getServerSupabase } from "@/lib/supabaseServer";
 import { getServiceSupabase } from "@/lib/supabaseAdmin";
 import { getReviewerSession } from "@/lib/reviewer/session";
 import { notify, notifyAdmins } from "@/lib/reviewer/notifications";
+import { logAudit } from "@/lib/reviewer/audit";
 import type { TicketSeverity, TicketStatus, TicketType } from "@/lib/reviewer/tickets";
 import type { ActionResult } from "./actions";
 
@@ -71,6 +72,13 @@ export async function createTicketAction(input: {
     draftId: input.draftId,
     ticketId: data.id,
   });
+  await logAudit({
+    actor: user.id,
+    action: "ticket_created",
+    draftId: input.draftId,
+    ticketId: data.id,
+    after: { type: input.type, subject: input.subject, blocking: input.blocking },
+  });
 
   revalidatePath("/review/admin");
   return { ok: true, data: { ticketId: data.id } };
@@ -100,6 +108,12 @@ export async function replyTicketAction(input: {
     internal_note: input.internalNote ?? false,
   });
   if (error) return { ok: false, error: error.message };
+  await logAudit({
+    actor: user.id,
+    action: "ticket_reply_added",
+    ticketId: input.ticketId,
+    after: { internalNote: input.internalNote ?? false },
+  });
 
   if (!input.internalNote) {
     const { data: ticket } = await supabase
@@ -161,6 +175,12 @@ export async function updateTicketAction(input: {
 
   const { error } = await service.from("review_tickets").update(patch).eq("id", input.ticketId);
   if (error) return { ok: false, error: error.message };
+  await logAudit({
+    actor: session.userId,
+    action: "ticket_updated",
+    ticketId: input.ticketId,
+    after: patch,
+  });
 
   if (input.status === "resolved") {
     const { data: ticket } = await service

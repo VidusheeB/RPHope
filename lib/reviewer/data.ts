@@ -313,6 +313,43 @@ export async function getAdminOverview() {
   return { drafts: drafts ?? [], reviewers: reviewers ?? [], assignments: assignments ?? [] };
 }
 
+export type AuditLogRow = {
+  id: string;
+  actor: string | null;
+  action: string;
+  draftId: string | null;
+  reviewerId: string | null;
+  ticketId: string | null;
+  before: unknown;
+  after: unknown;
+  createdAt: string;
+};
+
+/** Most recent audit entries. Service-role, admin-only read — the table has
+ *  no RLS policy at all for the anon/authenticated roles (deny-all), so this
+ *  MUST use the service-role client; caller must have already checked
+ *  requireAdmin(). */
+export async function getRecentAuditLog(limit = 100): Promise<AuditLogRow[]> {
+  const service = getServiceSupabase();
+  if (!service) return [];
+  const { data } = await service
+    .from("audit_log")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    actor: r.actor,
+    action: r.action,
+    draftId: r.draft_id,
+    reviewerId: r.reviewer_id,
+    ticketId: r.ticket_id,
+    before: r.before_value,
+    after: r.after_value,
+    createdAt: r.created_at,
+  }));
+}
+
 /** All tickets across every draft, for the admin ticket inbox. Service-role —
  *  caller must have already checked requireAdmin(). */
 export async function getAllTicketsForAdmin(): Promise<(TicketRow & { geneSymbol: string })[]> {
