@@ -2,11 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  inviteReviewerAction,
-  assignDraftAction,
-  updateReviewerAction,
-} from "@/app/review/actions";
+import { inviteReviewerAction, updateReviewerAction } from "@/app/review/actions";
 
 type Reviewer = {
   user_id: string;
@@ -15,15 +11,8 @@ type Reviewer = {
   can_publish: boolean;
   active: boolean;
 };
-type Draft = { id: string; gene_symbol: string; gene_slug: string; review_status: string };
 
-export default function AdminPanel({
-  reviewers,
-  drafts,
-}: {
-  reviewers: Reviewer[];
-  drafts: Draft[];
-}) {
+export default function AdminPanel({ reviewers }: { reviewers: Reviewer[] }) {
   const router = useRouter();
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -31,9 +20,6 @@ export default function AdminPanel({
   const [name, setName] = useState("");
   const [role, setRole] = useState<"reviewer" | "admin">("reviewer");
   const [canPublish, setCanPublish] = useState(false);
-
-  const [assignDraft, setAssignDraft] = useState(drafts[0]?.id ?? "");
-  const [assignReviewer, setAssignReviewer] = useState(reviewers[0]?.user_id ?? "");
 
   async function invite(e: React.FormEvent) {
     e.preventDefault();
@@ -44,13 +30,6 @@ export default function AdminPanel({
       setName("");
       router.refresh();
     }
-  }
-
-  async function assign(e: React.FormEvent) {
-    e.preventDefault();
-    const res = await assignDraftAction({ draftId: assignDraft, reviewerId: assignReviewer });
-    setMsg(res.ok ? "Draft assigned." : res.error);
-    if (res.ok) router.refresh();
   }
 
   async function toggle(userId: string, patch: { active?: boolean; canPublish?: boolean }) {
@@ -82,29 +61,6 @@ export default function AdminPanel({
           </label>
           <button type="submit" className="rounded bg-forest px-4 py-2 font-semibold text-white sm:col-span-2">
             Send invitation
-          </button>
-        </form>
-      </section>
-
-      <section>
-        <h2 className="font-display text-xl font-medium text-ink">Assign a draft</h2>
-        <form onSubmit={assign} className="mt-3 grid gap-3 sm:grid-cols-3">
-          <select value={assignDraft} onChange={(e) => setAssignDraft(e.target.value)} className="rounded border border-ink/20 px-3 py-2">
-            {drafts.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.gene_symbol}
-              </option>
-            ))}
-          </select>
-          <select value={assignReviewer} onChange={(e) => setAssignReviewer(e.target.value)} className="rounded border border-ink/20 px-3 py-2">
-            {reviewers.map((r) => (
-              <option key={r.user_id} value={r.user_id}>
-                {r.display_name || r.user_id}
-              </option>
-            ))}
-          </select>
-          <button type="submit" className="rounded bg-forest px-4 py-2 font-semibold text-white">
-            Assign
           </button>
         </form>
       </section>

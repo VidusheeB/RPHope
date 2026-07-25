@@ -7,9 +7,9 @@ import { getServerSupabase } from "../supabaseServer";
 import { getServiceSupabase } from "../supabaseAdmin";
 import { requiredSectionsComplete, unresolvedFlagCount, type FlagResolutionStatus } from "./publishGate";
 import { deriveDashboardStatus, type DashboardStatus, type DraftReviewStatus } from "./dashboardStatus";
-import { normalizeSentencedText } from "../geneResearch/types";
+import { normalizeSentencedText, NARRATIVE_SECTION_KEYS } from "../geneResearch/types";
 import type { GenePageDraft } from "../geneResearch/types";
-import type { SentenceReviewRow } from "./sentenceVerification";
+import { verificationProgress, type SentenceReviewRow } from "./sentenceVerification";
 import { countBlockingOpenTickets, countOpenTickets, type TicketSeverity, type TicketStatus, type TicketType } from "./tickets";
 
 export type FlagResolutionRow = {
@@ -28,10 +28,14 @@ export type DashboardRow = {
   flagCount: number;
   unresolvedFlags: number;
   updatedAt: string | null;
+  assignedAt: string | null;
   assignmentStatus: "assigned" | "in_progress" | "completed";
   assignedReviewerName?: string;
   openTicketCount: number;
   blockingTicketCount: number;
+  hasPublishedVersion: boolean;
+  sentencesVerified: number;
+  sentencesTotal: number;
 };
 
 /** Drafts assigned to the current reviewer (RLS-scoped) + their flag progress. */
@@ -48,7 +52,7 @@ export async function getAssignedDrafts(): Promise<DashboardRow[]> {
   for (const a of assignments) {
     const { data: draft } = await supabase
       .from("gene_page_drafts")
-      .select("id, gene_slug, gene_symbol, review_flags, generated_at, reviewed_at, review_status")
+      .select("*")
       .eq("id", a.draft_id)
       .maybeSingle();
     if (!draft) continue;
@@ -78,6 +82,21 @@ export async function getAssignedDrafts(): Promise<DashboardRow[]> {
     const ticketRows = (tickets ?? []) as { status: TicketStatus; blocking: boolean }[];
     const blockingTicketCount = countBlockingOpenTickets(ticketRows);
 
+    const { data: sentenceReviews } = await supabase
+      .from("draft_sentence_reviews")
+      .select("section_key, sentence_index, status")
+      .eq("draft_id", a.draft_id);
+    const reviewedByKey = new Map((sentenceReviews ?? []).map((r) => [`${r.section_key}:${r.sentence_index}`, r.status]));
+    const content = draftRowToContent(draft);
+    const sentenceStates = NARRATIVE_SECTION_KEYS.flatMap((key) => {
+      const { sentences } = normalizeSentencedText(content[key]);
+      return sentences.map((s, i) => ({
+        sourceIds: s.sourceIds,
+        status: reviewedByKey.get(`${String(key)}:${i}`) ?? "unreviewed",
+      }));
+    });
+    const progress = verificationProgress(sentenceStates);
+
     rows.push({
       draftId: draft.id,
       geneSlug: draft.gene_slug,
@@ -85,9 +104,13 @@ export async function getAssignedDrafts(): Promise<DashboardRow[]> {
       flagCount,
       unresolvedFlags: unresolved,
       updatedAt: draft.reviewed_at ?? draft.generated_at ?? null,
+      assignedAt: a.assigned_at ?? null,
       assignmentStatus: a.status,
       openTicketCount: countOpenTickets(ticketRows),
       blockingTicketCount,
+      hasPublishedVersion: hasPublished,
+      sentencesVerified: progress.verified,
+      sentencesTotal: progress.total,
       status: deriveDashboardStatus({
         hasAssignment: true,
         reviewStatus: (draft.review_status ?? "unreviewed") as DraftReviewStatus,
@@ -301,6 +324,110 @@ export async function getTicketWithReplies(
 }
 
 // ---- Admin reads (service-role, behind an admin check by the caller) -------
+
+export type AdminDraftRow = DashboardRow & { assignedReviewerId: string | null };
+
+/** Every draft, admin-eye view: status, assignee, tickets, verification
+ *  progress — the data behind the admin Review queue / Submitted /
+ *  Published tabs. Service-role; caller must have already checked
+ *  requireAdmin(). Same per-row shape as getAssignedDrafts() so the two
+ *  dashboards can share rendering logic. */
+export async function getAdminDraftQueue(): Promise<AdminDraftRow[]> {
+  const service = getServiceSupabase();
+  if (!service) return [];
+
+  const [{ data: drafts }, { data: allAssignments }, { data: reviewers }] = await Promise.all([
+    service.from("gene_page_drafts").select("*"),
+    service.from("draft_assignments").select("draft_id, reviewer_id, status, assigned_at"),
+    service.from("reviewer_profiles").select("user_id, display_name"),
+  ]);
+  if (!drafts?.length) return [];
+
+  const nameById = new Map((reviewers ?? []).map((r) => [r.user_id, r.display_name]));
+  const assignmentsByDraft = new Map<string, { reviewer_id: string; status: string; assigned_at: string }[]>();
+  for (const a of allAssignments ?? []) {
+    const list = assignmentsByDraft.get(a.draft_id) ?? [];
+    list.push(a);
+    assignmentsByDraft.set(a.draft_id, list);
+  }
+
+  const rows: AdminDraftRow[] = [];
+  for (const draft of drafts) {
+    const assignments = assignmentsByDraft.get(draft.id) ?? [];
+    // Most recently assigned, active (non-completed) assignment "owns" the row.
+    const active = assignments
+      .filter((a) => a.status !== "completed")
+      .sort((a, b) => (a.assigned_at < b.assigned_at ? 1 : -1))[0];
+
+    const flagCount = Array.isArray(draft.review_flags) ? draft.review_flags.length : 0;
+    const { data: resolutions } = await service
+      .from("review_flag_resolutions")
+      .select("flag_index, status")
+      .eq("draft_id", draft.id);
+    const unresolved = unresolvedFlagCount(
+      flagCount,
+      (resolutions ?? []).map((r) => ({ flagIndex: r.flag_index, status: r.status as FlagResolutionStatus }))
+    );
+
+    const { data: published } = await service
+      .from("gene_page_versions")
+      .select("id")
+      .eq("gene_slug", draft.gene_slug)
+      .eq("status", "published")
+      .limit(1);
+    const hasPublished = Boolean(published?.length);
+
+    const { data: tickets } = await service
+      .from("review_tickets")
+      .select("status, blocking")
+      .eq("draft_id", draft.id);
+    const ticketRows = (tickets ?? []) as { status: TicketStatus; blocking: boolean }[];
+    const blockingTicketCount = countBlockingOpenTickets(ticketRows);
+
+    const { data: sentenceReviews } = await service
+      .from("draft_sentence_reviews")
+      .select("section_key, sentence_index, status")
+      .eq("draft_id", draft.id);
+    const reviewedByKey = new Map(
+      (sentenceReviews ?? []).map((r) => [`${r.section_key}:${r.sentence_index}`, r.status])
+    );
+    const content = draftRowToContent(draft);
+    const sentenceStates = NARRATIVE_SECTION_KEYS.flatMap((key) => {
+      const { sentences } = normalizeSentencedText(content[key]);
+      return sentences.map((s, i) => ({
+        sourceIds: s.sourceIds,
+        status: reviewedByKey.get(`${String(key)}:${i}`) ?? "unreviewed",
+      }));
+    });
+    const progress = verificationProgress(sentenceStates);
+
+    rows.push({
+      draftId: draft.id,
+      geneSlug: draft.gene_slug,
+      geneSymbol: draft.gene_symbol,
+      flagCount,
+      unresolvedFlags: unresolved,
+      updatedAt: draft.reviewed_at ?? draft.generated_at ?? null,
+      assignedAt: active?.assigned_at ?? null,
+      assignmentStatus: (active?.status ?? "assigned") as "assigned" | "in_progress" | "completed",
+      assignedReviewerId: active?.reviewer_id ?? null,
+      assignedReviewerName: active ? nameById.get(active.reviewer_id) ?? undefined : undefined,
+      openTicketCount: countOpenTickets(ticketRows),
+      blockingTicketCount,
+      hasPublishedVersion: hasPublished,
+      sentencesVerified: progress.verified,
+      sentencesTotal: progress.total,
+      status: deriveDashboardStatus({
+        hasAssignment: assignments.length > 0,
+        reviewStatus: (draft.review_status ?? "unreviewed") as DraftReviewStatus,
+        hasPublishedVersion: hasPublished,
+        hasBlockingTicket: blockingTicketCount > 0,
+        hasEdits: Boolean(draft.reviewed_at),
+      }),
+    });
+  }
+  return rows;
+}
 
 export async function getAdminOverview() {
   const service = getServiceSupabase();

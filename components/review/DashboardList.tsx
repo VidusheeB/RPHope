@@ -57,21 +57,41 @@ export default function DashboardList({ rows }: { rows: DashboardRow[] }) {
                 <div>
                   <h2 className="font-display text-xl font-medium text-ink">{r.geneSymbol}</h2>
                   <p className="text-sm text-ink/60">
-                    {r.unresolvedFlags} of {r.flagCount} flag{r.flagCount === 1 ? "" : "s"} unresolved
+                    {r.sentencesTotal > 0
+                      ? `${r.sentencesVerified} of ${r.sentencesTotal} statements verified`
+                      : `${r.unresolvedFlags} of ${r.flagCount} flag${r.flagCount === 1 ? "" : "s"} unresolved`}
                     {r.updatedAt ? ` · last saved ${new Date(r.updatedAt).toLocaleDateString()}` : ""}
+                    {r.assignedAt ? ` · assigned ${new Date(r.assignedAt).toLocaleDateString()}` : ""}
                   </p>
+                  {r.openTicketCount > 0 && (
+                    <p className="mt-1 text-xs font-semibold text-maroon">
+                      {r.blockingTicketCount > 0
+                        ? `${r.blockingTicketCount} blocking issue${r.blockingTicketCount === 1 ? "" : "s"}`
+                        : `${r.openTicketCount} open issue${r.openTicketCount === 1 ? "" : "s"}`}
+                    </p>
+                  )}
                 </div>
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLE[r.status]}`}>
                   {r.status}
                 </span>
               </div>
-              <div className="mt-3">
+              <div className="mt-3 flex items-center gap-3">
                 <Link
                   href={`/review/${r.draftId}`}
                   className="inline-block rounded bg-forest px-4 py-2 text-sm font-semibold text-white"
                 >
                   {r.status === "Published" ? "View" : "Open review"}
                 </Link>
+                {r.hasPublishedVersion && r.status !== "Published" && (
+                  <a
+                    href={`/genetic-insights/${r.geneSlug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-semibold text-forest underline"
+                  >
+                    View live page
+                  </a>
+                )}
               </div>
             </li>
           ))}
