@@ -32,6 +32,34 @@ describe("deactivated reviewers lose DATABASE access, not just app access (stati
   });
 });
 
+describe("0008 enum-add is isolated from its own consuming statements (static)", () => {
+  // Postgres forbids using a newly-added enum value inside the same
+  // transaction that added it, and the Supabase SQL editor runs a whole
+  // pasted file as one transaction — so 0008 must contain ONLY the ALTER
+  // TYPE ADD VALUE statements, with the column/policy changes that USE
+  // those values split into 0008b, run as a separate execution.
+  const part1 = read("supabase/migrations/0008_review_status_lifecycle.sql");
+  const part2 = read("supabase/migrations/0008b_review_status_lifecycle_columns.sql");
+
+  it("0008 contains only ALTER TYPE ADD VALUE statements", () => {
+    const statements = part1
+      .split("\n")
+      .filter((l) => !l.trim().startsWith("--") && l.trim().length > 0);
+    for (const s of statements) {
+      expect(s).toMatch(/^alter type .* add value/i);
+    }
+  });
+
+  it("0008b is where the submitted_for_approval/changes_requested enum values actually get used", () => {
+    expect(part2).toContain("submitted_for_approval");
+    const codeOnly = part1
+      .split("\n")
+      .filter((l) => !l.trim().startsWith("--"))
+      .join("\n");
+    expect(codeOnly).not.toMatch(/create policy|insert into|\bupdate\b/i);
+  });
+});
+
 describe("sign-out actually clears the session (static)", () => {
   it("SignOutButton calls Supabase auth.signOut() before redirecting to /review/login", () => {
     const src = read("components/review/SignOutButton.tsx");
