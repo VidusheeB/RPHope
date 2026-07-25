@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { requireReviewer } from "@/lib/reviewer/session";
+import { getMyNotifications, getMyUnreadCount } from "@/lib/reviewer/notifications";
 import SignOutButton from "@/components/review/SignOutButton";
+import NotificationBell from "@/components/review/NotificationBell";
 
 // Shared authenticated shell for every /review/* route EXCEPT the public
 // auth pages (login/set-password/reset-password, which live outside this
@@ -15,6 +17,7 @@ export default async function ReviewDashboardLayout({
 }) {
   const session = await requireReviewer();
   const isAdmin = session.profile.role === "admin";
+  const [notifications, unreadCount] = await Promise.all([getMyNotifications(), getMyUnreadCount()]);
 
   return (
     <div className="min-h-screen bg-cream">
@@ -46,6 +49,7 @@ export default async function ReviewDashboardLayout({
             <Link href="/" className="font-semibold text-ink/60 hover:text-forest">
               Public site
             </Link>
+            <NotificationBell initialNotifications={notifications} initialUnreadCount={unreadCount} />
             <span className="hidden text-ink/50 sm:inline">
               {session.email}
               <span className="ml-1 rounded-full bg-ink/10 px-2 py-0.5 text-xs font-semibold uppercase text-ink/60">

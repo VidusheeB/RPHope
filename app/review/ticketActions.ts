@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 import { getServerSupabase } from "@/lib/supabaseServer";
 import { getServiceSupabase } from "@/lib/supabaseAdmin";
 import { getReviewerSession } from "@/lib/reviewer/session";
+import { notify, notifyAdmins } from "@/lib/reviewer/notifications";
 import type { TicketSeverity, TicketStatus, TicketType } from "@/lib/reviewer/tickets";
 import type { ActionResult } from "./actions";
 
@@ -39,6 +40,12 @@ export async function createTicketAction(input: {
     return { ok: false, error: "Subject and description are required." };
   }
 
+  const { data: draft } = await supabase
+    .from("gene_page_drafts")
+    .select("gene_symbol")
+    .eq("id", input.draftId)
+    .maybeSingle();
+
   const { data, error } = await supabase
     .from("review_tickets")
     .insert({
@@ -55,6 +62,15 @@ export async function createTicketAction(input: {
     .select("id")
     .single();
   if (error) return { ok: false, error: error.message };
+
+  await notifyAdmins({
+    actor: user.id,
+    type: "ticket_created",
+    title: `New${input.blocking ? " blocking" : ""} issue on ${draft?.gene_symbol ?? "a draft"}: ${input.subject.trim()}`,
+    href: `/review/admin`,
+    draftId: input.draftId,
+    ticketId: data.id,
+  });
 
   revalidatePath("/review/admin");
   return { ok: true, data: { ticketId: data.id } };
@@ -85,9 +101,38 @@ export async function replyTicketAction(input: {
   });
   if (error) return { ok: false, error: error.message };
 
-  // A reviewer replying moves an admin-owned ticket back into their queue's
-  // attention; an admin replying (non-internal) signals the ball is back in
-  // the reviewer's court. Best-effort status nudge, not a hard rule.
+  if (!input.internalNote) {
+    const { data: ticket } = await supabase
+      .from("review_tickets")
+      .select("created_by, subject, draft_id")
+      .eq("id", input.ticketId)
+      .maybeSingle();
+    if (ticket) {
+      if (ticket.created_by === user.id) {
+        // The reviewer replied — surface it to admins.
+        await notifyAdmins({
+          actor: user.id,
+          type: "ticket_reply",
+          title: `New reply on ticket: ${ticket.subject}`,
+          href: `/review/admin`,
+          draftId: ticket.draft_id,
+          ticketId: input.ticketId,
+        });
+      } else {
+        // An admin replied — surface it to the reviewer who filed it.
+        await notify({
+          recipient: ticket.created_by,
+          actor: user.id,
+          type: "ticket_reply",
+          title: `Reply on your issue: ${ticket.subject}`,
+          href: `/review/${ticket.draft_id}`,
+          draftId: ticket.draft_id,
+          ticketId: input.ticketId,
+        });
+      }
+    }
+  }
+
   revalidatePath("/review/admin");
   return { ok: true };
 }
@@ -116,6 +161,25 @@ export async function updateTicketAction(input: {
 
   const { error } = await service.from("review_tickets").update(patch).eq("id", input.ticketId);
   if (error) return { ok: false, error: error.message };
+
+  if (input.status === "resolved") {
+    const { data: ticket } = await service
+      .from("review_tickets")
+      .select("created_by, subject, draft_id")
+      .eq("id", input.ticketId)
+      .maybeSingle();
+    if (ticket) {
+      await notify({
+        recipient: ticket.created_by,
+        actor: session.userId,
+        type: "ticket_resolved",
+        title: `Resolved: ${ticket.subject}`,
+        href: `/review/${ticket.draft_id}`,
+        draftId: ticket.draft_id,
+        ticketId: input.ticketId,
+      });
+    }
+  }
 
   revalidatePath("/review/admin");
   return { ok: true };

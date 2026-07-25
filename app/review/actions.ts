@@ -21,6 +21,7 @@ import {
 import type { DraftReviewStatus } from "@/lib/reviewer/dashboardStatus";
 import { resolveStatusOnEdit, sameSourceIds, type SentenceVerificationStatus } from "@/lib/reviewer/sentenceVerification";
 import { countBlockingOpenTickets, type TicketStatus } from "@/lib/reviewer/tickets";
+import { notify, notifyAdmins, notifyDraftAssignee } from "@/lib/reviewer/notifications";
 import type { GenePageDraft } from "@/lib/geneResearch/types";
 
 export type ActionResult<T = undefined> =
@@ -160,7 +161,7 @@ export async function submitReviewAction(input: {
 
   const { data: draft } = await service
     .from("gene_page_drafts")
-    .select("id, review_flags")
+    .select("id, gene_symbol, review_flags")
     .eq("id", input.draftId)
     .maybeSingle();
   if (!draft) return { ok: false, error: "Draft not found." };
@@ -218,6 +219,14 @@ export async function submitReviewAction(input: {
     await service.from("draft_assignments").update({ status: "in_progress" }).eq("id", assignment.id);
   }
 
+  await notifyAdmins({
+    actor: session.userId,
+    type: "review_submitted",
+    title: `${draft.gene_symbol} submitted for approval`,
+    href: `/review/${input.draftId}`,
+    draftId: input.draftId,
+  });
+
   return { ok: true };
 }
 
@@ -235,6 +244,12 @@ export async function requestChangesAction(input: {
   const service = getServiceSupabase();
   if (!service) return { ok: false, error: "Server not configured." };
 
+  const { data: draft } = await service
+    .from("gene_page_drafts")
+    .select("gene_symbol")
+    .eq("id", input.draftId)
+    .maybeSingle();
+
   const { error } = await service
     .from("gene_page_drafts")
     .update({
@@ -245,6 +260,14 @@ export async function requestChangesAction(input: {
     })
     .eq("id", input.draftId);
   if (error) return { ok: false, error: error.message };
+
+  await notifyDraftAssignee(input.draftId, {
+    actor: session.userId,
+    type: "changes_requested",
+    title: `Changes requested on ${draft?.gene_symbol ?? "a draft"}`,
+    body: input.note,
+    href: `/review/${input.draftId}`,
+  });
 
   revalidatePath("/review");
   return { ok: true };
@@ -276,7 +299,7 @@ export async function publishAction(input: {
   // Re-derive authorization from the DB — never trust the client.
   const { data: draft } = await service
     .from("gene_page_drafts")
-    .select("id, gene_slug, review_flags, review_status")
+    .select("id, gene_slug, gene_symbol, review_flags, review_status")
     .eq("id", input.draftId)
     .maybeSingle();
   if (!draft) return { ok: false, error: "Draft not found." };
@@ -350,6 +373,13 @@ export async function publishAction(input: {
 
   // 3. Only now that the transaction has committed, revalidate the public route.
   revalidatePath(`/genetic-insights/${published.gene_slug}`);
+
+  await notifyDraftAssignee(input.draftId, {
+    actor: session.userId,
+    type: "gene_published",
+    title: `${draft.gene_symbol} published`,
+    href: `/genetic-insights/${published.gene_slug}`,
+  });
 
   return {
     ok: true,
@@ -439,6 +469,21 @@ export async function assignDraftAction(input: {
     { onConflict: "draft_id,reviewer_id" }
   );
   if (error) return { ok: false, error: error.message };
+
+  const { data: draft } = await ctx.service
+    .from("gene_page_drafts")
+    .select("gene_symbol")
+    .eq("id", input.draftId)
+    .maybeSingle();
+  await notify({
+    recipient: input.reviewerId,
+    actor: ctx.session.userId,
+    type: "draft_assigned",
+    title: `You've been assigned ${draft?.gene_symbol ?? "a gene draft"}`,
+    href: `/review/${input.draftId}`,
+    draftId: input.draftId,
+  });
+
   return { ok: true };
 }
 
