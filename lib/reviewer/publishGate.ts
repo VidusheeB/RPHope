@@ -16,6 +16,7 @@
 import { validateDraftSchemaOnly, allCitedSourcesPresent } from "../geneResearch/validate";
 import { NARRATIVE_SECTION_KEYS, normalizeSentencedText } from "../geneResearch/types";
 import type { GenePageDraft } from "../geneResearch/types";
+import type { DraftReviewStatus } from "./dashboardStatus";
 
 export type FlagResolutionStatus =
   | "unresolved"
@@ -70,35 +71,22 @@ export function requiredSectionsComplete(draft: GenePageDraft): boolean {
   return true;
 }
 
-export type PublishReadinessInput = {
-  draft: GenePageDraft;
-  flagCount: number;
-  resolutions: { flagIndex: number; status: FlagResolutionStatus }[];
-  isAssignedReviewer: boolean;
-  reviewerCanPublish: boolean;
-  confirmationChecked: boolean;
-};
-
-export type PublishReadiness = {
-  canPublish: boolean;
+export type Readiness = {
+  canProceed: boolean;
   /** Human-readable remaining blockers, shown next to the disabled button. */
   blockers: string[];
 };
 
-/**
- * Evaluate every publish precondition, returning the exact remaining blockers.
- * This is the single source of truth used by BOTH the UI (to enable/label the
- * button and explain what's left) and the server action (to re-authorize).
- */
-export function evaluatePublishReadiness(input: PublishReadinessInput): PublishReadiness {
+/** Checks shared by both submission and publish: required sections, flags,
+ *  schema, cited sources, and any open blocking ticket. Neither reviewer nor
+ *  admin can move a draft forward while any of these fail. */
+function baseContentBlockers(input: {
+  draft: GenePageDraft;
+  flagCount: number;
+  resolutions: { flagIndex: number; status: FlagResolutionStatus }[];
+  openBlockingTicketCount?: number;
+}): string[] {
   const blockers: string[] = [];
-
-  if (!input.isAssignedReviewer) {
-    blockers.push("You are not the reviewer assigned to this draft.");
-  }
-  if (!input.reviewerCanPublish) {
-    blockers.push("Your account does not have publishing permission.");
-  }
   if (!requiredSectionsComplete(input.draft)) {
     blockers.push("One or more required sections are still empty.");
   }
@@ -114,11 +102,78 @@ export function evaluatePublishReadiness(input: PublishReadinessInput): PublishR
   if (!sources.ok) {
     blockers.push(`Cited source ID(s) missing from the sources list: ${sources.missing.join(", ")}`);
   }
+  if (input.openBlockingTicketCount) {
+    blockers.push(
+      `${input.openBlockingTicketCount} blocking ticket${input.openBlockingTicketCount === 1 ? "" : "s"} must be resolved first.`
+    );
+  }
+  return blockers;
+}
+
+export type SubmissionReadinessInput = {
+  draft: GenePageDraft;
+  flagCount: number;
+  resolutions: { flagIndex: number; status: FlagResolutionStatus }[];
+  isAssignedReviewer: boolean;
+  confirmationChecked: boolean;
+  openBlockingTicketCount?: number;
+};
+
+/**
+ * Reviewer-facing gate for "Submit review." Deliberately does NOT check
+ * can_publish — reviewers never publish, regardless of that flag; only
+ * evaluateAdminPublishReadiness does. Same shared-content-checks pattern as
+ * the admin gate below, so both stay in sync automatically.
+ */
+export function evaluateSubmissionReadiness(input: SubmissionReadinessInput): Readiness {
+  const blockers = baseContentBlockers(input);
+  if (!input.isAssignedReviewer) {
+    blockers.push("You are not the reviewer assigned to this draft.");
+  }
+  if (!input.confirmationChecked) {
+    blockers.push(
+      "Check the confirmation box: \"I have reviewed the medical and scientific content against the cited sources and confirm that my review is complete.\""
+    );
+  }
+  return { canProceed: blockers.length === 0, blockers };
+}
+
+export type AdminPublishReadinessInput = {
+  draft: GenePageDraft;
+  flagCount: number;
+  resolutions: { flagIndex: number; status: FlagResolutionStatus }[];
+  isAdmin: boolean;
+  adminCanPublish: boolean;
+  /** True once a reviewer has submitted (or an admin is deliberately
+   *  overriding — see requireSubmission). */
+  reviewStatus: DraftReviewStatus;
+  confirmationChecked: boolean;
+  openBlockingTicketCount?: number;
+  /** Admins may override the normal "must be submitted first" requirement
+   *  (spec: "Override normal workflow restrictions when necessary"). */
+  adminOverride?: boolean;
+};
+
+/**
+ * Admin-only gate for "Approve & Publish." Reviewers can never reach this —
+ * enforced here (isAdmin) AND re-checked server-side in the publish action,
+ * never trusted from the client.
+ */
+export function evaluateAdminPublishReadiness(input: AdminPublishReadinessInput): Readiness {
+  const blockers = baseContentBlockers(input);
+  if (!input.isAdmin) {
+    blockers.push("Only an admin can publish.");
+  }
+  if (!input.adminCanPublish) {
+    blockers.push("Your account does not have publishing permission.");
+  }
+  if (input.reviewStatus !== "submitted_for_approval" && !input.adminOverride) {
+    blockers.push("This draft hasn't been submitted for approval yet.");
+  }
   if (!input.confirmationChecked) {
     blockers.push("Check the final confirmation box to publish.");
   }
-
-  return { canPublish: blockers.length === 0, blockers };
+  return { canProceed: blockers.length === 0, blockers };
 }
 
 /** Next version number for a gene, given its existing versions (published +

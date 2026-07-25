@@ -6,7 +6,7 @@
 import { getServerSupabase } from "../supabaseServer";
 import { getServiceSupabase } from "../supabaseAdmin";
 import { requiredSectionsComplete, unresolvedFlagCount, type FlagResolutionStatus } from "./publishGate";
-import { deriveDashboardStatus, type DashboardStatus } from "./dashboardStatus";
+import { deriveDashboardStatus, type DashboardStatus, type DraftReviewStatus } from "./dashboardStatus";
 import { normalizeSentencedText } from "../geneResearch/types";
 import type { GenePageDraft } from "../geneResearch/types";
 
@@ -27,6 +27,7 @@ export type DashboardRow = {
   unresolvedFlags: number;
   updatedAt: string | null;
   assignmentStatus: "assigned" | "in_progress" | "completed";
+  assignedReviewerName?: string;
 };
 
 /** Drafts assigned to the current reviewer (RLS-scoped) + their flag progress. */
@@ -43,7 +44,7 @@ export async function getAssignedDrafts(): Promise<DashboardRow[]> {
   for (const a of assignments) {
     const { data: draft } = await supabase
       .from("gene_page_drafts")
-      .select("id, gene_slug, gene_symbol, review_flags, generated_at, reviewed_at")
+      .select("id, gene_slug, gene_symbol, review_flags, generated_at, reviewed_at, review_status")
       .eq("id", a.draft_id)
       .maybeSingle();
     if (!draft) continue;
@@ -75,13 +76,11 @@ export async function getAssignedDrafts(): Promise<DashboardRow[]> {
       updatedAt: draft.reviewed_at ?? draft.generated_at ?? null,
       assignmentStatus: a.status,
       status: deriveDashboardStatus({
-        assignmentStatus: a.status,
+        hasAssignment: true,
+        reviewStatus: (draft.review_status ?? "unreviewed") as DraftReviewStatus,
         hasPublishedVersion: hasPublished,
-        flagCount,
-        unresolvedFlags: unresolved,
-        sectionsComplete: true, // full section check happens on the review page
+        hasBlockingTicket: false, // wired once the ticket system exists
         hasEdits: Boolean(draft.reviewed_at),
-        reopened: hasPublished && a.status !== "completed",
       }),
     });
   }
@@ -97,6 +96,8 @@ export type DraftForReview = {
   resolutions: FlagResolutionRow[];
   sectionsComplete: boolean;
   unresolvedFlags: number;
+  reviewStatus: DraftReviewStatus;
+  changesRequestedNote: string | null;
 };
 
 /** Full draft + resolutions for the review page (RLS-scoped: only if assigned). */
@@ -133,6 +134,8 @@ export async function getDraftForReview(draftId: string): Promise<DraftForReview
       reviewFlags.length,
       resRows.map((r) => ({ flagIndex: r.flag_index, status: r.status }))
     ),
+    reviewStatus: (draft.review_status ?? "unreviewed") as DraftReviewStatus,
+    changesRequestedNote: draft.changes_requested_note ?? null,
   };
 }
 

@@ -3,10 +3,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  evaluatePublishReadiness,
+  evaluateSubmissionReadiness,
+  evaluateAdminPublishReadiness,
   type FlagResolutionStatus,
 } from "@/lib/reviewer/publishGate";
-import { saveDraftAction, resolveFlagAction, publishAction } from "@/app/review/actions";
+import type { DraftReviewStatus } from "@/lib/reviewer/dashboardStatus";
+import {
+  saveDraftAction,
+  resolveFlagAction,
+  publishAction,
+  submitReviewAction,
+  requestChangesAction,
+} from "@/app/review/actions";
 import { flattenSentencedText, normalizeSentencedText } from "@/lib/geneResearch/types";
 import type { GenePageDraft, SentencedText } from "@/lib/geneResearch/types";
 import type { FlagResolutionRow } from "@/lib/reviewer/data";
@@ -47,6 +55,8 @@ export default function ReviewEditor(props: {
   reviewFlags: string[];
   initialResolutions: FlagResolutionRow[];
   reviewerCanPublish: boolean;
+  isAdmin: boolean;
+  reviewStatus: DraftReviewStatus;
 }) {
   const router = useRouter();
   const [content, setContent] = useState<GenePageDraft>(props.initialContent);
@@ -60,15 +70,31 @@ export default function ReviewEditor(props: {
   const [saveState, setSaveState] = useState<"saved" | "saving" | "unsaved">("saved");
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [publishMsg, setPublishMsg] = useState<string | null>(null);
+  const [changesNote, setChangesNote] = useState("");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const readiness = evaluatePublishReadiness({
+  // Read-only for the reviewer once submitted/approved — admins can always
+  // edit (matches the RLS policy in 0008_review_status_lifecycle.sql).
+  const reviewerLocked =
+    !props.isAdmin &&
+    (props.reviewStatus === "submitted_for_approval" || props.reviewStatus === "approved");
+
+  const flagResolutionInput = {
     draft: content,
     flagCount: props.reviewFlags.length,
     resolutions: Array.from(resolutions.entries()).map(([flagIndex, status]) => ({ flagIndex, status })),
-    isAssignedReviewer: true, // server re-verifies; page only loads if assigned
-    reviewerCanPublish: props.reviewerCanPublish,
     confirmationChecked: confirmChecked,
+  };
+  const submissionReadiness = evaluateSubmissionReadiness({
+    ...flagResolutionInput,
+    isAssignedReviewer: true, // server re-verifies; page only loads if assigned or admin
+  });
+  const publishReadiness = evaluateAdminPublishReadiness({
+    ...flagResolutionInput,
+    isAdmin: props.isAdmin,
+    adminCanPublish: props.reviewerCanPublish,
+    reviewStatus: props.reviewStatus,
+    adminOverride: props.reviewStatus !== "submitted_for_approval",
   });
 
   const doSave = useCallback(async () => {
@@ -132,15 +158,48 @@ export default function ReviewEditor(props: {
     });
   }
 
+  async function submit() {
+    setPublishMsg(null);
+    if (dirty || saveState !== "saved") await doSave();
+    const res = await submitReviewAction({
+      draftId: props.draftId,
+      content,
+      confirmationChecked: confirmChecked,
+    });
+    if (res.ok) {
+      setPublishMsg("Submitted for admin approval.");
+      router.refresh();
+    } else {
+      setPublishMsg([res.error, ...(res.blockers ?? [])].join(" — "));
+    }
+  }
+
   async function publish() {
     setPublishMsg(null);
     if (dirty || saveState !== "saved") await doSave();
-    const res = await publishAction({ draftId: props.draftId, content, confirmationChecked: confirmChecked });
+    const res = await publishAction({
+      draftId: props.draftId,
+      content,
+      confirmationChecked: confirmChecked,
+      adminOverride: props.reviewStatus !== "submitted_for_approval",
+    });
     if (res.ok) {
       setPublishMsg(`Published. Live at ${res.data?.publishedUrl}`);
       router.refresh();
     } else {
       setPublishMsg([res.error, ...(res.blockers ?? [])].join(" — "));
+    }
+  }
+
+  async function requestChanges() {
+    setPublishMsg(null);
+    const res = await requestChangesAction({ draftId: props.draftId, note: changesNote });
+    if (res.ok) {
+      setPublishMsg("Sent back to the reviewer with your note.");
+      setChangesNote("");
+      router.refresh();
+    } else {
+      setPublishMsg(res.error);
     }
   }
 
@@ -222,38 +281,96 @@ export default function ReviewEditor(props: {
         </ul>
       </section>
 
-      {/* Publish */}
+      {/* Reviewer status banner */}
+      {reviewerLocked && !props.isAdmin && (
+        <p className="rounded-lg border border-mint bg-mint/40 p-4 text-sm text-forest">
+          {props.reviewStatus === "submitted_for_approval"
+            ? "Submitted for admin approval — read-only until an admin publishes it or requests changes."
+            : "Published."}
+        </p>
+      )}
+
+      {/* Submit (reviewer) / Approve & Publish + Request changes (admin) */}
       <section className="rounded-lg border border-forest/20 bg-forest/5 p-4">
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" checked={confirmChecked} onChange={(e) => setConfirmChecked(e.target.checked)} className="mt-1" />
           <span>
-            I have reviewed this page and confirm every medical/scientific claim is accurate and
-            appropriately sourced.
+            I have reviewed the medical and scientific content against the cited sources and confirm
+            that my review is complete.
           </span>
         </label>
-        <button
-          onClick={publish}
-          disabled={!readiness.canPublish}
-          className="mt-4 rounded bg-forest px-5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Approve &amp; Publish
-        </button>
-        {!readiness.canPublish ? (
+
+        <div className="mt-4 flex flex-wrap gap-3">
+          {!props.isAdmin && (
+            <button
+              onClick={submit}
+              disabled={!submissionReadiness.canProceed || reviewerLocked}
+              className="rounded bg-forest px-5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Submit review
+            </button>
+          )}
+          {props.isAdmin && (
+            <button
+              onClick={publish}
+              disabled={!publishReadiness.canProceed}
+              className="rounded bg-forest px-5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Approve &amp; Publish
+            </button>
+          )}
+        </div>
+
+        {!props.isAdmin && !reviewerLocked && submissionReadiness.blockers.length > 0 && (
           <div className="mt-3 text-sm text-ink/70">
-            <p className="font-semibold">Remaining before publishing:</p>
+            <p className="font-semibold">Remaining before you can submit:</p>
             <ul className="mt-1 list-disc pl-5">
-              {readiness.blockers.map((b, i) => (
+              {submissionReadiness.blockers.map((b, i) => (
                 <li key={i}>{b}</li>
               ))}
             </ul>
           </div>
-        ) : null}
+        )}
+        {props.isAdmin && publishReadiness.blockers.length > 0 && (
+          <div className="mt-3 text-sm text-ink/70">
+            <p className="font-semibold">Remaining before publishing:</p>
+            <ul className="mt-1 list-disc pl-5">
+              {publishReadiness.blockers.map((b, i) => (
+                <li key={i}>{b}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         {publishMsg ? (
           <p className="mt-3 rounded bg-white p-3 text-sm text-ink/80" role="status">
             {publishMsg}
           </p>
         ) : null}
       </section>
+
+      {/* Request changes — admin only */}
+      {props.isAdmin && (
+        <section className="rounded-lg border border-ink/12 bg-white p-4">
+          <h2 className="font-display text-lg font-medium text-ink">Request changes</h2>
+          <p className="mt-1 text-sm text-ink/60">
+            Sends this draft back to the reviewer with your explanation — required.
+          </p>
+          <textarea
+            value={changesNote}
+            onChange={(e) => setChangesNote(e.target.value)}
+            rows={3}
+            placeholder="What needs to change before this can be approved?"
+            className="mt-2 w-full rounded border border-ink/20 p-3"
+          />
+          <button
+            onClick={requestChanges}
+            disabled={!changesNote.trim()}
+            className="mt-2 rounded border border-ink/25 px-4 py-2 text-sm font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Send back with note
+          </button>
+        </section>
+      )}
     </div>
   );
 }

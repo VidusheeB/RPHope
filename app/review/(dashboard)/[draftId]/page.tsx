@@ -29,7 +29,14 @@ export default async function ReviewDraftPage({ params }: { params: { draftId: s
       <p className="mt-1 text-sm text-ink/60">
         {draft.unresolvedFlags} of {draft.reviewFlags.length} flags unresolved
         {draft.sectionsComplete ? "" : " · some sections incomplete"}
+        {" · status: "}
+        {draft.reviewStatus.replace(/_/g, " ")}
       </p>
+      {draft.reviewStatus === "changes_requested" && draft.changesRequestedNote && (
+        <p className="mt-3 rounded-lg border border-lilac bg-lilac/30 p-3 text-sm text-ink/80">
+          <strong>Admin requested changes:</strong> {draft.changesRequestedNote}
+        </p>
+      )}
 
       <div className="mt-8">
         <ReviewEditor
@@ -38,7 +45,9 @@ export default async function ReviewDraftPage({ params }: { params: { draftId: s
           initialContent={draft.content}
           reviewFlags={draft.reviewFlags}
           initialResolutions={draft.resolutions}
-          reviewerCanPublish={session.profile.can_publish || session.profile.role === "admin"}
+          reviewerCanPublish={session.profile.can_publish}
+          isAdmin={session.profile.role === "admin"}
+          reviewStatus={draft.reviewStatus}
         />
       </div>
     </div>

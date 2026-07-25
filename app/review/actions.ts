@@ -13,7 +13,12 @@ import { revalidatePath } from "next/cache";
 import { getServerSupabase } from "@/lib/supabaseServer";
 import { getServiceSupabase } from "@/lib/supabaseAdmin";
 import { getReviewerSession } from "@/lib/reviewer/session";
-import { evaluatePublishReadiness, type FlagResolutionStatus } from "@/lib/reviewer/publishGate";
+import {
+  evaluateSubmissionReadiness,
+  evaluateAdminPublishReadiness,
+  type FlagResolutionStatus,
+} from "@/lib/reviewer/publishGate";
+import type { DraftReviewStatus } from "@/lib/reviewer/dashboardStatus";
 import type { GenePageDraft } from "@/lib/geneResearch/types";
 
 export type ActionResult<T = undefined> =
@@ -73,27 +78,26 @@ export async function resolveFlagAction(input: {
 }
 
 /**
- * Approve & publish. Re-authorizes from the database (assignment + can_publish
- * from reviewer_profiles), re-runs the full publish gate, then — only if every
- * condition passes — archives the previous published version and inserts a new
- * immutable one via the service-role client, marks the draft/assignment
- * completed, and revalidates the public route.
+ * Reviewer-facing "Submit review" — the ONLY way a reviewer can move a draft
+ * forward; they never publish directly. Re-runs the submission gate
+ * server-side, then marks the draft submitted_for_approval (read-only for
+ * the reviewer from here — see the RLS policy in 0008 — until an admin
+ * either publishes it or requests changes).
  */
-export async function publishAction(input: {
+export async function submitReviewAction(input: {
   draftId: string;
   content: GenePageDraft;
   confirmationChecked: boolean;
-}): Promise<ActionResult<{ publishedUrl: string; versionId: string }>> {
+}): Promise<ActionResult> {
   const session = await getReviewerSession();
   if (!session) return { ok: false, error: "Not signed in." };
 
   const service = getServiceSupabase();
   if (!service) return { ok: false, error: "Server not configured." };
 
-  // Re-derive authorization from the DB — never trust the client.
   const { data: draft } = await service
     .from("gene_page_drafts")
-    .select("id, gene_slug, review_flags")
+    .select("id, review_flags")
     .eq("id", input.draftId)
     .maybeSingle();
   if (!draft) return { ok: false, error: "Draft not found." };
@@ -104,12 +108,6 @@ export async function publishAction(input: {
     .eq("draft_id", input.draftId)
     .eq("reviewer_id", session.userId)
     .maybeSingle();
-  // BUG FIX: this used to be "Boolean(assignment) && ...", which is false
-  // for an admin opening a draft assigned to someone ELSE (they have no
-  // assignment row of their own) — producing the "you are not assigned"
-  // blocker for admins specifically. Admins bypass assignment entirely,
-  // matching the gene_page_drafts RLS policies (auth_is_assigned OR
-  // auth_is_admin) which already grant them read/update either way.
   const isAssignedReviewer =
     session.profile.role === "admin" ||
     (Boolean(assignment) && assignment!.status !== "completed");
@@ -119,7 +117,7 @@ export async function publishAction(input: {
     .select("flag_index, status")
     .eq("draft_id", input.draftId);
 
-  const readiness = evaluatePublishReadiness({
+  const readiness = evaluateSubmissionReadiness({
     draft: input.content,
     flagCount: Array.isArray(draft.review_flags) ? draft.review_flags.length : 0,
     resolutions: (resolutions ?? []).map((r) => ({
@@ -127,10 +125,117 @@ export async function publishAction(input: {
       status: r.status as FlagResolutionStatus,
     })),
     isAssignedReviewer,
-    reviewerCanPublish: session.profile.can_publish, // from DB, server-side
     confirmationChecked: input.confirmationChecked,
   });
-  if (!readiness.canPublish) {
+  if (!readiness.canProceed) {
+    return { ok: false, error: "Not ready to submit.", blockers: readiness.blockers };
+  }
+
+  const { error: saveErr } = await service
+    .from("gene_page_drafts")
+    .update({
+      ...serializeDraft(input.content),
+      review_status: "submitted_for_approval",
+      submitted_at: new Date().toISOString(),
+      submitted_by: session.userId,
+    })
+    .eq("id", input.draftId);
+  if (saveErr) return { ok: false, error: saveErr.message };
+
+  if (assignment?.id) {
+    await service.from("draft_assignments").update({ status: "in_progress" }).eq("id", assignment.id);
+  }
+
+  return { ok: true };
+}
+
+/** Admin-only: send a submitted draft back to the reviewer with an
+ *  explanation. Re-opens edit access (the RLS policy only locks out
+ *  submitted_for_approval/approved, so changes_requested is editable again). */
+export async function requestChangesAction(input: {
+  draftId: string;
+  note: string;
+}): Promise<ActionResult> {
+  const session = await getReviewerSession();
+  if (!session || session.profile.role !== "admin") return { ok: false, error: "Admin only." };
+  if (!input.note.trim()) return { ok: false, error: "An explanation is required." };
+
+  const service = getServiceSupabase();
+  if (!service) return { ok: false, error: "Server not configured." };
+
+  const { error } = await service
+    .from("gene_page_drafts")
+    .update({
+      review_status: "changes_requested",
+      changes_requested_note: input.note,
+      changes_requested_at: new Date().toISOString(),
+      changes_requested_by: session.userId,
+    })
+    .eq("id", input.draftId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/review");
+  return { ok: true };
+}
+
+/**
+ * Admin-only: Approve & publish. Re-authorizes from the database (admin role
+ * + can_publish from reviewer_profiles, and that the draft was actually
+ * submitted), re-runs the full publish gate, then — only if every condition
+ * passes — archives the previous published version and inserts a new
+ * immutable one via the service-role client, marks the draft/assignment
+ * completed, and revalidates the public route.
+ */
+export async function publishAction(input: {
+  draftId: string;
+  content: GenePageDraft;
+  confirmationChecked: boolean;
+  adminOverride?: boolean;
+}): Promise<ActionResult<{ publishedUrl: string; versionId: string }>> {
+  const session = await getReviewerSession();
+  if (!session) return { ok: false, error: "Not signed in." };
+  if (session.profile.role !== "admin") {
+    return { ok: false, error: "Only an admin can publish.", blockers: ["Only an admin can publish."] };
+  }
+
+  const service = getServiceSupabase();
+  if (!service) return { ok: false, error: "Server not configured." };
+
+  // Re-derive authorization from the DB — never trust the client.
+  const { data: draft } = await service
+    .from("gene_page_drafts")
+    .select("id, gene_slug, review_flags, review_status")
+    .eq("id", input.draftId)
+    .maybeSingle();
+  if (!draft) return { ok: false, error: "Draft not found." };
+
+  const { data: assignment } = await service
+    .from("draft_assignments")
+    .select("id, status")
+    .eq("draft_id", input.draftId)
+    .order("assigned_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data: resolutions } = await service
+    .from("review_flag_resolutions")
+    .select("flag_index, status")
+    .eq("draft_id", input.draftId);
+
+  const readiness = evaluateAdminPublishReadiness({
+    draft: input.content,
+    flagCount: Array.isArray(draft.review_flags) ? draft.review_flags.length : 0,
+    resolutions: (resolutions ?? []).map((r) => ({
+      flagIndex: r.flag_index,
+      status: r.status as FlagResolutionStatus,
+    })),
+    isAdmin: true, // checked above from the DB-backed session
+    adminCanPublish: session.profile.can_publish,
+    reviewStatus: (draft.review_status ?? "unreviewed") as DraftReviewStatus,
+    confirmationChecked: input.confirmationChecked,
+    adminOverride: input.adminOverride,
+  });
+  if (!readiness.canProceed) {
     return { ok: false, error: "Not ready to publish.", blockers: readiness.blockers };
   }
 

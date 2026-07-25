@@ -1,35 +1,39 @@
-// Pure derivation of the dashboard status label for an assigned draft, from
-// facts the data layer gathers. Kept pure so the mapping is unit-testable.
+// Pure derivation of the dashboard status label for a gene draft, from facts
+// the data layer gathers. Kept pure so the mapping is unit-testable — same
+// reasoning as the file this replaces.
 
 export type DashboardStatus =
-  | "Not started"
-  | "Draft in progress"
-  | "Ready to publish"
+  | "Unassigned"
+  | "Assigned"
+  | "In review"
+  | "Changes requested"
+  | "Submitted for approval"
   | "Published"
-  | "Changes requested";
+  | "Blocked";
+
+export type DraftReviewStatus =
+  | "unreviewed"
+  | "submitted_for_approval"
+  | "changes_requested"
+  | "approved"
+  | "rejected";
 
 export function deriveDashboardStatus(input: {
-  assignmentStatus: "assigned" | "in_progress" | "completed";
+  hasAssignment: boolean;
+  reviewStatus: DraftReviewStatus;
   hasPublishedVersion: boolean;
-  flagCount: number;
-  unresolvedFlags: number;
-  sectionsComplete: boolean;
+  /** A blocking ticket overrides every other state — nothing can move
+   *  forward while one is open, so the queue should say so plainly. */
+  hasBlockingTicket: boolean;
+  /** Any saved edit since assignment — distinguishes "Assigned" (untouched)
+   *  from "In review" (reviewer has started working it). */
   hasEdits: boolean;
-  /** An active (non-completed) assignment created after a version was already
-   *  published — i.e. this gene is being re-reviewed for changes. */
-  reopened: boolean;
 }): DashboardStatus {
-  if (input.reopened && input.assignmentStatus !== "completed") return "Changes requested";
-  if (input.assignmentStatus === "completed" || input.hasPublishedVersion) return "Published";
-  if (input.flagCount >= 0 && input.unresolvedFlags === 0 && input.sectionsComplete) {
-    return "Ready to publish";
-  }
-  if (
-    input.hasEdits ||
-    input.assignmentStatus === "in_progress" ||
-    input.unresolvedFlags < input.flagCount
-  ) {
-    return "Draft in progress";
-  }
-  return "Not started";
+  if (input.hasBlockingTicket) return "Blocked";
+  if (input.hasPublishedVersion && input.reviewStatus !== "changes_requested") return "Published";
+  if (input.reviewStatus === "changes_requested") return "Changes requested";
+  if (input.reviewStatus === "submitted_for_approval") return "Submitted for approval";
+  if (!input.hasAssignment) return "Unassigned";
+  if (input.hasEdits) return "In review";
+  return "Assigned";
 }

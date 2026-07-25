@@ -7,22 +7,25 @@ import type { DashboardStatus } from "@/lib/reviewer/dashboardStatus";
 
 const FILTERS: { key: string; label: string; match: (s: DashboardStatus) => boolean }[] = [
   { key: "all", label: "All", match: () => true },
-  { key: "active", label: "Active", match: (s) => s !== "Published" },
-  { key: "in_progress", label: "In progress", match: (s) => s === "Draft in progress" || s === "Changes requested" },
-  { key: "ready", label: "Ready", match: (s) => s === "Ready to publish" },
+  { key: "assigned", label: "Assigned", match: (s) => s === "Assigned" },
+  { key: "in_progress", label: "In progress", match: (s) => s === "In review" },
+  { key: "changes_requested", label: "Changes requested", match: (s) => s === "Changes requested" },
+  { key: "submitted", label: "Submitted", match: (s) => s === "Submitted for approval" },
   { key: "published", label: "Published", match: (s) => s === "Published" },
 ];
 
 const STATUS_STYLE: Record<DashboardStatus, string> = {
-  "Not started": "bg-ink/10 text-ink/70",
-  "Draft in progress": "bg-butter text-ink",
-  "Ready to publish": "bg-mint text-forest",
+  Unassigned: "bg-ink/10 text-ink/70",
+  Assigned: "bg-ink/10 text-ink/70",
+  "In review": "bg-butter text-ink",
+  "Submitted for approval": "bg-mint text-forest",
   Published: "bg-forest text-white",
   "Changes requested": "bg-lilac text-ink",
+  Blocked: "bg-maroon/15 text-maroon",
 };
 
 export default function DashboardList({ rows }: { rows: DashboardRow[] }) {
-  const [filter, setFilter] = useState("active");
+  const [filter, setFilter] = useState("all");
   const active = FILTERS.find((f) => f.key === filter) ?? FILTERS[0];
   const shown = rows.filter((r) => active.match(r.status));
 
