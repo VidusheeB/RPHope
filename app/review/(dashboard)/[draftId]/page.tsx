@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getReviewerSession } from "@/lib/reviewer/session";
-import { getDraftForReview, getSentenceReviews, getTicketsForDraft } from "@/lib/reviewer/data";
+import { getDraftForReview, getTicketsForDraft } from "@/lib/reviewer/data";
 import { reviewHref } from "@/lib/reviewer/paths";
 import ReviewEditor from "@/components/review/ReviewEditor";
 
@@ -17,7 +17,6 @@ export default async function ReviewDraftPage({ params }: { params: { draftId: s
   // admin-specific bypass needed here, the database already handles it.
   const draft = await getDraftForReview(params.draftId);
   if (!draft) notFound();
-  const sentenceReviews = await getSentenceReviews(params.draftId);
   const tickets = await getTicketsForDraft(params.draftId);
 
   return (
@@ -56,7 +55,6 @@ export default async function ReviewDraftPage({ params }: { params: { draftId: s
           initialContent={draft.content}
           reviewFlags={draft.reviewFlags}
           initialResolutions={draft.resolutions}
-          initialSentenceReviews={sentenceReviews}
           initialTickets={tickets}
           reviewerCanPublish={session.profile.can_publish}
           isAdmin={session.profile.role === "admin"}
