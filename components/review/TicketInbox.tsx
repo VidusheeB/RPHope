@@ -8,6 +8,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { updateTicketAction, replyTicketAction } from "@/app/review/ticketActions";
 import type { TicketRow } from "@/lib/reviewer/data";
+import { reviewHref } from "@/lib/reviewer/paths";
 import {
   TICKET_STATUS_LABELS,
   TICKET_SEVERITY_LABELS,
@@ -112,7 +113,7 @@ export default function TicketInbox({
                   </p>
                   <p className="mt-2 text-sm text-ink/80">{t.description}</p>
                   <Link
-                    href={`/review/${t.draftId}`}
+                    href={reviewHref(`/${t.draftId}`)}
                     className="mt-2 inline-block text-xs font-semibold text-forest underline"
                   >
                     Open draft

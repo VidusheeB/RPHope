@@ -8,6 +8,7 @@
 // there too when ready, rather than adding a second email client.
 
 import { Resend } from "resend";
+import { reviewHref } from "./reviewer/paths";
 
 const FROM = process.env.STORY_EMAIL_FROM || "RP Hope <information@rphope.org>";
 const REVIEWER_INBOX = process.env.STORY_REVIEWER_EMAIL || "information@rphope.org";
@@ -50,7 +51,7 @@ export async function sendReviewerNotificationEmail(submissionId: string): Promi
     REVIEWER_INBOX,
     "New story submission awaiting review",
     `A new story was submitted and is waiting for review.\n\n` +
-      `Review it here: ${SITE_URL}/review/stories/${submissionId}`
+      `Review it here: ${SITE_URL}${reviewHref(`/stories/${submissionId}`)}`
   );
 }
 

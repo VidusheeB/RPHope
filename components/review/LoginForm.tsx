@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getBrowserSupabase } from "@/lib/supabaseBrowser";
+import { reviewHref } from "@/lib/reviewer/paths";
 
 // Invite-only login. Primary method is email + password (reviewers set their
 // own password from the invite link). Magic-link is offered only as an optional
@@ -26,7 +27,7 @@ export default function LoginForm() {
       setStatus(error.message);
       return;
     }
-    router.replace("/review");
+    router.replace(reviewHref(""));
     router.refresh();
   }
 
@@ -40,7 +41,7 @@ export default function LoginForm() {
     const supabase = getBrowserSupabase();
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/review` },
+      options: { emailRedirectTo: `${window.location.origin}${reviewHref("")}` },
     });
     setBusy(false);
     setStatus(error ? error.message : "Check your email for a sign-in link.");
@@ -85,7 +86,7 @@ export default function LoginForm() {
         <button onClick={sendMagicLink} disabled={busy} className="text-forest underline">
           Email me a sign-in link
         </button>
-        <Link href="/review/reset-password" className="text-forest underline">
+        <Link href={reviewHref("/reset-password")} className="text-forest underline">
           Forgot password?
         </Link>
       </div>

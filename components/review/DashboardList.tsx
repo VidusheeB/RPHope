@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { DashboardRow } from "@/lib/reviewer/data";
 import type { DashboardStatus } from "@/lib/reviewer/dashboardStatus";
+import { reviewHref } from "@/lib/reviewer/paths";
 
 const FILTERS: { key: string; label: string; match: (s: DashboardStatus) => boolean }[] = [
   { key: "all", label: "All", match: () => true },
@@ -77,7 +78,7 @@ export default function DashboardList({ rows }: { rows: DashboardRow[] }) {
               </div>
               <div className="mt-3 flex items-center gap-3">
                 <Link
-                  href={`/review/${r.draftId}`}
+                  href={reviewHref(`/${r.draftId}`)}
                   className="inline-block rounded bg-forest px-4 py-2 text-sm font-semibold text-white"
                 >
                   {r.status === "Published" ? "View" : "Open review"}

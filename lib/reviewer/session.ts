@@ -5,6 +5,7 @@
 
 import { redirect } from "next/navigation";
 import { getServerSupabase } from "../supabaseServer";
+import { reviewHref } from "./paths";
 
 export type ReviewerProfile = {
   user_id: string;
@@ -43,13 +44,13 @@ export async function getReviewerSession(): Promise<ReviewerSession | null> {
 /** Require a logged-in, active reviewer; redirect to login otherwise. */
 export async function requireReviewer(): Promise<ReviewerSession> {
   const session = await getReviewerSession();
-  if (!session) redirect("/review/login");
+  if (!session) redirect(reviewHref("/login"));
   return session;
 }
 
 /** Require an admin; redirect non-admins to the dashboard. */
 export async function requireAdmin(): Promise<ReviewerSession> {
   const session = await requireReviewer();
-  if (session.profile.role !== "admin") redirect("/review");
+  if (session.profile.role !== "admin") redirect(reviewHref(""));
   return session;
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireReviewer } from "@/lib/reviewer/session";
 import { getMyNotifications, getMyUnreadCount } from "@/lib/reviewer/notifications";
+import { reviewHref, publicHref } from "@/lib/reviewer/paths";
 import SignOutButton from "@/components/review/SignOutButton";
 import NotificationBell from "@/components/review/NotificationBell";
 
@@ -17,6 +18,7 @@ export default async function ReviewDashboardLayout({
 }) {
   const session = await requireReviewer();
   const isAdmin = session.profile.role === "admin";
+  const homeHref = isAdmin ? reviewHref("/admin") : reviewHref("");
   const [notifications, unreadCount] = await Promise.all([getMyNotifications(), getMyUnreadCount()]);
 
   return (
@@ -24,29 +26,24 @@ export default async function ReviewDashboardLayout({
       <header className="border-b border-ink/10 bg-white">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-5 py-4">
           <div className="flex items-center gap-6">
-            <Link href="/review" className="font-display text-lg font-bold text-forest">
+            <Link href={homeHref} className="font-display text-lg font-bold text-forest">
               RP Hope Review
             </Link>
             <nav className="flex items-center gap-4 text-sm font-semibold text-ink/70">
-              <Link href="/review" className="hover:text-forest">
-                Dashboard
+              <Link href={homeHref} className="hover:text-forest">
+                {isAdmin ? "Dashboard" : "Genes to review"}
               </Link>
-              <Link href="/review/stories" className="hover:text-forest">
+              <Link href={reviewHref("/stories")} className="hover:text-forest">
                 Stories
               </Link>
-              {isAdmin && (
-                <Link href="/review/admin" className="hover:text-forest">
-                  Admin
-                </Link>
-              )}
             </nav>
           </div>
 
           <div className="flex items-center gap-4 text-sm">
-            <Link href="/genetic-insights" className="font-semibold text-ink/60 hover:text-forest">
+            <Link href={publicHref("/genetic-insights")} className="font-semibold text-ink/60 hover:text-forest">
               Genetic Insights
             </Link>
-            <Link href="/" className="font-semibold text-ink/60 hover:text-forest">
+            <Link href={publicHref("/")} className="font-semibold text-ink/60 hover:text-forest">
               Public site
             </Link>
             <NotificationBell initialNotifications={notifications} initialUnreadCount={unreadCount} />

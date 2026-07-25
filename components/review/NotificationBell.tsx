@@ -8,6 +8,7 @@ import {
   markAllNotificationsReadAction,
 } from "@/app/review/notificationActions";
 import type { NotificationRow } from "@/lib/reviewer/notifications";
+import { reviewHref } from "@/lib/reviewer/paths";
 
 export default function NotificationBell({
   initialNotifications,
@@ -106,7 +107,7 @@ export default function NotificationBell({
               </ul>
             )}
             <div className="border-t border-ink/10 px-4 py-2 text-center">
-              <Link href="/review" onClick={() => setOpen(false)} className="text-xs font-semibold text-forest">
+              <Link href={reviewHref("")} onClick={() => setOpen(false)} className="text-xs font-semibold text-forest">
                 Go to dashboard
               </Link>
             </div>

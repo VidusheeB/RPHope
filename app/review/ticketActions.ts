@@ -12,6 +12,7 @@ import { getServiceSupabase } from "@/lib/supabaseAdmin";
 import { getReviewerSession } from "@/lib/reviewer/session";
 import { notify, notifyAdmins } from "@/lib/reviewer/notifications";
 import { logAudit } from "@/lib/reviewer/audit";
+import { reviewHref } from "@/lib/reviewer/paths";
 import type { TicketSeverity, TicketStatus, TicketType } from "@/lib/reviewer/tickets";
 import type { ActionResult } from "./actions";
 
@@ -68,7 +69,7 @@ export async function createTicketAction(input: {
     actor: user.id,
     type: "ticket_created",
     title: `New${input.blocking ? " blocking" : ""} issue on ${draft?.gene_symbol ?? "a draft"}: ${input.subject.trim()}`,
-    href: `/review/admin`,
+    href: reviewHref("/admin"),
     draftId: input.draftId,
     ticketId: data.id,
   });
@@ -128,7 +129,7 @@ export async function replyTicketAction(input: {
           actor: user.id,
           type: "ticket_reply",
           title: `New reply on ticket: ${ticket.subject}`,
-          href: `/review/admin`,
+          href: reviewHref("/admin"),
           draftId: ticket.draft_id,
           ticketId: input.ticketId,
         });
@@ -139,7 +140,7 @@ export async function replyTicketAction(input: {
           actor: user.id,
           type: "ticket_reply",
           title: `Reply on your issue: ${ticket.subject}`,
-          href: `/review/${ticket.draft_id}`,
+          href: reviewHref(`/${ticket.draft_id}`),
           draftId: ticket.draft_id,
           ticketId: input.ticketId,
         });
@@ -194,7 +195,7 @@ export async function updateTicketAction(input: {
         actor: session.userId,
         type: "ticket_resolved",
         title: `Resolved: ${ticket.subject}`,
-        href: `/review/${ticket.draft_id}`,
+        href: reviewHref(`/${ticket.draft_id}`),
         draftId: ticket.draft_id,
         ticketId: input.ticketId,
       });

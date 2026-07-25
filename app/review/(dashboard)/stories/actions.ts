@@ -101,6 +101,32 @@ export async function publishStory(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+/** Take a published story down (e.g. the submitter asked, or something needs
+ *  fixing). Sets status back to 'archived' rather than deleting the row, so
+ *  it can be reviewed/republished later. Same publish-permission gate as
+ *  publishing — taking a live page down is just as consequential as
+ *  putting one up. */
+export async function unpublishStoryAction(id: string): Promise<ActionResult> {
+  const session = await requireReviewer();
+  if (!session.profile.can_publish) {
+    return { ok: false, error: "You don't have publish permission." };
+  }
+  const service = getServiceSupabase();
+  if (!service) return { ok: false, error: "Not configured." };
+
+  const { error } = await service
+    .from("story_submissions")
+    .update({ status: "archived" })
+    .eq("id", id)
+    .eq("status", "published");
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/stories");
+  revalidatePath(`/review/stories/${id}`);
+  revalidatePath("/review/stories");
+  return { ok: true };
+}
+
 /** Decline a submission. Any active reviewer. */
 export async function rejectStory(id: string, note?: string): Promise<ActionResult> {
   const session = await requireReviewer();

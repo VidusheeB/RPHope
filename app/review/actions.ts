@@ -23,6 +23,7 @@ import { resolveStatusOnEdit, sameSourceIds, type SentenceVerificationStatus } f
 import { countBlockingOpenTickets, type TicketStatus } from "@/lib/reviewer/tickets";
 import { notify, notifyAdmins, notifyDraftAssignee } from "@/lib/reviewer/notifications";
 import { logAudit } from "@/lib/reviewer/audit";
+import { reviewHref } from "@/lib/reviewer/paths";
 import type { GenePageDraft } from "@/lib/geneResearch/types";
 
 export type ActionResult<T = undefined> =
@@ -238,7 +239,7 @@ export async function submitReviewAction(input: {
     actor: session.userId,
     type: "review_submitted",
     title: `${draft.gene_symbol} submitted for approval`,
-    href: `/review/${input.draftId}`,
+    href: reviewHref(`/${input.draftId}`),
     draftId: input.draftId,
   });
   await logAudit({ actor: session.userId, action: "review_submitted", draftId: input.draftId });
@@ -282,7 +283,7 @@ export async function requestChangesAction(input: {
     type: "changes_requested",
     title: `Changes requested on ${draft?.gene_symbol ?? "a draft"}`,
     body: input.note,
-    href: `/review/${input.draftId}`,
+    href: reviewHref(`/${input.draftId}`),
   });
   await logAudit({
     actor: session.userId,
@@ -291,6 +292,11 @@ export async function requestChangesAction(input: {
     after: { note: input.note },
   });
 
+  // revalidatePath targets the actual page/route (app/review/page.tsx),
+  // which is the same physical route on both deployments — the
+  // rphopereview rewrite changes which EXTERNAL URL reaches it, not the
+  // route itself, so this stays hardcoded rather than going through
+  // reviewHref() (which is only for URLs a browser will actually navigate to).
   revalidatePath("/review");
   return { ok: true };
 }
@@ -462,7 +468,7 @@ export async function inviteReviewerAction(input: {
   const ctx = await requireAdminService();
   if (!ctx.ok) return { ok: false, error: ctx.error };
 
-  const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/review/set-password`;
+  const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}${reviewHref("/set-password")}`;
   const { data, error } = await ctx.service.auth.admin.inviteUserByEmail(input.email, { redirectTo });
   if (error) return { ok: false, error: error.message };
 
@@ -514,7 +520,7 @@ export async function assignDraftAction(input: {
     actor: ctx.session.userId,
     type: "draft_assigned",
     title: `You've been assigned ${draft?.gene_symbol ?? "a gene draft"}`,
-    href: `/review/${input.draftId}`,
+    href: reviewHref(`/${input.draftId}`),
     draftId: input.draftId,
   });
   await logAudit({
@@ -556,5 +562,32 @@ export async function updateReviewerAction(input: {
       after: { canPublish: input.canPublish },
     });
   }
+  return { ok: true };
+}
+
+/** Take a published gene page down. Archives the current published
+ *  gene_page_versions row for that slug (not deleted — can be re-published
+ *  later). The public route falls back to the legacy genesData.json content
+ *  once nothing is published, same as before this gene was ever reviewed.
+ *  Admin + can_publish, same bar as publishing in the first place. */
+export async function unpublishGeneAction(geneSlug: string): Promise<ActionResult> {
+  const session = await getReviewerSession();
+  if (!session) return { ok: false, error: "Not signed in." };
+  if (session.profile.role !== "admin" || !session.profile.can_publish) {
+    return { ok: false, error: "Only an admin with publish permission can take a page down." };
+  }
+  const service = getServiceSupabase();
+  if (!service) return { ok: false, error: "Server not configured." };
+
+  const { error } = await service
+    .from("gene_page_versions")
+    .update({ status: "archived" })
+    .eq("gene_slug", geneSlug)
+    .eq("status", "published");
+  if (error) return { ok: false, error: error.message };
+
+  await logAudit({ actor: session.userId, action: "gene_unpublished", after: { geneSlug } });
+  revalidatePath(`/genetic-insights/${geneSlug}`);
+  revalidatePath("/review/admin");
   return { ok: true };
 }

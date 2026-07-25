@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getReviewerSession } from "@/lib/reviewer/session";
 import { getDraftForReview, getSentenceReviews, getTicketsForDraft } from "@/lib/reviewer/data";
+import { reviewHref } from "@/lib/reviewer/paths";
 import ReviewEditor from "@/components/review/ReviewEditor";
 
 export const metadata: Metadata = { title: "Review draft | RP Hope", robots: { index: false } };
@@ -21,7 +22,7 @@ export default async function ReviewDraftPage({ params }: { params: { draftId: s
 
   return (
     <div>
-      <Link href="/review" className="text-sm font-semibold text-forest underline">
+      <Link href={reviewHref("")} className="text-sm font-semibold text-forest underline">
         ← Dashboard
       </Link>
       <h1 className="mt-3 font-display text-3xl font-medium text-forest">

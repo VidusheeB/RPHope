@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { saveStoryEdits, sendForApproval, publishStory, rejectStory } from "../actions";
+import { saveStoryEdits, sendForApproval, publishStory, rejectStory, unpublishStoryAction } from "../actions";
 
 type StoryRow = {
   id: string;
@@ -18,7 +18,7 @@ type StoryRow = {
   story_text_raw: string | null;
   video_path: string | null;
   audio_path: string | null;
-  status: "pending_review" | "published" | "rejected";
+  status: "pending_review" | "published" | "rejected" | "archived";
   approval_token: string | null;
   final_story_sent_at: string | null;
   published_at: string | null;
@@ -74,6 +74,15 @@ export default function StoryReviewEditor({
     const res = await rejectStory(story.id, rejectNote || undefined);
     setBusy(null);
     setMessage(res.ok ? "Declined." : res.error);
+  }
+
+  async function handleUnpublish() {
+    if (!confirm("Take this story down? It'll disappear from /stories immediately.")) return;
+    setBusy("unpublish");
+    setMessage(null);
+    const res = await unpublishStoryAction(story.id);
+    setBusy(null);
+    setMessage(res.ok ? "Taken down." : res.error);
   }
 
   return (
@@ -210,6 +219,19 @@ export default function StoryReviewEditor({
             </button>
           </div>
         )}
+
+      {story.status === "published" && canPublish && (
+        <div className="border-t border-ink/10 pt-6">
+          <button
+            type="button"
+            onClick={handleUnpublish}
+            disabled={busy !== null}
+            className="rounded-md border border-maroon/40 px-5 py-2.5 font-semibold text-maroon enabled:hover:bg-maroon/5 disabled:opacity-40"
+          >
+            {busy === "unpublish" ? "Taking down…" : "Take down"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

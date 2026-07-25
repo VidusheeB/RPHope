@@ -2,7 +2,7 @@
 // enums/columns in supabase/migrations/0004_story_submissions.sql — keep the
 // two in sync if either changes.
 
-export type StoryStatus = "pending_review" | "published" | "rejected";
+export type StoryStatus = "pending_review" | "published" | "rejected" | "archived";
 export type ContactMethod = "email" | "phone";
 export type EditPermission = "review_first" | "free_edit";
 export type DisplayContact = "email" | "phone" | "none";

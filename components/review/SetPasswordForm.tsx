@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getBrowserSupabase } from "@/lib/supabaseBrowser";
+import { reviewHref } from "@/lib/reviewer/paths";
 
 // Used for BOTH the invite flow ("set your password") and the reset flow
 // ("choose a new password"). The user arrives with an active session created by
@@ -34,7 +35,7 @@ export default function SetPasswordForm({ heading }: { heading: string }) {
       setStatus(error.message);
       return;
     }
-    router.replace("/review");
+    router.replace(reviewHref(""));
     router.refresh();
   }
 

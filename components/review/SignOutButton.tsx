@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getBrowserSupabase } from "@/lib/supabaseBrowser";
+import { reviewHref } from "@/lib/reviewer/paths";
 
 export default function SignOutButton() {
   const router = useRouter();
@@ -11,7 +12,7 @@ export default function SignOutButton() {
   async function signOut() {
     setBusy(true);
     await getBrowserSupabase().auth.signOut();
-    router.replace("/review/login");
+    router.replace(reviewHref("/login"));
     router.refresh();
   }
 

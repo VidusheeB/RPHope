@@ -7,10 +7,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { assignDraftAction } from "@/app/review/actions";
+import { assignDraftAction, unpublishGeneAction } from "@/app/review/actions";
 import { useRouter } from "next/navigation";
 import type { AdminDraftRow } from "@/lib/reviewer/data";
 import type { DashboardStatus } from "@/lib/reviewer/dashboardStatus";
+import { reviewHref } from "@/lib/reviewer/paths";
 
 const STATUS_STYLE: Record<DashboardStatus, string> = {
   Unassigned: "bg-ink/10 text-ink/70",
@@ -52,6 +53,13 @@ export default function AdminDraftQueue({
     router.refresh();
   }
 
+  async function takeDown(geneSlug: string) {
+    if (!confirm(`Take the ${geneSlug.toUpperCase()} page down? It'll fall back to the legacy content until republished.`)) return;
+    const res = await unpublishGeneAction(geneSlug);
+    if (!res.ok) alert(res.error);
+    router.refresh();
+  }
+
   return (
     <div>
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter drafts">
@@ -90,7 +98,7 @@ export default function AdminDraftQueue({
                 </span>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <Link href={`/review/${d.draftId}`} className="rounded bg-forest px-4 py-2 text-sm font-semibold text-white">
+                <Link href={reviewHref(`/${d.draftId}`)} className="rounded bg-forest px-4 py-2 text-sm font-semibold text-white">
                   Open as admin
                 </Link>
                 {reassigning === d.draftId ? (
@@ -117,6 +125,15 @@ export default function AdminDraftQueue({
                     className="text-sm font-semibold text-forest underline"
                   >
                     {d.assignedReviewerName ? "Reassign" : "Assign"}
+                  </button>
+                )}
+                {d.status === "Published" && (
+                  <button
+                    type="button"
+                    onClick={() => takeDown(d.geneSlug)}
+                    className="text-sm font-semibold text-maroon underline"
+                  >
+                    Take down
                   </button>
                 )}
               </div>

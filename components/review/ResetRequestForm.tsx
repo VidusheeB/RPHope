@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { getBrowserSupabase } from "@/lib/supabaseBrowser";
+import { reviewHref } from "@/lib/reviewer/paths";
 
 export default function ResetRequestForm() {
   const [email, setEmail] = useState("");
@@ -14,7 +15,7 @@ export default function ResetRequestForm() {
     setStatus(null);
     const supabase = getBrowserSupabase();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/review/set-password`,
+      redirectTo: `${window.location.origin}${reviewHref("/set-password")}`,
     });
     setBusy(false);
     setStatus(

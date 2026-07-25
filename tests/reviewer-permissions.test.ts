@@ -61,10 +61,10 @@ describe("0008 enum-add is isolated from its own consuming statements (static)",
 });
 
 describe("sign-out actually clears the session (static)", () => {
-  it("SignOutButton calls Supabase auth.signOut() before redirecting to /review/login", () => {
+  it("SignOutButton calls Supabase auth.signOut() before redirecting to the login page", () => {
     const src = read("components/review/SignOutButton.tsx");
     const signOutIdx = src.indexOf(".auth.signOut()");
-    const redirectIdx = src.indexOf('"/review/login"');
+    const redirectIdx = src.indexOf('reviewHref("/login")');
     expect(signOutIdx).toBeGreaterThan(-1);
     expect(redirectIdx).toBeGreaterThan(-1);
     expect(signOutIdx).toBeLessThan(redirectIdx); // sign-out happens BEFORE the redirect

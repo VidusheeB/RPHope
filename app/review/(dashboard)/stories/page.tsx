@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireReviewer } from "@/lib/reviewer/session";
 import { getServiceSupabase } from "@/lib/supabaseAdmin";
+import { reviewHref } from "@/lib/reviewer/paths";
 
 export const metadata: Metadata = { title: "Story submissions | RP Hope", robots: { index: false } };
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ type Row = {
   full_name: string;
   display_name: string;
   edit_permission: "review_first" | "free_edit";
-  status: "pending_review" | "published" | "rejected";
+  status: "pending_review" | "published" | "rejected" | "archived";
   created_at: string;
 };
 
@@ -74,7 +75,7 @@ function StoryRow({ row }: { row: Row }) {
   return (
     <li>
       <Link
-        href={`/review/stories/${row.id}`}
+        href={reviewHref(`/stories/${row.id}`)}
         className="flex items-center justify-between rounded-md border border-ink/10 bg-white px-4 py-3 transition hover:border-forest/40"
       >
         <div>
