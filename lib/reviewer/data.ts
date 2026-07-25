@@ -38,14 +38,26 @@ export type DashboardRow = {
   sentencesTotal: number;
 };
 
-/** Drafts assigned to the current reviewer (RLS-scoped) + their flag progress. */
+/** Drafts assigned to the current reviewer + their flag progress. This is a
+ *  PERSONAL work queue, so it explicitly filters to reviewer_id = the
+ *  caller's own user id — it must NOT rely on RLS alone here, because the
+ *  draft_assignments SELECT policy deliberately lets admins read every
+ *  assignment row (so the admin dashboard can see everything), which would
+ *  otherwise leak every reviewer's assignments into an admin's own "Your
+ *  reviews" page. */
 export async function getAssignedDrafts(): Promise<DashboardRow[]> {
   const supabase = getServerSupabase();
   if (!supabase) return [];
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
   const { data: assignments } = await supabase
     .from("draft_assignments")
-    .select("draft_id, status, assigned_at");
+    .select("draft_id, status, assigned_at")
+    .eq("reviewer_id", user.id);
   if (!assignments?.length) return [];
 
   const rows: DashboardRow[] = [];
