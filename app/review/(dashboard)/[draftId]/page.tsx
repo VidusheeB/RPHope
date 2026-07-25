@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getReviewerSession } from "@/lib/reviewer/session";
-import { getDraftForReview, getSentenceReviews } from "@/lib/reviewer/data";
+import { getDraftForReview, getSentenceReviews, getTicketsForDraft } from "@/lib/reviewer/data";
 import ReviewEditor from "@/components/review/ReviewEditor";
 
 export const metadata: Metadata = { title: "Review draft | RP Hope", robots: { index: false } };
@@ -17,6 +17,7 @@ export default async function ReviewDraftPage({ params }: { params: { draftId: s
   const draft = await getDraftForReview(params.draftId);
   if (!draft) notFound();
   const sentenceReviews = await getSentenceReviews(params.draftId);
+  const tickets = await getTicketsForDraft(params.draftId);
 
   return (
     <div>
@@ -30,6 +31,7 @@ export default async function ReviewDraftPage({ params }: { params: { draftId: s
       <p className="mt-1 text-sm text-ink/60">
         {draft.unresolvedFlags} of {draft.reviewFlags.length} flags unresolved
         {draft.sectionsComplete ? "" : " · some sections incomplete"}
+        {draft.openTicketCount > 0 ? ` · ${draft.openTicketCount} issue${draft.openTicketCount === 1 ? "" : "s"} open` : ""}
         {" · status: "}
         {draft.reviewStatus.replace(/_/g, " ")}
       </p>
@@ -38,15 +40,23 @@ export default async function ReviewDraftPage({ params }: { params: { draftId: s
           <strong>Admin requested changes:</strong> {draft.changesRequestedNote}
         </p>
       )}
+      {draft.openBlockingTicketCount > 0 && (
+        <p className="mt-3 rounded-lg border border-maroon/30 bg-maroon/5 p-3 text-sm text-maroon">
+          {draft.openBlockingTicketCount} blocking issue{draft.openBlockingTicketCount === 1 ? "" : "s"} must be
+          resolved before this draft can move forward — see &quot;Issues reported&quot; below.
+        </p>
+      )}
 
       <div className="mt-8">
         <ReviewEditor
           draftId={draft.draftId}
           geneSlug={draft.geneSlug}
+          geneSymbol={draft.geneSymbol}
           initialContent={draft.content}
           reviewFlags={draft.reviewFlags}
           initialResolutions={draft.resolutions}
           initialSentenceReviews={sentenceReviews}
+          initialTickets={tickets}
           reviewerCanPublish={session.profile.can_publish}
           isAdmin={session.profile.role === "admin"}
           reviewStatus={draft.reviewStatus}

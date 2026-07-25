@@ -20,6 +20,7 @@ import {
 } from "@/lib/reviewer/publishGate";
 import type { DraftReviewStatus } from "@/lib/reviewer/dashboardStatus";
 import { resolveStatusOnEdit, sameSourceIds, type SentenceVerificationStatus } from "@/lib/reviewer/sentenceVerification";
+import { countBlockingOpenTickets, type TicketStatus } from "@/lib/reviewer/tickets";
 import type { GenePageDraft } from "@/lib/geneResearch/types";
 
 export type ActionResult<T = undefined> =
@@ -179,6 +180,14 @@ export async function submitReviewAction(input: {
     .select("flag_index, status")
     .eq("draft_id", input.draftId);
 
+  const { data: tickets } = await service
+    .from("review_tickets")
+    .select("status, blocking")
+    .eq("draft_id", input.draftId);
+  const openBlockingTicketCount = countBlockingOpenTickets(
+    (tickets ?? []) as { status: TicketStatus; blocking: boolean }[]
+  );
+
   const readiness = evaluateSubmissionReadiness({
     draft: input.content,
     flagCount: Array.isArray(draft.review_flags) ? draft.review_flags.length : 0,
@@ -188,6 +197,7 @@ export async function submitReviewAction(input: {
     })),
     isAssignedReviewer,
     confirmationChecked: input.confirmationChecked,
+    openBlockingTicketCount,
   });
   if (!readiness.canProceed) {
     return { ok: false, error: "Not ready to submit.", blockers: readiness.blockers };
@@ -284,6 +294,14 @@ export async function publishAction(input: {
     .select("flag_index, status")
     .eq("draft_id", input.draftId);
 
+  const { data: tickets } = await service
+    .from("review_tickets")
+    .select("status, blocking")
+    .eq("draft_id", input.draftId);
+  const openBlockingTicketCount = countBlockingOpenTickets(
+    (tickets ?? []) as { status: TicketStatus; blocking: boolean }[]
+  );
+
   const readiness = evaluateAdminPublishReadiness({
     draft: input.content,
     flagCount: Array.isArray(draft.review_flags) ? draft.review_flags.length : 0,
@@ -296,6 +314,7 @@ export async function publishAction(input: {
     reviewStatus: (draft.review_status ?? "unreviewed") as DraftReviewStatus,
     confirmationChecked: input.confirmationChecked,
     adminOverride: input.adminOverride,
+    openBlockingTicketCount,
   });
   if (!readiness.canProceed) {
     return { ok: false, error: "Not ready to publish.", blockers: readiness.blockers };

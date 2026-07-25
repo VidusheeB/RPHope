@@ -10,6 +10,7 @@ import { deriveDashboardStatus, type DashboardStatus, type DraftReviewStatus } f
 import { normalizeSentencedText } from "../geneResearch/types";
 import type { GenePageDraft } from "../geneResearch/types";
 import type { SentenceReviewRow } from "./sentenceVerification";
+import { countBlockingOpenTickets, countOpenTickets, type TicketSeverity, type TicketStatus, type TicketType } from "./tickets";
 
 export type FlagResolutionRow = {
   flag_index: number;
@@ -29,6 +30,8 @@ export type DashboardRow = {
   updatedAt: string | null;
   assignmentStatus: "assigned" | "in_progress" | "completed";
   assignedReviewerName?: string;
+  openTicketCount: number;
+  blockingTicketCount: number;
 };
 
 /** Drafts assigned to the current reviewer (RLS-scoped) + their flag progress. */
@@ -68,6 +71,13 @@ export async function getAssignedDrafts(): Promise<DashboardRow[]> {
       .limit(1);
     const hasPublished = Boolean(published?.length);
 
+    const { data: tickets } = await supabase
+      .from("review_tickets")
+      .select("status, blocking")
+      .eq("draft_id", a.draft_id);
+    const ticketRows = (tickets ?? []) as { status: TicketStatus; blocking: boolean }[];
+    const blockingTicketCount = countBlockingOpenTickets(ticketRows);
+
     rows.push({
       draftId: draft.id,
       geneSlug: draft.gene_slug,
@@ -76,11 +86,13 @@ export async function getAssignedDrafts(): Promise<DashboardRow[]> {
       unresolvedFlags: unresolved,
       updatedAt: draft.reviewed_at ?? draft.generated_at ?? null,
       assignmentStatus: a.status,
+      openTicketCount: countOpenTickets(ticketRows),
+      blockingTicketCount,
       status: deriveDashboardStatus({
         hasAssignment: true,
         reviewStatus: (draft.review_status ?? "unreviewed") as DraftReviewStatus,
         hasPublishedVersion: hasPublished,
-        hasBlockingTicket: false, // wired once the ticket system exists
+        hasBlockingTicket: blockingTicketCount > 0,
         hasEdits: Boolean(draft.reviewed_at),
       }),
     });
@@ -99,6 +111,8 @@ export type DraftForReview = {
   unresolvedFlags: number;
   reviewStatus: DraftReviewStatus;
   changesRequestedNote: string | null;
+  openBlockingTicketCount: number;
+  openTicketCount: number;
 };
 
 /** Full draft + resolutions for the review page (RLS-scoped: only if assigned). */
@@ -123,6 +137,12 @@ export async function getDraftForReview(draftId: string): Promise<DraftForReview
   const reviewFlags = Array.isArray(draft.review_flags) ? (draft.review_flags as string[]) : [];
   const resRows = (resolutions ?? []) as FlagResolutionRow[];
 
+  const { data: tickets } = await supabase
+    .from("review_tickets")
+    .select("status, blocking")
+    .eq("draft_id", draftId);
+  const ticketRows = (tickets ?? []) as { status: TicketStatus; blocking: boolean }[];
+
   return {
     draftId: draft.id,
     geneSlug: draft.gene_slug,
@@ -137,6 +157,8 @@ export async function getDraftForReview(draftId: string): Promise<DraftForReview
     ),
     reviewStatus: (draft.review_status ?? "unreviewed") as DraftReviewStatus,
     changesRequestedNote: draft.changes_requested_note ?? null,
+    openBlockingTicketCount: countBlockingOpenTickets(ticketRows),
+    openTicketCount: countOpenTickets(ticketRows),
   };
 }
 
@@ -191,6 +213,93 @@ export async function getSentenceReviews(draftId: string): Promise<SentenceRevie
   }));
 }
 
+export type TicketRow = {
+  id: string;
+  ticketNumber: number;
+  draftId: string;
+  sectionKey: string | null;
+  type: TicketType;
+  subject: string;
+  description: string;
+  severity: TicketSeverity;
+  blocking: boolean;
+  status: TicketStatus;
+  createdBy: string;
+  assignedAdmin: string | null;
+  pageUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TicketReplyRow = {
+  id: string;
+  ticketId: string;
+  author: string;
+  body: string;
+  internalNote: boolean;
+  createdAt: string;
+};
+
+function rowToTicket(t: Record<string, any>): TicketRow {
+  return {
+    id: t.id,
+    ticketNumber: t.ticket_number,
+    draftId: t.draft_id,
+    sectionKey: t.section_key,
+    type: t.type,
+    subject: t.subject,
+    description: t.description,
+    severity: t.severity,
+    blocking: t.blocking,
+    status: t.status,
+    createdBy: t.created_by,
+    assignedAdmin: t.assigned_admin,
+    pageUrl: t.page_url,
+    createdAt: t.created_at,
+    updatedAt: t.updated_at,
+  };
+}
+
+/** Tickets for one draft (RLS-scoped: the filer sees their own, an admin
+ *  sees all). Used on the review workspace itself. */
+export async function getTicketsForDraft(draftId: string): Promise<TicketRow[]> {
+  const supabase = getServerSupabase();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("review_tickets")
+    .select("*")
+    .eq("draft_id", draftId)
+    .order("created_at", { ascending: false });
+  return (data ?? []).map(rowToTicket);
+}
+
+/** One ticket + its reply thread (RLS-scoped — internal notes are hidden
+ *  from non-admins automatically). */
+export async function getTicketWithReplies(
+  ticketId: string
+): Promise<{ ticket: TicketRow; replies: TicketReplyRow[] } | null> {
+  const supabase = getServerSupabase();
+  if (!supabase) return null;
+  const { data: ticket } = await supabase.from("review_tickets").select("*").eq("id", ticketId).maybeSingle();
+  if (!ticket) return null;
+  const { data: replies } = await supabase
+    .from("ticket_replies")
+    .select("*")
+    .eq("ticket_id", ticketId)
+    .order("created_at", { ascending: true });
+  return {
+    ticket: rowToTicket(ticket),
+    replies: (replies ?? []).map((r) => ({
+      id: r.id,
+      ticketId: r.ticket_id,
+      author: r.author,
+      body: r.body,
+      internalNote: r.internal_note,
+      createdAt: r.created_at,
+    })),
+  };
+}
+
 // ---- Admin reads (service-role, behind an admin check by the caller) -------
 
 export async function getAdminOverview() {
@@ -202,4 +311,25 @@ export async function getAdminOverview() {
     service.from("draft_assignments").select("id, draft_id, reviewer_id, status, assigned_at"),
   ]);
   return { drafts: drafts ?? [], reviewers: reviewers ?? [], assignments: assignments ?? [] };
+}
+
+/** All tickets across every draft, for the admin ticket inbox. Service-role —
+ *  caller must have already checked requireAdmin(). */
+export async function getAllTicketsForAdmin(): Promise<(TicketRow & { geneSymbol: string })[]> {
+  const service = getServiceSupabase();
+  if (!service) return [];
+  const { data: tickets } = await service
+    .from("review_tickets")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (!tickets?.length) return [];
+
+  const draftIds = Array.from(new Set(tickets.map((t) => t.draft_id)));
+  const { data: drafts } = await service
+    .from("gene_page_drafts")
+    .select("id, gene_symbol")
+    .in("id", draftIds);
+  const symbolById = new Map((drafts ?? []).map((d) => [d.id, d.gene_symbol]));
+
+  return tickets.map((t) => ({ ...rowToTicket(t), geneSymbol: symbolById.get(t.draft_id) ?? "?" }));
 }

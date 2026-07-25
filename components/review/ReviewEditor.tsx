@@ -24,14 +24,17 @@ import {
   requestChangesAction,
   saveSentenceReviewAction,
 } from "@/app/review/actions";
+import { replyTicketAction } from "@/app/review/ticketActions";
 import { normalizeSentencedText, NARRATIVE_SECTION_KEYS } from "@/lib/geneResearch/types";
 import type { GenePageDraft, SourceCitation } from "@/lib/geneResearch/types";
-import type { FlagResolutionRow } from "@/lib/reviewer/data";
+import type { FlagResolutionRow, TicketRow } from "@/lib/reviewer/data";
 import {
   verificationProgress,
   type SentenceReviewRow,
   type SentenceVerificationStatus,
 } from "@/lib/reviewer/sentenceVerification";
+import { TICKET_STATUS_LABELS, TICKET_TYPE_LABELS, isOpenTicketStatus } from "@/lib/reviewer/tickets";
+import ReportIssueButton from "./ReportIssueButton";
 
 const SECTION_LABELS: Record<string, string> = {
   summaryCard: "Summary",
@@ -77,10 +80,12 @@ function reviewKey(sectionKey: string, sentenceIndex: number): string {
 export default function ReviewEditor(props: {
   draftId: string;
   geneSlug: string;
+  geneSymbol: string;
   initialContent: GenePageDraft;
   reviewFlags: string[];
   initialResolutions: FlagResolutionRow[];
   initialSentenceReviews: SentenceReviewRow[];
+  initialTickets: TicketRow[];
   reviewerCanPublish: boolean;
   isAdmin: boolean;
   reviewStatus: DraftReviewStatus;
@@ -103,7 +108,14 @@ export default function ReviewEditor(props: {
   const [publishMsg, setPublishMsg] = useState<string | null>(null);
   const [changesNote, setChangesNote] = useState("");
   const [highlightedSourceId, setHighlightedSourceId] = useState<string | null>(null);
+  const [focusedSection, setFocusedSection] = useState<string | undefined>(undefined);
+  const [tickets, setTickets] = useState<TicketRow[]>(props.initialTickets);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openBlockingTicketCount = tickets.filter(
+    (t) => t.blocking && isOpenTicketStatus(t.status)
+  ).length;
+  const openTicketCount = tickets.filter((t) => isOpenTicketStatus(t.status)).length;
 
   const reviewerLocked =
     !props.isAdmin &&
@@ -125,6 +137,7 @@ export default function ReviewEditor(props: {
     flagCount: props.reviewFlags.length,
     resolutions: Array.from(resolutions.entries()).map(([flagIndex, status]) => ({ flagIndex, status })),
     confirmationChecked: confirmChecked,
+    openBlockingTicketCount,
   };
   const submissionReadiness = evaluateSubmissionReadiness({
     ...flagResolutionInput,
@@ -271,6 +284,13 @@ export default function ReviewEditor(props: {
     }
   }
 
+  async function replyToTicket(ticketId: string, body: string) {
+    if (!body.trim()) return;
+    const res = await replyTicketAction({ ticketId, body });
+    if (res.ok) router.refresh();
+    else setPublishMsg(res.error);
+  }
+
   async function requestChanges() {
     setPublishMsg(null);
     const res = await requestChangesAction({ draftId: props.draftId, note: changesNote });
@@ -343,6 +363,7 @@ export default function ReviewEditor(props: {
                       <textarea
                         value={sentence.text}
                         disabled={reviewerLocked}
+                        onFocus={() => setFocusedSection(String(sectionKey))}
                         onChange={(e) =>
                           editSentenceText(sectionKey, i, e.target.value)
                         }
@@ -582,6 +603,27 @@ export default function ReviewEditor(props: {
         ) : null}
       </section>
 
+      {/* Tickets filed on this draft */}
+      {tickets.length > 0 && (
+        <section>
+          <h2 className="font-display text-xl font-medium text-ink">Issues reported ({tickets.length})</h2>
+          <ul className="mt-3 space-y-3">
+            {tickets.map((t) => (
+              <TicketCard key={t.id} ticket={t} onReply={(body) => replyToTicket(t.id, body)} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <ReportIssueButton
+        draftId={props.draftId}
+        geneSymbol={props.geneSymbol}
+        sections={NARRATIVE_SECTION_KEYS.map((k) => ({ key: String(k), label: SECTION_LABELS[String(k)] }))}
+        currentSectionKey={focusedSection}
+        openTicketCount={openTicketCount}
+        onCreated={() => router.refresh()}
+      />
+
       {/* Request changes — admin only */}
       {props.isAdmin && (
         <section className="rounded-lg border border-ink/12 bg-white p-4">
@@ -606,5 +648,55 @@ export default function ReviewEditor(props: {
         </section>
       )}
     </div>
+  );
+}
+
+const TICKET_STATUS_STYLE: Record<string, string> = {
+  open: "bg-maroon/15 text-maroon",
+  acknowledged: "bg-butter text-ink",
+  in_progress: "bg-butter text-ink",
+  waiting_for_reviewer: "bg-lilac text-ink",
+  resolved: "bg-mint text-forest",
+  closed: "bg-ink/10 text-ink/60",
+};
+
+function TicketCard({ ticket, onReply }: { ticket: TicketRow; onReply: (body: string) => void }) {
+  const [reply, setReply] = useState("");
+  return (
+    <li className="rounded-lg border border-ink/12 bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-semibold text-ink">
+          #{ticket.ticketNumber} {ticket.subject}
+        </p>
+        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${TICKET_STATUS_STYLE[ticket.status]}`}>
+          {TICKET_STATUS_LABELS[ticket.status]}
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-ink/50">
+        {TICKET_TYPE_LABELS[ticket.type]}
+        {ticket.sectionKey ? ` · ${ticket.sectionKey}` : ""}
+        {ticket.blocking ? " · blocking" : ""}
+      </p>
+      <p className="mt-2 text-sm text-ink/80">{ticket.description}</p>
+      <div className="mt-3 flex gap-2">
+        <input
+          value={reply}
+          onChange={(e) => setReply(e.target.value)}
+          placeholder="Reply…"
+          className="flex-1 rounded border border-ink/15 px-2 py-1 text-xs"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            onReply(reply);
+            setReply("");
+          }}
+          disabled={!reply.trim()}
+          className="rounded border border-ink/20 px-3 py-1 text-xs font-semibold disabled:opacity-50"
+        >
+          Reply
+        </button>
+      </div>
+    </li>
   );
 }
