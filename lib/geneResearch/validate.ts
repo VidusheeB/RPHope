@@ -11,7 +11,7 @@
 
 import Ajv from "ajv";
 import { GENE_PAGE_SCHEMA } from "./schema";
-import { allValidSourceIds } from "./types";
+import { allValidSourceIds, NARRATIVE_SECTION_KEYS, normalizeSentencedText } from "./types";
 import type { GenePageDraft, GeneSourceBundle, RejectReason, ValidationResult } from "./types";
 
 const ajv = new Ajv({ allErrors: true, strict: false });
@@ -28,23 +28,14 @@ export function validateDraftSchemaOnly(
 }
 
 /** Source IDs cited in the draft's PROSE and research cards only (excludes the
- *  `sources` registry array itself). */
+ *  `sources` registry array itself). Flattens across every sentence in every
+ *  narrative section — same check as before sentence-level citations, just
+ *  applied at the finer grain. */
 function proseCitedSourceIds(draft: GenePageDraft): string[] {
   const ids: string[] = [];
-  const sourcedFields: (keyof GenePageDraft)[] = [
-    "summaryCard",
-    "whatThisGeneMeans",
-    "howItMayAffectVision",
-    "whatIsKnown",
-    "whatIsUncertain",
-    "whatYouCanDoNext",
-    "forFamilyAndCaregivers",
-    "treatmentAndResearch",
-    "clinicalTrialSummary",
-  ];
-  for (const field of sourcedFields) {
-    const value = draft[field] as { sourceIds?: string[] } | undefined;
-    if (value?.sourceIds) ids.push(...value.sourceIds);
+  for (const field of NARRATIVE_SECTION_KEYS) {
+    const { sentences } = normalizeSentencedText(draft[field]);
+    for (const s of sentences) ids.push(...s.sourceIds);
   }
   for (const card of draft.researchCards ?? []) ids.push(...(card.sourceIds ?? []));
   return Array.from(new Set(ids));
@@ -63,20 +54,9 @@ export function allCitedSourcesPresent(
 /** Collect every source ID referenced anywhere in the draft. */
 export function citedSourceIds(draft: GenePageDraft): string[] {
   const ids: string[] = [];
-  const sourcedFields: (keyof GenePageDraft)[] = [
-    "summaryCard",
-    "whatThisGeneMeans",
-    "howItMayAffectVision",
-    "whatIsKnown",
-    "whatIsUncertain",
-    "whatYouCanDoNext",
-    "forFamilyAndCaregivers",
-    "treatmentAndResearch",
-    "clinicalTrialSummary",
-  ];
-  for (const field of sourcedFields) {
-    const value = draft[field] as { sourceIds?: string[] } | undefined;
-    if (value?.sourceIds) ids.push(...value.sourceIds);
+  for (const field of NARRATIVE_SECTION_KEYS) {
+    const { sentences } = normalizeSentencedText(draft[field]);
+    for (const s of sentences) ids.push(...s.sourceIds);
   }
   for (const card of draft.researchCards ?? []) {
     ids.push(...(card.sourceIds ?? []));

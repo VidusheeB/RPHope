@@ -32,44 +32,35 @@ export default async function ReviewStoriesPage() {
   const actioned = rows.filter((r) => r.status !== "pending_review");
 
   return (
-    <main className="min-h-screen bg-cream px-5 py-12">
-      <div className="mx-auto max-w-3xl">
-        <div className="flex items-center justify-between">
-          <h1 className="font-display text-3xl font-medium text-forest">
-            Story submissions
-          </h1>
-          <Link href="/review" className="text-sm font-semibold text-forest underline">
-            Reviewer dashboard
-          </Link>
-        </div>
+    <div>
+      <h1 className="font-display text-3xl font-medium text-forest">Story submissions</h1>
 
-        <section className="mt-8">
-          <h2 className="font-display text-xl font-bold text-ink">
-            Pending review ({pending.length})
-          </h2>
-          {pending.length === 0 ? (
-            <p className="mt-2 text-ink/60">Nothing waiting right now.</p>
-          ) : (
-            <ul className="mt-3 space-y-2">
-              {pending.map((r) => (
-                <StoryRow key={r.id} row={r} />
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {actioned.length > 0 && (
-          <section className="mt-10">
-            <h2 className="font-display text-xl font-bold text-ink">Recently actioned</h2>
-            <ul className="mt-3 space-y-2">
-              {actioned.slice(0, 20).map((r) => (
-                <StoryRow key={r.id} row={r} />
-              ))}
-            </ul>
-          </section>
+      <section className="mt-8">
+        <h2 className="font-display text-xl font-bold text-ink">
+          Pending review ({pending.length})
+        </h2>
+        {pending.length === 0 ? (
+          <p className="mt-2 text-ink/60">Nothing waiting right now.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {pending.map((r) => (
+              <StoryRow key={r.id} row={r} />
+            ))}
+          </ul>
         )}
-      </div>
-    </main>
+      </section>
+
+      {actioned.length > 0 && (
+        <section className="mt-10">
+          <h2 className="font-display text-xl font-bold text-ink">Recently actioned</h2>
+          <ul className="mt-3 space-y-2">
+            {actioned.slice(0, 20).map((r) => (
+              <StoryRow key={r.id} row={r} />
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
   );
 }
 

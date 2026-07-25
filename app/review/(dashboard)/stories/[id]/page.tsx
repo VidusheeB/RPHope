@@ -40,15 +40,11 @@ export default async function ReviewStoryDetailPage({
   }
 
   return (
-    <main className="min-h-screen bg-cream px-5 py-12">
-      <div className="mx-auto max-w-3xl">
-        <StoryReviewEditor
-          story={story}
-          videoUrl={videoUrl}
-          audioUrl={audioUrl}
-          canPublish={session.profile.can_publish}
-        />
-      </div>
-    </main>
+    <StoryReviewEditor
+      story={story}
+      videoUrl={videoUrl}
+      audioUrl={audioUrl}
+      canPublish={session.profile.can_publish}
+    />
   );
 }

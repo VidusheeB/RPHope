@@ -8,6 +8,7 @@ import ListenButton from "@/components/site/ListenButton";
 import { getResearchItems } from "@/lib/researchRepo";
 import { getPublishedGeneVersion } from "@/lib/reviewer/publicContent";
 import GeneDraftView from "@/components/review/GeneDraftView";
+import { flattenAnySection } from "@/lib/geneResearch/types";
 import type { GenePageDraft } from "@/lib/geneResearch/types";
 import {
   GENE_COL,
@@ -59,8 +60,9 @@ function readableGeneText(gene: Gene, articles: Article[]): string {
 /** Verbatim listen text for a published generated gene page. */
 function readableDraftText(draft: GenePageDraft): string {
   const parts: string[] = [draft.gene + "."];
-  const push = (label: string, t?: { text?: string }) => {
-    if (t?.text) parts.push(`${label}. ${t.text}`);
+  const push = (label: string, t?: unknown) => {
+    const text = flattenAnySection(t);
+    if (text) parts.push(`${label}. ${text}`);
   };
   push("Summary", draft.summaryCard);
   push("What this gene means", draft.whatThisGeneMeans);

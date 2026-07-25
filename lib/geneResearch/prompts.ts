@@ -258,6 +258,16 @@ ${input.unverifiedTrialReferencesJson}
 2. Produce a patient-first page rather than a literature review.
 3. Give each factual statement valid supporting source IDs from the bundle —
    never invented. The draft is rejected outright if it cites an unknown ID.
+3a. Every narrative field (summaryCard, whatThisGeneMeans,
+    howItMayAffectVision, whatIsKnown, whatIsUncertain, whatYouCanDoNext,
+    forFamilyAndCaregivers, treatmentAndResearch, clinicalTrialSummary) is an
+    array of sentences, not one block of text. Split each section into its
+    individual sentences and give EACH sentence its own sourceIds array —
+    only the source ID(s) that specifically support THAT sentence, not every
+    source used anywhere in the section. A sentence stating something that
+    needs no citation (e.g. a transition or a framing sentence) should have
+    an empty sourceIds array rather than borrowing a neighboring sentence's
+    citation.
 4. Identify what is well established and what remains uncertain.
 5. Do not manufacture a patient-population estimate.
 6. Do not describe supplements as gene-specific management without direct,

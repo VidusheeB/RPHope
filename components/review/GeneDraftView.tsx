@@ -5,7 +5,8 @@
 // public /genetic-insights/[gene] route when a published Supabase version exists.
 // Presentational only.
 
-import type { GenePageDraft, SourcedText, ResearchCard } from "@/lib/geneResearch/types";
+import type { GenePageDraft, ResearchCard } from "@/lib/geneResearch/types";
+import { flattenAnySection } from "@/lib/geneResearch/types";
 import type { ReactNode } from "react";
 import {
   IdentityCard,
@@ -26,11 +27,12 @@ function lead(text?: string, max = 160): string {
   return first.length > max ? first.slice(0, max).replace(/\s+\S*$/, "") + "…" : first;
 }
 
-function ProseSection({ title, body }: { title: string; body?: SourcedText }) {
-  if (!body?.text) return null;
+function ProseSection({ title, body }: { title: string; body?: unknown }) {
+  const text = flattenAnySection(body);
+  if (!text) return null;
   return (
-    <GeneSection title={title} preview={lead(body.text)}>
-      <p className={`whitespace-pre-line ${PROSE}`}>{renderWithGlossary(body.text)}</p>
+    <GeneSection title={title} preview={lead(text)}>
+      <p className={`whitespace-pre-line ${PROSE}`}>{renderWithGlossary(text)}</p>
     </GeneSection>
   );
 }
@@ -56,10 +58,11 @@ function TreatmentAndResearchSection({
   body,
   cards,
 }: {
-  body?: SourcedText;
+  body?: unknown;
   cards?: ResearchCard[];
 }) {
-  const hasBody = !!body?.text;
+  const text = flattenAnySection(body);
+  const hasBody = !!text;
   const sorted = cards?.length ? sortByTreatmentRelevance(cards) : [];
   if (!hasBody && sorted.length === 0) return null;
   return (
@@ -67,11 +70,11 @@ function TreatmentAndResearchSection({
       title="Treatment & research"
       preview={
         hasBody
-          ? lead(body!.text)
+          ? lead(text)
           : "Studies behind this page — what was found, why it matters, and its limitation…"
       }
     >
-      {hasBody && <p className={`whitespace-pre-line ${PROSE}`}>{renderWithGlossary(body!.text)}</p>}
+      {hasBody && <p className={`whitespace-pre-line ${PROSE}`}>{renderWithGlossary(text)}</p>}
       {sorted.length > 0 && (
         <ul className={`grid gap-3 ${hasBody ? "mt-6" : ""}`}>
           {sorted.map((c, i) => (
@@ -130,26 +133,31 @@ export default function GeneDraftView({
     <div data-gene-scope>
       <IdentityCard
         gene={draft.gene}
-        lead={draft.summaryCard?.text}
+        lead={flattenAnySection(draft.summaryCard) || undefined}
         listenSlot={listenSlot}
         face={face}
         glance={glance}
       />
 
       {/* Where things stand */}
-      {(draft.treatmentAndResearch?.text || draft.clinicalTrialSummary?.text) && (
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          {draft.treatmentAndResearch?.text && (
-            <StatusCard lead="Where things stand · Treatment" title="Treatment & research">
-              <p>{lead(draft.treatmentAndResearch.text, 220)}</p>
-            </StatusCard>
-          )}
-          <StatusTrials
-            geneSlug={geneSlug}
-            summary={draft.clinicalTrialSummary?.text ? lead(draft.clinicalTrialSummary.text, 200) : undefined}
-          />
-        </div>
-      )}
+      {(() => {
+        const treatmentText = flattenAnySection(draft.treatmentAndResearch);
+        const trialText = flattenAnySection(draft.clinicalTrialSummary);
+        if (!treatmentText && !trialText) return null;
+        return (
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {treatmentText && (
+              <StatusCard lead="Where things stand · Treatment" title="Treatment & research">
+                <p>{lead(treatmentText, 220)}</p>
+              </StatusCard>
+            )}
+            <StatusTrials
+              geneSlug={geneSlug}
+              summary={trialText ? lead(trialText, 200) : undefined}
+            />
+          </div>
+        );
+      })()}
 
       <div className="mt-6">
         <ReadingModeToggle />

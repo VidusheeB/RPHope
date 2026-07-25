@@ -28,6 +28,7 @@ import type {
   GenePageDraft,
   GenerationResult,
   RejectReason,
+  SourceCitation,
 } from "./types";
 
 const MODEL = "claude-opus-4-8";
@@ -119,6 +120,49 @@ export class DraftRejectedError extends Error {
 }
 
 /**
+ * Deterministic post-processing, NOT a model call: Opus's own `sources`
+ * output only asks for { id, type, title, url } (see schema.ts). The review
+ * workspace's source panel needs richer bibliographic detail (journal, year,
+ * PMID, DOI, abstract, provenance) — all of which the retrieval layer
+ * already fetched and verified into `bundle` before Opus ever ran. Rather
+ * than asking the model to restate facts it could get wrong, this looks
+ * each cited source ID up in the original bundle and merges the real data
+ * in. Zero extra tokens, zero hallucination risk.
+ */
+function enrichSources(sources: SourceCitation[], bundle: GeneSourceBundle): SourceCitation[] {
+  const literatureById = new Map(bundle.literatureRecords.map((r) => [r.sourceId, r]));
+  const trialById = new Map(bundle.trialRecords.map((r) => [r.sourceId, r]));
+
+  return sources.map((s) => {
+    const lit = literatureById.get(s.id);
+    if (lit) {
+      return {
+        ...s,
+        journal: lit.journal,
+        year: lit.year,
+        pmid: lit.pmid,
+        doi: lit.doi,
+        abstract: lit.abstract,
+        provenance: lit.source,
+      };
+    }
+    const trial = trialById.get(s.id);
+    if (trial) {
+      return {
+        ...s,
+        trialId: trial.nctId,
+        abstract: trial.briefSummary,
+        provenance: "clinicaltrials" as const,
+      };
+    }
+    if (s.type === "ncbi-gene" || s.type === "rphope-resource" || s.type === "web") {
+      return { ...s, provenance: s.type };
+    }
+    return s;
+  });
+}
+
+/**
  * Generate one gene's draft page. Throws GenerationError on infra failure
  * (missing key, API error, unparseable response), or DraftRejectedError if
  * the draft fails validation (unknown source ID, schema validation failure).
@@ -197,6 +241,7 @@ export async function generateGenePage(
   parsed.reviewStatus = "unreviewed";
   parsed.generatedAt = new Date().toISOString();
   parsed = enforceLimits(parsed);
+  parsed.sources = enrichSources(parsed.sources, bundle);
 
   const validation = validateDraft(parsed, bundle);
   if (!validation.ok) {

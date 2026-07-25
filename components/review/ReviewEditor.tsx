@@ -7,7 +7,8 @@ import {
   type FlagResolutionStatus,
 } from "@/lib/reviewer/publishGate";
 import { saveDraftAction, resolveFlagAction, publishAction } from "@/app/review/actions";
-import type { GenePageDraft, SourcedText } from "@/lib/geneResearch/types";
+import { flattenSentencedText, normalizeSentencedText } from "@/lib/geneResearch/types";
+import type { GenePageDraft, SentencedText } from "@/lib/geneResearch/types";
 import type { FlagResolutionRow } from "@/lib/reviewer/data";
 
 const SECTIONS: { key: keyof GenePageDraft; label: string }[] = [
@@ -105,8 +106,18 @@ export default function ReviewEditor(props: {
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty, saveState]);
 
+  // INTERIM: this editor still edits a whole section as one text block (the
+  // sentence-level side-by-side workspace replaces this component entirely
+  // — see the review dashboard rebuild). Editing here collapses the
+  // section's sentences into one, preserving the union of their source IDs
+  // so nothing gets silently dropped in the meantime.
   function editSection(key: keyof GenePageDraft, text: string) {
-    setContent((c) => ({ ...c, [key]: { ...(c[key] as SourcedText), text } }));
+    setContent((c) => {
+      const prior = normalizeSentencedText(c[key]);
+      const sourceIds = Array.from(new Set(prior.sentences.flatMap((s) => s.sourceIds)));
+      const next: SentencedText = { sentences: [{ text, sourceIds }] };
+      return { ...c, [key]: next };
+    });
     setDirty(true);
   }
 
@@ -147,20 +158,22 @@ export default function ReviewEditor(props: {
 
       {/* Section editors */}
       {SECTIONS.map(({ key, label }) => {
-        const section = content[key] as SourcedText | undefined;
+        const section = normalizeSentencedText(content[key]);
+        const text = flattenSentencedText(section);
+        const sourceIds = Array.from(new Set(section.sentences.flatMap((s) => s.sourceIds)));
         return (
           <section key={String(key)} id={`section-${String(key)}`}>
             <label className="block">
               <span className="font-display text-lg font-medium text-ink">{label}</span>
               <textarea
-                value={section?.text ?? ""}
+                value={text}
                 onChange={(e) => editSection(key, e.target.value)}
-                rows={Math.max(3, Math.ceil((section?.text?.length ?? 0) / 90))}
+                rows={Math.max(3, Math.ceil(text.length / 90))}
                 className="mt-1 w-full rounded border border-ink/20 p-3 leading-relaxed"
               />
             </label>
-            {section?.sourceIds?.length ? (
-              <p className="mt-1 text-xs text-ink/50">Sources: {section.sourceIds.join(", ")}</p>
+            {sourceIds.length ? (
+              <p className="mt-1 text-xs text-ink/50">Sources: {sourceIds.join(", ")}</p>
             ) : null}
           </section>
         );

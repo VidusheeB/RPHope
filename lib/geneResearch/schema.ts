@@ -15,7 +15,12 @@
 // in generate.ts that trims overshoots and adds a reviewFlag — belt and
 // suspenders, since a prompt instruction alone isn't a hard guarantee.
 
-const sourcedText = {
+// A section's prose broken into individually-cited sentences — each
+// sentence carries only the source ID(s) that specifically support it, not
+// the whole section's citation list. This is the sentence-to-source mapping
+// the review workspace needs; everything else about the pipeline (which
+// evidence gets retrieved, ranked, and supplied) is unchanged.
+const citedSentence = {
   type: "object",
   additionalProperties: false,
   properties: {
@@ -23,6 +28,15 @@ const sourcedText = {
     sourceIds: { type: "array", items: { type: "string" } },
   },
   required: ["text", "sourceIds"],
+};
+
+const sentencedText = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    sentences: { type: "array", items: citedSentence },
+  },
+  required: ["sentences"],
 };
 
 const researchCard = {
@@ -68,16 +82,16 @@ export const GENE_PAGE_SCHEMA = {
   additionalProperties: false,
   properties: {
     gene: { type: "string" },
-    summaryCard: sourcedText,
-    whatThisGeneMeans: sourcedText,
-    howItMayAffectVision: sourcedText,
-    whatIsKnown: sourcedText,
-    whatIsUncertain: sourcedText,
-    whatYouCanDoNext: sourcedText,
+    summaryCard: sentencedText,
+    whatThisGeneMeans: sentencedText,
+    howItMayAffectVision: sentencedText,
+    whatIsKnown: sentencedText,
+    whatIsUncertain: sentencedText,
+    whatYouCanDoNext: sentencedText,
     questionsForClinician: { type: "array", items: { type: "string" } },
-    forFamilyAndCaregivers: sourcedText,
-    treatmentAndResearch: sourcedText,
-    clinicalTrialSummary: sourcedText,
+    forFamilyAndCaregivers: sentencedText,
+    treatmentAndResearch: sentencedText,
+    clinicalTrialSummary: sentencedText,
     researchCards: { type: "array", items: researchCard },
     sources: { type: "array", items: sourceCitation },
     reviewFlags: { type: "array", items: { type: "string" } },

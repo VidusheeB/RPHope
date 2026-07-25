@@ -188,7 +188,52 @@ export function allValidSourceIds(bundle: GeneSourceBundle): Set<string> {
 
 // ---- Structured output shape (matches GENE_PAGE_SCHEMA) --------------------
 
-export type SourcedText = { text: string; sourceIds: string[] };
+/** One sentence of drafted prose with the specific source ID(s) that support
+ *  IT — not the whole section. This is what lets the review workspace show
+ *  sentence-to-source verification instead of one citation list per
+ *  paragraph. */
+export type CitedSentence = { text: string; sourceIds: string[] };
+
+/** A narrative section, broken into individually-cited sentences. Opus
+ *  produces this shape directly (see schema.ts's `sentencedText`) — this is
+ *  NOT a client-side re-split of a paragraph; the model is asked to attach
+ *  citations per sentence at generation time. */
+export type SentencedText = { sentences: CitedSentence[] };
+
+/** Pre-migration shape, kept only so old gene_page_drafts rows (generated
+ *  before sentence-level citations existed) still parse without crashing.
+ *  Never produced by generation anymore — see normalizeSentencedText(). */
+export type LegacySourcedText = { text: string; sourceIds: string[] };
+
+/** Reads either the current { sentences: [...] } shape or a legacy
+ *  { text, sourceIds } row, always returning the current shape. A legacy
+ *  section becomes a single "sentence" spanning its whole original text —
+ *  safe to render and review, just without per-sentence granularity until
+ *  the gene is regenerated. */
+export function normalizeSentencedText(raw: unknown): SentencedText {
+  const value = raw as { sentences?: CitedSentence[]; text?: string; sourceIds?: string[] } | undefined;
+  if (value?.sentences) return { sentences: value.sentences };
+  if (typeof value?.text === "string") {
+    return { sentences: [{ text: value.text, sourceIds: value.sourceIds ?? [] }] };
+  }
+  return { sentences: [] };
+}
+
+/** Flattened prose of a section, for contexts that just need to display or
+ *  speak the text (the public gene page, read-aloud) rather than review it
+ *  sentence by sentence. */
+export function flattenSentencedText(value: SentencedText): string {
+  return value.sentences.map((s) => s.text).join(" ");
+}
+
+/** Safe for ANY stored shape — old { text, sourceIds } rows (including
+ *  already-published gene_page_versions.content written before sentence-
+ *  level citations existed) or the current { sentences: [...] } shape.
+ *  Prefer this over calling normalizeSentencedText + flattenSentencedText
+ *  separately when the input's shape/vintage isn't already known. */
+export function flattenAnySection(raw: unknown): string {
+  return flattenSentencedText(normalizeSentencedText(raw));
+}
 
 export type ResearchCard = {
   title: string;
@@ -205,26 +250,54 @@ export type SourceCitation = {
   type: "pubmed" | "europepmc" | "clinicaltrials" | "ncbi-gene" | "rphope-resource" | "web";
   title: string;
   url: string;
+  /** Everything below is added deterministically by generate.ts AFTER Opus
+   *  responds, by looking the source ID up in the original evidence bundle
+   *  (LiteratureRecord/TrialSummaryRecord) — never asked of the model, so
+   *  there's no risk of a hallucinated PMID/DOI/year. Optional because they
+   *  don't apply to every source type (e.g. ncbi-gene, rphope-resource). */
+  authors?: string[];
+  journal?: string;
+  year?: number;
+  pmid?: string;
+  doi?: string;
+  trialId?: string;
+  abstract?: string;
+  provenance?: "pubmed" | "europepmc" | "clinicaltrials" | "ncbi-gene" | "rphope-resource" | "web";
 };
 
 export type GenePageDraft = {
   gene: string;
-  summaryCard: SourcedText;
-  whatThisGeneMeans: SourcedText;
-  howItMayAffectVision: SourcedText;
-  whatIsKnown: SourcedText;
-  whatIsUncertain: SourcedText;
-  whatYouCanDoNext: SourcedText;
+  summaryCard: SentencedText;
+  whatThisGeneMeans: SentencedText;
+  howItMayAffectVision: SentencedText;
+  whatIsKnown: SentencedText;
+  whatIsUncertain: SentencedText;
+  whatYouCanDoNext: SentencedText;
   questionsForClinician: string[];
-  forFamilyAndCaregivers: SourcedText;
-  treatmentAndResearch: SourcedText;
-  clinicalTrialSummary: SourcedText;
+  forFamilyAndCaregivers: SentencedText;
+  treatmentAndResearch: SentencedText;
+  clinicalTrialSummary: SentencedText;
   researchCards: ResearchCard[];
   sources: SourceCitation[];
   reviewFlags: string[];
   reviewStatus: "unreviewed";
   generatedAt: string;
 };
+
+/** The nine narrative section keys, in display order — used anywhere code
+ *  needs to iterate "every sentenced section" instead of hardcoding the list
+ *  (schema.ts, validate.ts, the review workspace). */
+export const NARRATIVE_SECTION_KEYS: (keyof GenePageDraft)[] = [
+  "summaryCard",
+  "whatThisGeneMeans",
+  "howItMayAffectVision",
+  "whatIsKnown",
+  "whatIsUncertain",
+  "whatYouCanDoNext",
+  "forFamilyAndCaregivers",
+  "treatmentAndResearch",
+  "clinicalTrialSummary",
+];
 
 export type GenerationResult = {
   draft: GenePageDraft;

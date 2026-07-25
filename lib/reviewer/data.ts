@@ -7,6 +7,7 @@ import { getServerSupabase } from "../supabaseServer";
 import { getServiceSupabase } from "../supabaseAdmin";
 import { requiredSectionsComplete, unresolvedFlagCount, type FlagResolutionStatus } from "./publishGate";
 import { deriveDashboardStatus, type DashboardStatus } from "./dashboardStatus";
+import { normalizeSentencedText } from "../geneResearch/types";
 import type { GenePageDraft } from "../geneResearch/types";
 
 export type FlagResolutionRow = {
@@ -135,20 +136,24 @@ export async function getDraftForReview(draftId: string): Promise<DraftForReview
   };
 }
 
-/** Reconstruct a GenePageDraft from a gene_page_drafts row. */
+/** Reconstruct a GenePageDraft from a gene_page_drafts row. Every narrative
+ *  field is run through normalizeSentencedText() so a row generated before
+ *  sentence-level citations existed (old { text, sourceIds } shape) still
+ *  loads safely — as a single "sentence" spanning its original text — rather
+ *  than crashing the review workspace. */
 export function draftRowToContent(d: Record<string, any>): GenePageDraft {
   return {
     gene: d.gene_symbol,
-    summaryCard: d.summary_card,
-    whatThisGeneMeans: d.what_this_gene_means,
-    howItMayAffectVision: d.how_it_may_affect_vision,
-    whatIsKnown: d.what_is_known,
-    whatIsUncertain: d.what_is_uncertain,
-    whatYouCanDoNext: d.what_you_can_do_next,
+    summaryCard: normalizeSentencedText(d.summary_card),
+    whatThisGeneMeans: normalizeSentencedText(d.what_this_gene_means),
+    howItMayAffectVision: normalizeSentencedText(d.how_it_may_affect_vision),
+    whatIsKnown: normalizeSentencedText(d.what_is_known),
+    whatIsUncertain: normalizeSentencedText(d.what_is_uncertain),
+    whatYouCanDoNext: normalizeSentencedText(d.what_you_can_do_next),
     questionsForClinician: d.questions_for_clinician ?? [],
-    forFamilyAndCaregivers: d.for_family_and_caregivers,
-    treatmentAndResearch: d.treatment_and_research,
-    clinicalTrialSummary: d.clinical_trial_summary,
+    forFamilyAndCaregivers: normalizeSentencedText(d.for_family_and_caregivers),
+    treatmentAndResearch: normalizeSentencedText(d.treatment_and_research),
+    clinicalTrialSummary: normalizeSentencedText(d.clinical_trial_summary),
     researchCards: d.research_cards ?? [],
     sources: d.sources ?? [],
     reviewFlags: d.review_flags ?? [],

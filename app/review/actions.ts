@@ -104,7 +104,15 @@ export async function publishAction(input: {
     .eq("draft_id", input.draftId)
     .eq("reviewer_id", session.userId)
     .maybeSingle();
-  const isAssignedReviewer = Boolean(assignment) && assignment!.status !== "completed";
+  // BUG FIX: this used to be "Boolean(assignment) && ...", which is false
+  // for an admin opening a draft assigned to someone ELSE (they have no
+  // assignment row of their own) — producing the "you are not assigned"
+  // blocker for admins specifically. Admins bypass assignment entirely,
+  // matching the gene_page_drafts RLS policies (auth_is_assigned OR
+  // auth_is_admin) which already grant them read/update either way.
+  const isAssignedReviewer =
+    session.profile.role === "admin" ||
+    (Boolean(assignment) && assignment!.status !== "completed");
 
   const { data: resolutions } = await service
     .from("review_flag_resolutions")

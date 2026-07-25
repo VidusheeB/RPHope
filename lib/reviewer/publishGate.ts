@@ -14,6 +14,7 @@
 //   - the reviewer checked the final confirmation.
 
 import { validateDraftSchemaOnly, allCitedSourcesPresent } from "../geneResearch/validate";
+import { NARRATIVE_SECTION_KEYS, normalizeSentencedText } from "../geneResearch/types";
 import type { GenePageDraft } from "../geneResearch/types";
 
 export type FlagResolutionStatus =
@@ -55,25 +56,14 @@ export function unresolvedFlagCount(
   return n;
 }
 
-// The narrative sections that must carry non-empty text before publishing.
-const REQUIRED_SOURCED_SECTIONS: (keyof GenePageDraft)[] = [
-  "summaryCard",
-  "whatThisGeneMeans",
-  "howItMayAffectVision",
-  "whatIsKnown",
-  "whatIsUncertain",
-  "whatYouCanDoNext",
-  "forFamilyAndCaregivers",
-  "treatmentAndResearch",
-  "clinicalTrialSummary",
-];
-
-/** True when every required section has real content (non-empty prose, at
- *  least one clinician question, at least one source). */
+/** True when every required section has real content (at least one non-empty
+ *  sentence, at least one clinician question, at least one source). */
 export function requiredSectionsComplete(draft: GenePageDraft): boolean {
-  for (const field of REQUIRED_SOURCED_SECTIONS) {
-    const value = draft[field] as { text?: string } | undefined;
-    if (!value || !value.text || value.text.trim().length === 0) return false;
+  for (const field of NARRATIVE_SECTION_KEYS) {
+    const { sentences } = normalizeSentencedText(draft[field]);
+    if (sentences.length === 0 || sentences.every((s) => s.text.trim().length === 0)) {
+      return false;
+    }
   }
   if (!draft.questionsForClinician || draft.questionsForClinician.length === 0) return false;
   if (!draft.sources || draft.sources.length === 0) return false;
