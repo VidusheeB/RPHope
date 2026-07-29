@@ -33,6 +33,11 @@ export default async function ReviewDashboardLayout({
               <Link href={homeHref} className="hover:text-forest">
                 {isAdmin ? "Dashboard" : "Genes to review"}
               </Link>
+              {isAdmin && (
+                <Link href={reviewHref("")} className="hover:text-forest">
+                  My reviews
+                </Link>
+              )}
               <Link href={reviewHref("/stories")} className="hover:text-forest">
                 Stories
               </Link>

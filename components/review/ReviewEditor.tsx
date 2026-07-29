@@ -23,7 +23,12 @@ import { normalizeSentencedText, NARRATIVE_SECTION_KEYS } from "@/lib/geneResear
 import type { GenePageDraft, SourceCitation } from "@/lib/geneResearch/types";
 import type { FlagResolutionRow, TicketRow } from "@/lib/reviewer/data";
 import { TICKET_STATUS_LABELS, TICKET_TYPE_LABELS, isOpenTicketStatus } from "@/lib/reviewer/tickets";
+import { findBestMatchingSentence, type SentenceLocation } from "@/lib/reviewer/flagMatch";
 import ReportIssueButton from "./ReportIssueButton";
+
+function sentenceDomId(sectionKey: string, sentenceIndex: number): string {
+  return `sentence-${sectionKey}-${sentenceIndex}`;
+}
 
 const SECTION_LABELS: Record<string, string> = {
   summaryCard: "Summary",
@@ -80,9 +85,27 @@ export default function ReviewEditor(props: {
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [publishMsg, setPublishMsg] = useState<string | null>(null);
   const [highlightedSourceId, setHighlightedSourceId] = useState<string | null>(null);
+  const [highlightedSentence, setHighlightedSentence] = useState<SentenceLocation | null>(null);
   const [focusedSection, setFocusedSection] = useState<string | undefined>(undefined);
   const [tickets, setTickets] = useState<TicketRow[]>(props.initialTickets);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Best-guess sentence each AI review flag concerns, so "Go to flagged
+  // text" can jump the reviewer straight there instead of a disconnected
+  // checklist — see lib/reviewer/flagMatch.ts for why this is a heuristic,
+  // not a stored link.
+  const sectionsForMatching = NARRATIVE_SECTION_KEYS.map((key) => ({
+    sectionKey: String(key),
+    sentences: normalizeSentencedText(content[key]).sentences,
+  }));
+  const flagMatches = props.reviewFlags.map((flag) => findBestMatchingSentence(flag, sectionsForMatching));
+
+  function goToFlag(location: SentenceLocation) {
+    setHighlightedSentence(location);
+    setFocusedSection(location.sectionKey);
+    const el = document.getElementById(sentenceDomId(location.sectionKey, location.sentenceIndex));
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
   const openBlockingTicketCount = tickets.filter(
     (t) => t.blocking && isOpenTicketStatus(t.status)
@@ -254,10 +277,15 @@ export default function ReviewEditor(props: {
                 {sentences.map((sentence, i) => (
                   <SentenceRow
                     key={i}
+                    id={sentenceDomId(String(sectionKey), i)}
                     sentence={sentence}
                     sourcesById={sourcesById}
                     highlightedSourceId={highlightedSourceId}
                     onHighlightSource={setHighlightedSourceId}
+                    highlighted={
+                      highlightedSentence?.sectionKey === String(sectionKey) &&
+                      highlightedSentence?.sentenceIndex === i
+                    }
                     disabled={reviewerLocked}
                     onFocus={() => setFocusedSection(String(sectionKey))}
                     onChangeText={(text) => editSentenceText(sectionKey, i, text)}
@@ -319,16 +347,27 @@ export default function ReviewEditor(props: {
         <ul className="mt-3 space-y-3">
           {props.reviewFlags.map((flag, i) => {
             const status = resolutions.get(i) ?? "unresolved";
+            const match = flagMatches[i];
             return (
               <li key={i} className="rounded-lg border border-ink/12 bg-white p-4">
                 <p className="text-sm text-ink/90">{flag}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
+                  {match ? (
+                    <button
+                      type="button"
+                      onClick={() => goToFlag(match)}
+                      className="rounded border border-forest/30 px-2 py-1 text-xs font-semibold text-forest hover:bg-forest/5"
+                    >
+                      Go to flagged text ↓
+                    </button>
+                  ) : (
+                    <span className="rounded border border-ink/10 px-2 py-1 text-xs text-ink/40">
+                      No matching sentence found
+                    </span>
+                  )}
                   <button onClick={() => setFlag(i, "wording_confirmed")} className="rounded border border-ink/20 px-2 py-1 text-xs">
                     Keep wording
                   </button>
-                  <a href={`#section-summaryCard`} className="rounded border border-ink/20 px-2 py-1 text-xs">
-                    Edit section
-                  </a>
                   <button onClick={() => setFlag(i, "not_applicable")} className="rounded border border-ink/20 px-2 py-1 text-xs">
                     Mark not applicable
                   </button>
@@ -446,18 +485,22 @@ export default function ReviewEditor(props: {
 }
 
 function SentenceRow({
+  id,
   sentence,
   sourcesById,
   highlightedSourceId,
   onHighlightSource,
+  highlighted,
   disabled,
   onFocus,
   onChangeText,
 }: {
+  id: string;
   sentence: { text: string; sourceIds: string[] };
   sourcesById: Map<string, { source: SourceCitation; number: number }>;
   highlightedSourceId: string | null;
   onHighlightSource: (id: string) => void;
+  highlighted: boolean;
   disabled: boolean;
   onFocus: () => void;
   onChangeText: (text: string) => void;
@@ -467,6 +510,7 @@ function SentenceRow({
   if (editing) {
     return (
       <textarea
+        id={id}
         autoFocus
         value={sentence.text}
         disabled={disabled}
@@ -481,15 +525,16 @@ function SentenceRow({
 
   return (
     <p
+      id={id}
       onClick={() => {
         if (!disabled) {
           onFocus();
           setEditing(true);
         }
       }}
-      className={`rounded p-2 text-sm leading-relaxed ${
-        disabled ? "text-ink/70" : "cursor-text text-ink/90 hover:bg-white"
-      }`}
+      className={`rounded p-2 text-sm leading-relaxed transition ${
+        highlighted ? "bg-butter/60 ring-2 ring-gold" : ""
+      } ${disabled ? "text-ink/70" : "cursor-text text-ink/90 hover:bg-white"}`}
     >
       {sentence.text}{" "}
       {sentence.sourceIds.map((id) => {

@@ -1,20 +1,15 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getReviewerSession } from "@/lib/reviewer/session";
 import { getAssignedDrafts } from "@/lib/reviewer/data";
-import { reviewHref } from "@/lib/reviewer/paths";
 import DashboardList from "@/components/review/DashboardList";
 
 export const metadata: Metadata = { title: "Reviewer dashboard | RP Hope", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
-// Admins land straight on the admin view instead of a separate personal
-// queue — the admin view IS home for them. Non-admin reviewers keep this
-// page as their personal "genes to review" queue.
+// Personal "genes to review" queue — every user's own assignments,
+// including an admin's (admins land on /admin as their main "Dashboard",
+// but still need somewhere to see drafts they've assigned to themselves;
+// this is reachable via the "My reviews" nav link).
 export default async function ReviewDashboardPage() {
-  const session = await getReviewerSession();
-  if (session?.profile.role === "admin") redirect(reviewHref("/admin"));
-
   const rows = await getAssignedDrafts();
   const totalUnresolved = rows.reduce((n, r) => n + r.unresolvedFlags, 0);
 
