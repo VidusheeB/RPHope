@@ -33,6 +33,9 @@ export default function AdminPanel({ reviewers }: { reviewers: Reviewer[] }) {
   }
 
   async function toggle(userId: string, patch: { active?: boolean; canPublish?: boolean }) {
+    if (patch.active === false && !confirm("Deactivate this reviewer? They will lose access immediately; any active assignments stay visible but blocked until reassigned.")) {
+      return;
+    }
     const res = await updateReviewerAction({ userId, ...patch });
     setMsg(res.ok ? "Reviewer updated." : res.error);
     if (res.ok) router.refresh();
