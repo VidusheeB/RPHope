@@ -524,6 +524,38 @@ export async function getRecentAuditLog(limit = 100): Promise<AuditLogRow[]> {
   }));
 }
 
+/** Audit entries for ONE draft (its assignment/review/ticket history), with
+ *  actor ids resolved to display names for the gene detail page's Activity
+ *  tab. Service-role, admin-only — same access rule as getRecentAuditLog. */
+export async function getAuditLogForDraft(draftId: string): Promise<(AuditLogRow & { actorName: string | null })[]> {
+  const service = getServiceSupabase();
+  if (!service) return [];
+  const { data } = await service
+    .from("audit_log")
+    .select("*")
+    .eq("draft_id", draftId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  const rows = data ?? [];
+  const actorIds = Array.from(new Set(rows.map((r) => r.actor).filter(Boolean)));
+  const { data: profiles } = actorIds.length
+    ? await service.from("reviewer_profiles").select("user_id, display_name").in("user_id", actorIds)
+    : { data: [] as { user_id: string; display_name: string }[] };
+  const nameById = new Map((profiles ?? []).map((p) => [p.user_id, p.display_name]));
+  return rows.map((r) => ({
+    id: r.id,
+    actor: r.actor,
+    actorName: r.actor ? nameById.get(r.actor) ?? r.actor : null,
+    action: r.action,
+    draftId: r.draft_id,
+    reviewerId: r.reviewer_id,
+    ticketId: r.ticket_id,
+    before: r.before_value,
+    after: r.after_value,
+    createdAt: r.created_at,
+  }));
+}
+
 /** All tickets across every draft, for the admin ticket inbox. Service-role —
  *  caller must have already checked requireAdmin(). */
 export async function getAllTicketsForAdmin(): Promise<(TicketRow & { geneSymbol: string })[]> {

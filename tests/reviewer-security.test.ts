@@ -110,9 +110,18 @@ describe("original AI review flags are preserved (resolutions stored separately)
   });
 
   it("the draft-save serializers never overwrite the review_flags column", () => {
-    // Neither the publish serializer nor the editor serializer writes review_flags,
-    // so the AI-generated flags array on gene_page_drafts stays intact.
-    expect(read("app/review/actions.ts")).not.toMatch(/review_flags:/);
+    // Neither the publish serializer nor the editor serializer writes review_flags
+    // on an EXISTING draft, so the AI-generated flags array on gene_page_drafts
+    // stays intact. Scoped to serializeDraft() itself (shared by saveDraftAction
+    // and publishAction) rather than the whole file — restoreVersionAction
+    // legitimately sets review_flags when INSERTing a brand-new draft row from a
+    // historical snapshot, which is a different operation, not an overwrite.
+    const actionsSrc = read("app/review/actions.ts");
+    const serializeDraftBody = actionsSrc.slice(
+      actionsSrc.indexOf("function serializeDraft"),
+      actionsSrc.indexOf("function serializeDraft") + actionsSrc.slice(actionsSrc.indexOf("function serializeDraft")).indexOf("\n}\n")
+    );
+    expect(serializeDraftBody).not.toMatch(/review_flags:/);
     expect(read("components/review/ReviewEditor.tsx")).not.toMatch(/review_flags:/);
   });
 });

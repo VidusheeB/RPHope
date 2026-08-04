@@ -44,7 +44,7 @@ export default async function AdminOverviewPage() {
       key: `submitted-${g.draftId}`,
       text: `${g.geneSymbol} was submitted for final review${g.assignedReviewerName ? ` by ${g.assignedReviewerName}` : ""}.`,
       time: g.updatedAt ?? "",
-      href: reviewHref(`/${g.draftId}`),
+      href: reviewHref(`/admin/genes/${g.draftId}`),
       action: "Review submission",
     })),
     ...genes
@@ -53,7 +53,7 @@ export default async function AdminOverviewPage() {
         key: `blocking-${g.draftId}`,
         text: `${g.geneSymbol} has ${g.blockingTicketCount} blocking issue${g.blockingTicketCount === 1 ? "" : "s"} open.`,
         time: g.updatedAt ?? "",
-        href: reviewHref(`/${g.draftId}`),
+        href: reviewHref(`/admin/genes/${g.draftId}`),
         action: "View issue",
       })),
     ...needsAssignment.map((g) => ({

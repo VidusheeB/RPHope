@@ -69,7 +69,7 @@ export async function createTicketAction(input: {
     actor: user.id,
     type: "ticket_created",
     title: `New${input.blocking ? " blocking" : ""} issue on ${draft?.gene_symbol ?? "a draft"}: ${input.subject.trim()}`,
-    href: reviewHref("/admin"),
+    href: reviewHref(`/admin/genes/${input.draftId}`),
     draftId: input.draftId,
     ticketId: data.id,
   });
@@ -129,7 +129,7 @@ export async function replyTicketAction(input: {
           actor: user.id,
           type: "ticket_reply",
           title: `New reply on ticket: ${ticket.subject}`,
-          href: reviewHref("/admin"),
+          href: reviewHref(`/admin/genes/${ticket.draft_id}`),
           draftId: ticket.draft_id,
           ticketId: input.ticketId,
         });

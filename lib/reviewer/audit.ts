@@ -25,6 +25,7 @@ export type AuditAction =
   | "review_approved"
   | "draft_published"
   | "gene_unpublished"
+  | "gene_version_restored"
   | "ticket_created"
   | "ticket_reply_added"
   | "ticket_updated";

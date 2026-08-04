@@ -247,7 +247,7 @@ export async function submitReviewAction(input: {
     actor: session.userId,
     type: "review_submitted",
     title: `${draft.gene_symbol} submitted for approval`,
-    href: reviewHref(`/${input.draftId}`),
+    href: reviewHref(`/admin/genes/${input.draftId}`),
     draftId: input.draftId,
     dedupeKey: `review:${input.draftId}:submitted:${submittedAt}`,
   });
@@ -450,6 +450,63 @@ function serializeDraft(d: GenePageDraft): Record<string, unknown> {
     research_cards: d.researchCards,
     sources: d.sources,
   };
+}
+
+/**
+ * Restore a historical (archived or currently-published) gene_page_versions
+ * snapshot into a brand-new, unreviewed gene_page_drafts row. Never touches
+ * gene_page_versions itself (the historical snapshot is untouched, still
+ * immutable) and never publishes anything — the restored content becomes an
+ * ordinary draft that has to go through assignment → review → approval →
+ * publish again like any other draft, per spec: "Restoration must not
+ * overwrite or delete the historical snapshot, immediately alter the public
+ * site, or automatically publish."
+ */
+export async function restoreVersionAction(versionId: string): Promise<ActionResult<{ draftId: string }>> {
+  const ctx = await requireAdminService();
+  if (!ctx.ok) return { ok: false, error: ctx.error };
+
+  const { data: version } = await ctx.service
+    .from("gene_page_versions")
+    .select("id, gene_slug, content, version_number")
+    .eq("id", versionId)
+    .maybeSingle();
+  if (!version) return { ok: false, error: "Version not found." };
+
+  const content = version.content as GenePageDraft;
+  const { data: inserted, error } = await ctx.service
+    .from("gene_page_drafts")
+    .insert({
+      gene_slug: version.gene_slug,
+      gene_symbol: content.gene,
+      ...serializeDraft(content),
+      review_flags: content.reviewFlags ?? [],
+      review_status: "unreviewed",
+      model: "restored-from-version",
+      generated_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (error || !inserted) return { ok: false, error: error?.message ?? "Restore failed." };
+
+  await logAudit({
+    actor: ctx.session.userId,
+    action: "gene_version_restored",
+    draftId: inserted.id,
+    before: { restoredFromVersionId: versionId, versionNumber: version.version_number },
+  });
+
+  return { ok: true, data: { draftId: inserted.id } };
+}
+
+/** Admin-only private note about a gene's review, distinct from a
+ *  reviewer's flag notes or ticket text. Never rendered publicly. */
+export async function saveAdminNoteAction(draftId: string, note: string): Promise<ActionResult> {
+  const ctx = await requireAdminService();
+  if (!ctx.ok) return { ok: false, error: ctx.error };
+  const { error } = await ctx.service.from("gene_page_drafts").update({ admin_note: note }).eq("id", draftId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
 
 // ---- Admin actions (service-role, admin-only) -----------------------------
