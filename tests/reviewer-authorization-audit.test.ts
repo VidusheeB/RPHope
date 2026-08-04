@@ -66,7 +66,7 @@ beforeEach(() => {
 
 describe("new Phase-1 admin actions each re-check admin status server-side", () => {
   it("approveReviewAction rejects a reviewer before touching the database", async () => {
-    const res = await approveReviewAction("d1");
+    const res = await approveReviewAction({ draftId: "d1", content: {} as any });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toMatch(/admin/i);
     expect(serviceMock).not.toHaveBeenCalled();

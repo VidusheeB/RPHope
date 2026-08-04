@@ -15,6 +15,7 @@ import { getServiceSupabase } from "@/lib/supabaseAdmin";
 import { getReviewerSession } from "@/lib/reviewer/session";
 import {
   evaluateSubmissionReadiness,
+  evaluateApprovalReadiness,
   evaluateAdminPublishReadiness,
   type FlagResolutionStatus,
 } from "@/lib/reviewer/publishGate";
@@ -49,7 +50,7 @@ export async function saveDraftAction(
 
   const { error } = await supabase
     .from("gene_page_drafts")
-    .update({ ...patch, last_activity_at: new Date().toISOString() })
+    .update({ ...patch, last_activity_at: new Date().toISOString(), last_edited_by: user.id })
     .eq("id", draftId);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
@@ -387,7 +388,7 @@ export async function publishAction(input: {
   //    is non-fatal to the atomic publish, but we surface it).
   const { error: saveErr } = await service
     .from("gene_page_drafts")
-    .update(serializeDraft(input.content))
+    .update({ ...serializeDraft(input.content), last_edited_by: session.userId })
     .eq("id", input.draftId);
   if (saveErr) return { ok: false, error: `Could not save latest edits: ${saveErr.message}` };
 
@@ -757,7 +758,11 @@ export async function unassignDraftAction(draftId: string): Promise<ActionResult
  * Publish are separate actions") — publishing then requires review_status
  * = 'approved' rather than being a side effect of the publish RPC itself.
  */
-export async function approveReviewAction(draftId: string): Promise<ActionResult> {
+export async function approveReviewAction(input: {
+  draftId: string;
+  content: GenePageDraft;
+}): Promise<ActionResult> {
+  const draftId = input.draftId;
   const session = await getReviewerSession();
   if (!session) return { ok: false, error: "Not signed in." };
   if (session.profile.role !== "admin") return { ok: false, error: "Only an admin can approve a review." };
@@ -767,12 +772,30 @@ export async function approveReviewAction(draftId: string): Promise<ActionResult
 
   const { data: draft } = await service
     .from("gene_page_drafts")
-    .select("gene_symbol, review_status")
+    .select("gene_symbol, review_status, review_flags")
     .eq("id", draftId)
     .maybeSingle();
   if (!draft) return { ok: false, error: "Draft not found." };
-  if (draft.review_status !== "submitted_for_approval") {
-    return { ok: false, error: "This draft hasn't been submitted for approval yet." };
+
+  const { data: resolutions } = await service
+    .from("review_flag_resolutions")
+    .select("flag_index, status")
+    .eq("draft_id", draftId);
+  const { data: tickets } = await service.from("review_tickets").select("status, blocking").eq("draft_id", draftId);
+  const openBlockingTicketCount = countBlockingOpenTickets(
+    (tickets ?? []) as { status: TicketStatus; blocking: boolean }[]
+  );
+
+  const readiness = evaluateApprovalReadiness({
+    draft: input.content,
+    flagCount: Array.isArray(draft.review_flags) ? draft.review_flags.length : 0,
+    resolutions: (resolutions ?? []).map((r) => ({ flagIndex: r.flag_index, status: r.status as FlagResolutionStatus })),
+    isAdmin: true,
+    reviewStatus: (draft.review_status ?? "unreviewed") as DraftReviewStatus,
+    openBlockingTicketCount,
+  });
+  if (!readiness.canProceed) {
+    return { ok: false, error: "Not ready to approve.", blockers: readiness.blockers };
   }
 
   const approvedAt = new Date().toISOString();

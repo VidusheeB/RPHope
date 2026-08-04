@@ -138,6 +138,35 @@ export function evaluateSubmissionReadiness(input: SubmissionReadinessInput): Re
   return { canProceed: blockers.length === 0, blockers };
 }
 
+export type ApprovalReadinessInput = {
+  draft: GenePageDraft;
+  flagCount: number;
+  resolutions: { flagIndex: number; status: FlagResolutionStatus }[];
+  isAdmin: boolean;
+  /** Approval only ever applies to a draft the reviewer has actually
+   *  submitted — never unassigned/in-progress/changes-requested work. */
+  reviewStatus: DraftReviewStatus;
+  openBlockingTicketCount?: number;
+};
+
+/**
+ * Admin-only gate for "Approve" — a separate action from Publish. Requires
+ * the SAME content-completeness checks Submit/Publish already require
+ * (verification/flags/schema/sources/no open blocking tickets), plus the
+ * submitted state itself. An earlier version of this action only checked
+ * submitted state and skipped all of these — a real gap this closes.
+ */
+export function evaluateApprovalReadiness(input: ApprovalReadinessInput): Readiness {
+  const blockers = baseContentBlockers(input);
+  if (!input.isAdmin) {
+    blockers.push("Only an admin can approve a review.");
+  }
+  if (input.reviewStatus !== "submitted_for_approval") {
+    blockers.push("This draft hasn't been submitted for approval yet.");
+  }
+  return { canProceed: blockers.length === 0, blockers };
+}
+
 export type AdminPublishReadinessInput = {
   draft: GenePageDraft;
   flagCount: number;

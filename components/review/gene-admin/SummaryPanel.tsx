@@ -24,6 +24,7 @@ export default function SummaryPanel({ detail }: { detail: GeneAdminDetail }) {
         <Row label="Assigned at" value={fmt(detail.activeAssignment?.assignedAt)} />
         <Row label="First opened" value={fmt(detail.firstOpenedAt)} />
         <Row label="Last activity" value={fmt(detail.lastActivityAt)} />
+        <Row label="Last edited by" value={detail.lastEditedByName} />
       </dl>
       <dl>
         <Row label="Submitted at" value={fmt(detail.submittedAt)} />

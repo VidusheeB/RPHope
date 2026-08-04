@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   evaluateSubmissionReadiness,
+  evaluateApprovalReadiness,
   evaluateAdminPublishReadiness,
   type FlagResolutionStatus,
 } from "@/lib/reviewer/publishGate";
@@ -142,6 +143,11 @@ export default function ReviewEditor(props: {
     adminCanPublish: props.reviewerCanPublish,
     reviewStatus: props.reviewStatus,
   });
+  const approvalReadiness = evaluateApprovalReadiness({
+    ...flagResolutionInput,
+    isAdmin: props.isAdmin,
+    reviewStatus: props.reviewStatus,
+  });
 
   const doSave = useCallback(async () => {
     setSaveState("saving");
@@ -231,12 +237,13 @@ export default function ReviewEditor(props: {
 
   async function approve() {
     setPublishMsg(null);
-    const res = await approveReviewAction(props.draftId);
+    if (dirty || saveState !== "saved") await doSave();
+    const res = await approveReviewAction({ draftId: props.draftId, content });
     if (res.ok) {
       setPublishMsg("Approved. You can now publish.");
       router.refresh();
     } else {
-      setPublishMsg(res.error);
+      setPublishMsg([res.error, ...(res.blockers ?? [])].join(" — "));
     }
   }
 
@@ -456,7 +463,8 @@ export default function ReviewEditor(props: {
           {props.isAdmin && props.reviewStatus === "submitted_for_approval" && (
             <button
               onClick={approve}
-              className="rounded bg-forest px-5 py-2 font-semibold text-white"
+              disabled={!approvalReadiness.canProceed}
+              className="rounded bg-forest px-5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               Approve
             </button>
@@ -486,6 +494,16 @@ export default function ReviewEditor(props: {
             <p className="font-semibold">Remaining before you can submit:</p>
             <ul className="mt-1 list-disc pl-5">
               {submissionReadiness.blockers.map((b, i) => (
+                <li key={i}>{b}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {props.isAdmin && props.reviewStatus === "submitted_for_approval" && approvalReadiness.blockers.length > 0 && (
+          <div className="mt-3 text-sm text-ink/70">
+            <p className="font-semibold">Remaining before you can approve:</p>
+            <ul className="mt-1 list-disc pl-5">
+              {approvalReadiness.blockers.map((b, i) => (
                 <li key={i}>{b}</li>
               ))}
             </ul>

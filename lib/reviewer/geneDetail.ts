@@ -70,6 +70,7 @@ export type GeneAdminDetail = {
 
   firstOpenedAt: string | null;
   lastActivityAt: string | null;
+  lastEditedByName: string | null;
   submittedAt: string | null;
   submittedByName: string | null;
   approvedAt: string | null;
@@ -147,6 +148,7 @@ export async function getGeneAdminDetail(draftId: string): Promise<GeneAdminDeta
   if (draft.submitted_by) userIds.add(draft.submitted_by);
   if (draft.reviewed_by) userIds.add(draft.reviewed_by);
   if (draft.changes_requested_by) userIds.add(draft.changes_requested_by);
+  if (draft.last_edited_by) userIds.add(draft.last_edited_by);
 
   const { data: profiles } = userIds.size
     ? await service.from("reviewer_profiles").select("user_id, display_name").in("user_id", Array.from(userIds))
@@ -232,6 +234,7 @@ export async function getGeneAdminDetail(draftId: string): Promise<GeneAdminDeta
 
     firstOpenedAt: draft.first_opened_at ?? null,
     lastActivityAt: draft.last_activity_at ?? null,
+    lastEditedByName: draft.last_edited_by ? nameById.get(draft.last_edited_by) ?? draft.last_edited_by : null,
     submittedAt: draft.submitted_at ?? null,
     submittedByName: draft.submitted_by ? nameById.get(draft.submitted_by) ?? draft.submitted_by : null,
     approvedAt: draft.review_status === "approved" || currentPublishedVersion ? draft.reviewed_at ?? null : draft.reviewed_at ?? null,
