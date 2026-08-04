@@ -528,14 +528,47 @@ async function requireAdminService(): Promise<AdminCtx> {
 /** Invite a reviewer by email (invite-only). Sends a Supabase Auth invitation
  *  (the reviewer sets their OWN password from the invite link) and creates
  *  their reviewer_profiles row. Admin + server-only. */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Find an existing auth.users account by email. There's no direct
+ *  admin.getUserByEmail, so this pages through listUsers — fine at this
+ *  project's reviewer-count scale. */
+async function findAuthUserByEmail(service: NonNullable<ReturnType<typeof getServiceSupabase>>, email: string) {
+  const { data } = await service.auth.admin.listUsers({ perPage: 1000 });
+  return data?.users.find((u) => u.email?.toLowerCase() === email.toLowerCase()) ?? null;
+}
+
 export async function inviteReviewerAction(input: {
   email: string;
   displayName: string;
   role: "reviewer" | "admin";
   canPublish: boolean;
+  title?: string;
+  organization?: string;
+  specialty?: string;
+  adminNotes?: string;
 }): Promise<ActionResult> {
   const ctx = await requireAdminService();
   if (!ctx.ok) return { ok: false, error: ctx.error };
+  if (!EMAIL_RE.test(input.email)) return { ok: false, error: "Enter a valid email address." };
+
+  const existing = await findAuthUserByEmail(ctx.service, input.email);
+  if (existing) {
+    const { data: existingProfile } = await ctx.service
+      .from("reviewer_profiles")
+      .select("active")
+      .eq("user_id", existing.id)
+      .maybeSingle();
+    if (existing.last_sign_in_at) {
+      return {
+        ok: false,
+        error: existingProfile?.active
+          ? "This person is already an active reviewer."
+          : "An account already exists for this email — reactivate them instead of sending a new invitation.",
+      };
+    }
+    return { ok: false, error: "An invitation is already pending for this email. Use Resend instead." };
+  }
 
   const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}${reviewHref("/set-password")}`;
   const { data, error } = await ctx.service.auth.admin.inviteUserByEmail(input.email, { redirectTo });
@@ -549,6 +582,12 @@ export async function inviteReviewerAction(input: {
       role: input.role,
       can_publish: input.canPublish,
       active: true,
+      title: input.title || null,
+      organization: input.organization || null,
+      specialty: input.specialty || null,
+      admin_notes: input.adminNotes || null,
+      invited_at: new Date().toISOString(),
+      invited_by: ctx.session.userId,
     });
     if (profileErr) return { ok: false, error: profileErr.message };
   }
@@ -558,6 +597,27 @@ export async function inviteReviewerAction(input: {
     reviewerId: userId,
     after: { email: input.email, role: input.role, canPublish: input.canPublish },
   });
+  return { ok: true };
+}
+
+/** Resend an invitation email to someone who hasn't accepted yet (Supabase
+ *  re-sends/refreshes the invite link for an unconfirmed user). */
+export async function resendInvitationAction(userId: string): Promise<ActionResult> {
+  const ctx = await requireAdminService();
+  if (!ctx.ok) return { ok: false, error: ctx.error };
+
+  const { data: authUser } = await ctx.service.auth.admin.getUserById(userId);
+  if (!authUser?.user?.email) return { ok: false, error: "No email on file for this account." };
+  if (authUser.user.last_sign_in_at) {
+    return { ok: false, error: "This person has already accepted their invitation." };
+  }
+
+  const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}${reviewHref("/set-password")}`;
+  const { error } = await ctx.service.auth.admin.inviteUserByEmail(authUser.user.email, { redirectTo });
+  if (error) return { ok: false, error: error.message };
+
+  await ctx.service.from("reviewer_profiles").update({ invited_at: new Date().toISOString(), invited_by: ctx.session.userId }).eq("user_id", userId);
+  await logAudit({ actor: ctx.session.userId, action: "reviewer_invited", reviewerId: userId, after: { resent: true } });
   return { ok: true };
 }
 
@@ -739,12 +799,22 @@ export async function updateReviewerAction(input: {
   userId: string;
   active?: boolean;
   canPublish?: boolean;
+  displayName?: string;
+  title?: string;
+  organization?: string;
+  specialty?: string;
+  adminNotes?: string;
 }): Promise<ActionResult> {
   const ctx = await requireAdminService();
   if (!ctx.ok) return { ok: false, error: ctx.error };
   const patch: Record<string, unknown> = {};
   if (typeof input.active === "boolean") patch.active = input.active;
   if (typeof input.canPublish === "boolean") patch.can_publish = input.canPublish;
+  if (input.displayName !== undefined) patch.display_name = input.displayName;
+  if (input.title !== undefined) patch.title = input.title || null;
+  if (input.organization !== undefined) patch.organization = input.organization || null;
+  if (input.specialty !== undefined) patch.specialty = input.specialty || null;
+  if (input.adminNotes !== undefined) patch.admin_notes = input.adminNotes || null;
   const { error } = await ctx.service.from("reviewer_profiles").update(patch).eq("user_id", input.userId);
   if (error) return { ok: false, error: error.message };
 
