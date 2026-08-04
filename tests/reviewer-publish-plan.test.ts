@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildPublishPlan, type ExistingVersion } from "@/lib/reviewer/publishPlan";
 import { pickPublicGeneContent, pickNewestPublished } from "@/lib/reviewer/publicContent";
-import { deriveDashboardStatus } from "@/lib/reviewer/dashboardStatus";
+import { deriveReviewState, derivePublicationState } from "@/lib/reviewer/dashboardStatus";
 import type { GenePageDraft } from "@/lib/geneResearch/types";
 
 const draft = { gene: "LCA5" } as unknown as GenePageDraft;
@@ -99,40 +99,39 @@ describe("public content query filters status = 'published' at the DB layer", ()
   });
 });
 
-describe("deriveDashboardStatus", () => {
-  const base = {
-    hasAssignment: true,
-    reviewStatus: "unreviewed" as const,
-    hasPublishedVersion: false,
-    hasBlockingTicket: false,
-    hasEdits: false,
-  };
+describe("deriveReviewState — never knows or cares about publication", () => {
+  const base = { hasAssignment: true, reviewStatus: "unreviewed" as const, hasEdits: false };
 
-  it("Unassigned when no assignment exists", () => {
-    expect(deriveDashboardStatus({ ...base, hasAssignment: false })).toBe("Unassigned");
+  it("unassigned when no assignment exists", () => {
+    expect(deriveReviewState({ ...base, hasAssignment: false })).toBe("unassigned");
   });
-  it("Assigned for a fresh, untouched assignment", () => {
-    expect(deriveDashboardStatus(base)).toBe("Assigned");
+  it("assigned for a fresh, untouched assignment", () => {
+    expect(deriveReviewState(base)).toBe("assigned");
   });
-  it("In review once editing begins", () => {
-    expect(deriveDashboardStatus({ ...base, hasEdits: true })).toBe("In review");
+  it("in_progress once editing begins", () => {
+    expect(deriveReviewState({ ...base, hasEdits: true })).toBe("in_progress");
   });
-  it("Submitted for approval once the reviewer submits", () => {
-    expect(deriveDashboardStatus({ ...base, reviewStatus: "submitted_for_approval" })).toBe(
-      "Submitted for approval"
+  it("submitted once the reviewer submits", () => {
+    expect(deriveReviewState({ ...base, reviewStatus: "submitted_for_approval" })).toBe("submitted");
+  });
+  it("changes_requested takes priority over assignment/edit state", () => {
+    expect(deriveReviewState({ ...base, reviewStatus: "changes_requested", hasEdits: true })).toBe(
+      "changes_requested"
     );
   });
-  it("Published once a version exists (and review_status isn't changes_requested)", () => {
-    expect(deriveDashboardStatus({ ...base, hasPublishedVersion: true })).toBe("Published");
+  it("approved once an admin approves", () => {
+    expect(deriveReviewState({ ...base, reviewStatus: "approved" })).toBe("approved");
   });
-  it("Changes requested overrides a published version (re-opened for changes)", () => {
-    expect(
-      deriveDashboardStatus({ ...base, hasPublishedVersion: true, reviewStatus: "changes_requested" })
-    ).toBe("Changes requested");
+});
+
+describe("derivePublicationState — never inferred from review/verification progress", () => {
+  it("draft when nothing has ever been published", () => {
+    expect(derivePublicationState({ hasPublishedVersion: false, wasEverPublished: false })).toBe("draft");
   });
-  it("Blocked overrides everything else when a blocking ticket is open", () => {
-    expect(
-      deriveDashboardStatus({ ...base, reviewStatus: "submitted_for_approval", hasBlockingTicket: true })
-    ).toBe("Blocked");
+  it("published when a version is currently live", () => {
+    expect(derivePublicationState({ hasPublishedVersion: true, wasEverPublished: true })).toBe("published");
+  });
+  it("unpublished when it WAS published but isn't right now — distinct from never-published", () => {
+    expect(derivePublicationState({ hasPublishedVersion: false, wasEverPublished: true })).toBe("unpublished");
   });
 });

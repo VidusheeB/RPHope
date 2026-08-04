@@ -6,7 +6,13 @@
 import { getServerSupabase } from "../supabaseServer";
 import { getServiceSupabase } from "../supabaseAdmin";
 import { requiredSectionsComplete, unresolvedFlagCount, type FlagResolutionStatus } from "./publishGate";
-import { deriveDashboardStatus, type DashboardStatus, type DraftReviewStatus } from "./dashboardStatus";
+import {
+  deriveReviewState,
+  derivePublicationState,
+  type ReviewState,
+  type PublicationState,
+  type DraftReviewStatus,
+} from "./dashboardStatus";
 import { normalizeSentencedText, NARRATIVE_SECTION_KEYS } from "../geneResearch/types";
 import type { GenePageDraft } from "../geneResearch/types";
 import { verificationProgress, type SentenceReviewRow } from "./sentenceVerification";
@@ -24,12 +30,13 @@ export type DashboardRow = {
   draftId: string;
   geneSlug: string;
   geneSymbol: string;
-  status: DashboardStatus;
+  reviewState: ReviewState;
+  publicationState: PublicationState;
   flagCount: number;
   unresolvedFlags: number;
   updatedAt: string | null;
   assignedAt: string | null;
-  assignmentStatus: "assigned" | "in_progress" | "completed";
+  assignmentStatus: "assigned" | "in_progress" | "completed" | "reassigned";
   assignedReviewerName?: string;
   openTicketCount: number;
   blockingTicketCount: number;
@@ -79,13 +86,12 @@ export async function getAssignedDrafts(): Promise<DashboardRow[]> {
       (resolutions ?? []).map((r) => ({ flagIndex: r.flag_index, status: r.status as FlagResolutionStatus }))
     );
 
-    const { data: published } = await supabase
+    const { data: versions } = await supabase
       .from("gene_page_versions")
-      .select("id")
-      .eq("gene_slug", draft.gene_slug)
-      .eq("status", "published")
-      .limit(1);
-    const hasPublished = Boolean(published?.length);
+      .select("status")
+      .eq("gene_slug", draft.gene_slug);
+    const hasPublished = (versions ?? []).some((v) => v.status === "published");
+    const wasEverPublished = (versions ?? []).length > 0;
 
     const { data: tickets } = await supabase
       .from("review_tickets")
@@ -115,7 +121,7 @@ export async function getAssignedDrafts(): Promise<DashboardRow[]> {
       geneSymbol: draft.gene_symbol,
       flagCount,
       unresolvedFlags: unresolved,
-      updatedAt: draft.reviewed_at ?? draft.generated_at ?? null,
+      updatedAt: draft.last_activity_at ?? draft.generated_at ?? null,
       assignedAt: a.assigned_at ?? null,
       assignmentStatus: a.status,
       openTicketCount: countOpenTickets(ticketRows),
@@ -123,13 +129,12 @@ export async function getAssignedDrafts(): Promise<DashboardRow[]> {
       hasPublishedVersion: hasPublished,
       sentencesVerified: progress.verified,
       sentencesTotal: progress.total,
-      status: deriveDashboardStatus({
+      reviewState: deriveReviewState({
         hasAssignment: true,
         reviewStatus: (draft.review_status ?? "unreviewed") as DraftReviewStatus,
-        hasPublishedVersion: hasPublished,
-        hasBlockingTicket: blockingTicketCount > 0,
-        hasEdits: Boolean(draft.reviewed_at),
+        hasEdits: Boolean(draft.first_opened_at),
       }),
+      publicationState: derivePublicationState({ hasPublishedVersion: hasPublished, wasEverPublished }),
     });
   }
   return rows;
@@ -150,7 +155,14 @@ export type DraftForReview = {
   openTicketCount: number;
 };
 
-/** Full draft + resolutions for the review page (RLS-scoped: only if assigned). */
+/** Full draft + resolutions for the review page (RLS-scoped: only if assigned).
+ *
+ *  Also records first_opened_at exactly once — but ONLY when the CURRENT
+ *  USER is the actively assigned reviewer (not an admin previewing someone
+ *  else's draft), and only if it isn't already set. This is the "meaningful
+ *  first access" the ASSIGNED → IN_PROGRESS transition depends on; it must
+ *  never fire for an admin's read, a background fetch, or a page reload
+ *  after the first genuine open. */
 export async function getDraftForReview(draftId: string): Promise<DraftForReview | null> {
   const supabase = getServerSupabase();
   if (!supabase) return null;
@@ -161,6 +173,31 @@ export async function getDraftForReview(draftId: string): Promise<DraftForReview
     .eq("id", draftId)
     .maybeSingle();
   if (!draft) return null; // RLS: not assigned → no row
+
+  if (!draft.first_opened_at) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const { data: ownAssignment } = await supabase
+        .from("draft_assignments")
+        .select("id")
+        .eq("draft_id", draftId)
+        .eq("reviewer_id", user.id)
+        .in("status", ["assigned", "in_progress"])
+        .maybeSingle();
+      if (ownAssignment) {
+        const openedAt = new Date().toISOString();
+        await supabase
+          .from("gene_page_drafts")
+          .update({ first_opened_at: openedAt, first_opened_by: user.id, last_activity_at: openedAt })
+          .eq("id", draftId);
+        draft.first_opened_at = openedAt;
+        draft.last_activity_at = openedAt;
+        await supabase.from("draft_assignments").update({ status: "in_progress" }).eq("id", ownAssignment.id);
+      }
+    }
+  }
 
   const { data: resolutions } = await supabase
     .from("review_flag_resolutions")
@@ -368,7 +405,7 @@ export async function getAdminDraftQueue(): Promise<AdminDraftRow[]> {
     const assignments = assignmentsByDraft.get(draft.id) ?? [];
     // Most recently assigned, active (non-completed) assignment "owns" the row.
     const active = assignments
-      .filter((a) => a.status !== "completed")
+      .filter((a) => a.status !== "completed" && a.status !== "reassigned")
       .sort((a, b) => (a.assigned_at < b.assigned_at ? 1 : -1))[0];
 
     const flagCount = Array.isArray(draft.review_flags) ? draft.review_flags.length : 0;
@@ -381,13 +418,12 @@ export async function getAdminDraftQueue(): Promise<AdminDraftRow[]> {
       (resolutions ?? []).map((r) => ({ flagIndex: r.flag_index, status: r.status as FlagResolutionStatus }))
     );
 
-    const { data: published } = await service
+    const { data: versions } = await service
       .from("gene_page_versions")
-      .select("id")
-      .eq("gene_slug", draft.gene_slug)
-      .eq("status", "published")
-      .limit(1);
-    const hasPublished = Boolean(published?.length);
+      .select("status")
+      .eq("gene_slug", draft.gene_slug);
+    const hasPublished = (versions ?? []).some((v) => v.status === "published");
+    const wasEverPublished = (versions ?? []).length > 0;
 
     const { data: tickets } = await service
       .from("review_tickets")
@@ -419,9 +455,9 @@ export async function getAdminDraftQueue(): Promise<AdminDraftRow[]> {
       geneSymbol: draft.gene_symbol,
       flagCount,
       unresolvedFlags: unresolved,
-      updatedAt: draft.reviewed_at ?? draft.generated_at ?? null,
+      updatedAt: draft.last_activity_at ?? draft.generated_at ?? null,
       assignedAt: active?.assigned_at ?? null,
-      assignmentStatus: (active?.status ?? "assigned") as "assigned" | "in_progress" | "completed",
+      assignmentStatus: (active?.status ?? "assigned") as "assigned" | "in_progress" | "completed" | "reassigned",
       assignedReviewerId: active?.reviewer_id ?? null,
       assignedReviewerName: active ? nameById.get(active.reviewer_id) ?? undefined : undefined,
       openTicketCount: countOpenTickets(ticketRows),
@@ -429,13 +465,12 @@ export async function getAdminDraftQueue(): Promise<AdminDraftRow[]> {
       hasPublishedVersion: hasPublished,
       sentencesVerified: progress.verified,
       sentencesTotal: progress.total,
-      status: deriveDashboardStatus({
-        hasAssignment: assignments.length > 0,
+      reviewState: deriveReviewState({
+        hasAssignment: assignments.some((a) => a.status !== "completed" && a.status !== "reassigned"),
         reviewStatus: (draft.review_status ?? "unreviewed") as DraftReviewStatus,
-        hasPublishedVersion: hasPublished,
-        hasBlockingTicket: blockingTicketCount > 0,
-        hasEdits: Boolean(draft.reviewed_at),
+        hasEdits: Boolean(draft.first_opened_at),
       }),
+      publicationState: derivePublicationState({ hasPublishedVersion: hasPublished, wasEverPublished }),
     });
   }
   return rows;

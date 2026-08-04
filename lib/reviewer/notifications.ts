@@ -15,7 +15,9 @@ import { getServiceSupabase } from "../supabaseAdmin";
 export type NotificationType =
   | "review_submitted"
   | "changes_requested"
+  | "review_approved"
   | "gene_published"
+  | "gene_unpublished"
   | "draft_assigned"
   | "ticket_created"
   | "ticket_reply"
@@ -31,7 +33,14 @@ export type NotificationRow = {
   createdAt: string;
 };
 
-/** Insert one notification. Never throws — see the module note. */
+/** Insert one notification. Never throws — see the module note.
+ *
+ *  dedupeKey (recommended for anything that could plausibly fire twice for
+ *  the same real-world event — a double-click, a retried action, a re-run
+ *  of the same effect): scoped (recipient, dedupe_key) unique index means a
+ *  second insert with the same key for the same recipient is silently a
+ *  no-op instead of a duplicate row. Omit it only for truly one-shot events
+ *  where duplication genuinely can't occur. */
 export async function notify(input: {
   recipient: string;
   actor?: string;
@@ -41,20 +50,25 @@ export async function notify(input: {
   draftId?: string;
   ticketId?: string;
   href?: string;
+  dedupeKey?: string;
 }): Promise<void> {
   const service = getServiceSupabase();
   if (!service) return;
   try {
-    await service.from("notifications").insert({
-      recipient: input.recipient,
-      actor: input.actor ?? null,
-      type: input.type,
-      title: input.title,
-      body: input.body ?? null,
-      draft_id: input.draftId ?? null,
-      ticket_id: input.ticketId ?? null,
-      href: input.href ?? null,
-    });
+    await service.from("notifications").upsert(
+      {
+        recipient: input.recipient,
+        actor: input.actor ?? null,
+        type: input.type,
+        title: input.title,
+        body: input.body ?? null,
+        draft_id: input.draftId ?? null,
+        ticket_id: input.ticketId ?? null,
+        href: input.href ?? null,
+        dedupe_key: input.dedupeKey ?? null,
+      },
+      input.dedupeKey ? { onConflict: "recipient,dedupe_key", ignoreDuplicates: true } : undefined
+    );
   } catch {
     // Intentionally swallowed — see module note.
   }
@@ -69,6 +83,7 @@ export async function notifyAdmins(input: {
   draftId?: string;
   ticketId?: string;
   href?: string;
+  dedupeKey?: string;
 }): Promise<void> {
   const service = getServiceSupabase();
   if (!service) return;
@@ -92,6 +107,7 @@ export async function notifyDraftAssignee(
     title: string;
     body?: string;
     href?: string;
+    dedupeKey?: string;
   }
 ): Promise<void> {
   const service = getServiceSupabase();

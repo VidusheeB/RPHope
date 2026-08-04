@@ -43,8 +43,9 @@ function completeDraft(): GenePageDraft {
 }
 
 // Minimal chainable Supabase-like service double. Publishing is admin-only
-// now, so the mocked draft row carries review_status: 'submitted_for_approval'
-// (the normal, non-override path) and the session is an admin.
+// and requires prior approval (a separate step from submission), so the
+// mocked draft row carries review_status: 'approved' (the normal,
+// non-override path) and the session is an admin.
 function makeService(opts: {
   rpc: { data: unknown; error: unknown };
   saveError?: unknown;
@@ -69,7 +70,7 @@ function makeService(opts: {
               id: "d1",
               gene_slug: "lca5",
               review_flags: [],
-              review_status: opts.reviewStatus ?? "submitted_for_approval",
+              review_status: opts.reviewStatus ?? "approved",
             },
           });
         if (table === "draft_assignments") return Promise.resolve({ data: { id: "a1", status: "assigned" } });
@@ -135,20 +136,20 @@ describe("publishAction — atomic publish via RPC", () => {
             eq: () => ({
               maybeSingle: () =>
                 Promise.resolve({
-                  data: { id: "d1", gene_slug: "lca5", review_flags: [], review_status: "submitted_for_approval" },
+                  data: { id: "d1", gene_slug: "lca5", review_flags: [], review_status: "approved" },
                 }),
             }),
             order: () => ({
               limit: () => ({
                 maybeSingle: () =>
                   Promise.resolve({
-                    data: { id: "d1", gene_slug: "lca5", review_flags: [], review_status: "submitted_for_approval" },
+                    data: { id: "d1", gene_slug: "lca5", review_flags: [], review_status: "approved" },
                   }),
               }),
             }),
             maybeSingle: () =>
               Promise.resolve({
-                data: { id: "d1", gene_slug: "lca5", review_flags: [], review_status: "submitted_for_approval" },
+                data: { id: "d1", gene_slug: "lca5", review_flags: [], review_status: "approved" },
               }),
             then: (r: (v: unknown) => unknown) => r({ data: [] }),
           }),

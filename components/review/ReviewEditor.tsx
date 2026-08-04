@@ -17,7 +17,14 @@ import {
   type FlagResolutionStatus,
 } from "@/lib/reviewer/publishGate";
 import type { DraftReviewStatus } from "@/lib/reviewer/dashboardStatus";
-import { saveDraftAction, resolveFlagAction, publishAction, submitReviewAction } from "@/app/review/actions";
+import {
+  saveDraftAction,
+  resolveFlagAction,
+  publishAction,
+  submitReviewAction,
+  approveReviewAction,
+  requestChangesAction,
+} from "@/app/review/actions";
 import { replyTicketAction } from "@/app/review/ticketActions";
 import { normalizeSentencedText, NARRATIVE_SECTION_KEYS } from "@/lib/geneResearch/types";
 import type { GenePageDraft, SourceCitation } from "@/lib/geneResearch/types";
@@ -88,6 +95,8 @@ export default function ReviewEditor(props: {
   const [highlightedSentence, setHighlightedSentence] = useState<SentenceLocation | null>(null);
   const [focusedSection, setFocusedSection] = useState<string | undefined>(undefined);
   const [tickets, setTickets] = useState<TicketRow[]>(props.initialTickets);
+  const [requestChangesOpen, setRequestChangesOpen] = useState(false);
+  const [changesNote, setChangesNote] = useState("");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Best-guess sentence each AI review flag concerns, so "Go to flagged
@@ -132,7 +141,6 @@ export default function ReviewEditor(props: {
     isAdmin: props.isAdmin,
     adminCanPublish: props.reviewerCanPublish,
     reviewStatus: props.reviewStatus,
-    adminOverride: props.reviewStatus !== "submitted_for_approval",
   });
 
   const doSave = useCallback(async () => {
@@ -212,13 +220,36 @@ export default function ReviewEditor(props: {
       draftId: props.draftId,
       content,
       confirmationChecked: confirmChecked,
-      adminOverride: props.reviewStatus !== "submitted_for_approval",
     });
     if (res.ok) {
       setPublishMsg(`Published. Live at ${res.data?.publishedUrl}`);
       router.refresh();
     } else {
       setPublishMsg([res.error, ...(res.blockers ?? [])].join(" — "));
+    }
+  }
+
+  async function approve() {
+    setPublishMsg(null);
+    const res = await approveReviewAction(props.draftId);
+    if (res.ok) {
+      setPublishMsg("Approved. You can now publish.");
+      router.refresh();
+    } else {
+      setPublishMsg(res.error);
+    }
+  }
+
+  async function sendRequestChanges() {
+    setPublishMsg(null);
+    const res = await requestChangesAction({ draftId: props.draftId, note: changesNote });
+    if (res.ok) {
+      setPublishMsg("Sent back to the reviewer with your note.");
+      setChangesNote("");
+      setRequestChangesOpen(false);
+      router.refresh();
+    } else {
+      setPublishMsg(res.error);
     }
   }
 
@@ -422,13 +453,30 @@ export default function ReviewEditor(props: {
               Submit review
             </button>
           )}
+          {props.isAdmin && props.reviewStatus === "submitted_for_approval" && (
+            <button
+              onClick={approve}
+              className="rounded bg-forest px-5 py-2 font-semibold text-white"
+            >
+              Approve
+            </button>
+          )}
+          {props.isAdmin && (props.reviewStatus === "submitted_for_approval" || props.reviewStatus === "changes_requested") && (
+            <button
+              onClick={() => setRequestChangesOpen(true)}
+              className="rounded border border-ink/25 px-5 py-2 font-semibold text-ink"
+            >
+              Request changes
+            </button>
+          )}
           {props.isAdmin && (
             <button
               onClick={publish}
               disabled={!publishReadiness.canProceed}
+              title={props.reviewStatus !== "approved" ? "Approve the review first" : undefined}
               className="rounded bg-forest px-5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Approve &amp; Publish
+              Publish
             </button>
           )}
         </div>
@@ -480,6 +528,54 @@ export default function ReviewEditor(props: {
         openTicketCount={openTicketCount}
         onCreated={() => router.refresh()}
       />
+
+      {requestChangesOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4"
+          role="presentation"
+          onClick={() => setRequestChangesOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Request changes"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl"
+          >
+            <h2 className="font-display text-lg font-medium text-ink">Request changes</h2>
+            <p className="mt-1 text-sm text-ink/60">
+              Sends this draft back to {props.geneSymbol}&apos;s reviewer with your explanation — required.
+            </p>
+            <label htmlFor="changes-note" className="sr-only">
+              What needs to change
+            </label>
+            <textarea
+              id="changes-note"
+              autoFocus
+              value={changesNote}
+              onChange={(e) => setChangesNote(e.target.value)}
+              rows={4}
+              placeholder="What needs to change before this can be approved?"
+              className="mt-3 w-full rounded border border-ink/20 p-3"
+            />
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={sendRequestChanges}
+                disabled={!changesNote.trim()}
+                className="rounded bg-forest px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Send back with note
+              </button>
+              <button
+                onClick={() => setRequestChangesOpen(false)}
+                className="rounded border border-ink/20 px-4 py-2 text-sm font-semibold text-ink"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -28,9 +28,14 @@ import type { GenePageDraft } from "@/lib/geneResearch/types";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
-  | { ok: false; error: string; blockers?: string[] };
+  | { ok: false; error: string; blockers?: string[]; data?: T };
 
-/** Save reviewer edits to draft sections. RLS enforces active-assignee. */
+/** Save reviewer edits to draft sections. RLS enforces active-assignee.
+ *  Deliberately does NOT write an audit-log row here — this fires on every
+ *  debounced autosave, and the spec is explicit that autosave keystrokes
+ *  must never flood the audit trail or be treated as their own event.
+ *  last_activity_at is cheap to update and is what "last reviewer
+ *  activity" displays are read from instead. */
 export async function saveDraftAction(
   draftId: string,
   patch: Record<string, unknown>
@@ -42,9 +47,11 @@ export async function saveDraftAction(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
-  const { error } = await supabase.from("gene_page_drafts").update(patch).eq("id", draftId);
+  const { error } = await supabase
+    .from("gene_page_drafts")
+    .update({ ...patch, last_activity_at: new Date().toISOString() })
+    .eq("id", draftId);
   if (error) return { ok: false, error: error.message };
-  await logAudit({ actor: user.id, action: "draft_content_saved", draftId, after: patch });
   return { ok: true };
 }
 
@@ -220,12 +227,13 @@ export async function submitReviewAction(input: {
     return { ok: false, error: "Not ready to submit.", blockers: readiness.blockers };
   }
 
+  const submittedAt = new Date().toISOString();
   const { error: saveErr } = await service
     .from("gene_page_drafts")
     .update({
       ...serializeDraft(input.content),
       review_status: "submitted_for_approval",
-      submitted_at: new Date().toISOString(),
+      submitted_at: submittedAt,
       submitted_by: session.userId,
     })
     .eq("id", input.draftId);
@@ -241,6 +249,7 @@ export async function submitReviewAction(input: {
     title: `${draft.gene_symbol} submitted for approval`,
     href: reviewHref(`/${input.draftId}`),
     draftId: input.draftId,
+    dedupeKey: `review:${input.draftId}:submitted:${submittedAt}`,
   });
   await logAudit({ actor: session.userId, action: "review_submitted", draftId: input.draftId });
 
@@ -267,12 +276,13 @@ export async function requestChangesAction(input: {
     .eq("id", input.draftId)
     .maybeSingle();
 
+  const changesRequestedAt = new Date().toISOString();
   const { error } = await service
     .from("gene_page_drafts")
     .update({
       review_status: "changes_requested",
       changes_requested_note: input.note,
-      changes_requested_at: new Date().toISOString(),
+      changes_requested_at: changesRequestedAt,
       changes_requested_by: session.userId,
     })
     .eq("id", input.draftId);
@@ -284,6 +294,7 @@ export async function requestChangesAction(input: {
     title: `Changes requested on ${draft?.gene_symbol ?? "a draft"}`,
     body: input.note,
     href: reviewHref(`/${input.draftId}`),
+    dedupeKey: `review:${input.draftId}:changes_requested:${changesRequestedAt}`,
   });
   await logAudit({
     actor: session.userId,
@@ -407,6 +418,7 @@ export async function publishAction(input: {
     type: "gene_published",
     title: `${draft.gene_symbol} published`,
     href: `/genetic-insights/${published.gene_slug}`,
+    dedupeKey: `gene:${published.gene_slug}:published:${published.version_id}`,
   });
   await logAudit({
     actor: session.userId,
@@ -493,12 +505,62 @@ export async function inviteReviewerAction(input: {
 }
 
 /** Assign a draft to a reviewer. Admin + server-only. */
+/**
+ * Assign or reassign a draft to a reviewer (an admin may assign to
+ * themselves too — there is no reviewer/admin exclusivity here).
+ *
+ * Reassignment away from an existing active assignee is only allowed to
+ * proceed silently when that prior assignee has no meaningful activity yet
+ * (first_opened_at unset). Once real work exists, the caller must pass
+ * `confirmed: true` (the UI shows the exact warning text the spec
+ * requires) — the previous assignment is preserved (marked 'reassigned',
+ * never deleted), both the outgoing and incoming reviewer are notified,
+ * and the draft's own content/edits are completely untouched.
+ */
 export async function assignDraftAction(input: {
   draftId: string;
   reviewerId: string;
-}): Promise<ActionResult> {
+  confirmed?: boolean;
+}): Promise<ActionResult<{ requiresConfirmation?: true; warning?: string }>> {
   const ctx = await requireAdminService();
   if (!ctx.ok) return { ok: false, error: ctx.error };
+
+  const { data: draft } = await ctx.service
+    .from("gene_page_drafts")
+    .select("gene_symbol, first_opened_at")
+    .eq("id", input.draftId)
+    .maybeSingle();
+  if (!draft) return { ok: false, error: "Draft not found." };
+
+  const { data: currentActive } = await ctx.service
+    .from("draft_assignments")
+    .select("id, reviewer_id, status")
+    .eq("draft_id", input.draftId)
+    .not("status", "in", "(completed,reassigned)");
+
+  const priorAssignee = (currentActive ?? []).find((a) => a.reviewer_id !== input.reviewerId);
+  const isReassignment = Boolean(priorAssignee);
+  const hasMeaningfulWork = Boolean(draft.first_opened_at);
+
+  if (isReassignment && hasMeaningfulWork && !input.confirmed) {
+    return {
+      ok: false,
+      error: "Confirmation required.",
+      data: {
+        requiresConfirmation: true,
+        warning:
+          "This review already contains work from the current reviewer. Reassigning will preserve the work and transfer responsibility to the new reviewer.",
+      },
+    };
+  }
+
+  if (priorAssignee) {
+    await ctx.service
+      .from("draft_assignments")
+      .update({ status: "reassigned" })
+      .eq("id", priorAssignee.id);
+  }
+
   const { error } = await ctx.service.from("draft_assignments").upsert(
     {
       draft_id: input.draftId,
@@ -510,25 +572,107 @@ export async function assignDraftAction(input: {
   );
   if (error) return { ok: false, error: error.message };
 
-  const { data: draft } = await ctx.service
-    .from("gene_page_drafts")
-    .select("gene_symbol")
-    .eq("id", input.draftId)
-    .maybeSingle();
+  const assignedAt = new Date().toISOString();
   await notify({
     recipient: input.reviewerId,
     actor: ctx.session.userId,
     type: "draft_assigned",
-    title: `You've been assigned ${draft?.gene_symbol ?? "a gene draft"}`,
+    title: `You've been assigned ${draft.gene_symbol}`,
     href: reviewHref(`/${input.draftId}`),
     draftId: input.draftId,
+    dedupeKey: `assignment:${input.draftId}:assigned:${input.reviewerId}:${assignedAt}`,
   });
+  if (priorAssignee) {
+    await notify({
+      recipient: priorAssignee.reviewer_id,
+      actor: ctx.session.userId,
+      type: "draft_assigned",
+      title: `${draft.gene_symbol} was reassigned to another reviewer`,
+      href: reviewHref(""),
+      draftId: input.draftId,
+      dedupeKey: `assignment:${input.draftId}:reassigned_away:${priorAssignee.reviewer_id}:${assignedAt}`,
+    });
+  }
   await logAudit({
     actor: ctx.session.userId,
-    action: "draft_assigned",
+    action: isReassignment ? "draft_reassigned" : "draft_assigned",
     draftId: input.draftId,
     reviewerId: input.reviewerId,
+    before: priorAssignee ? { previousReviewerId: priorAssignee.reviewer_id } : undefined,
   });
+
+  return { ok: true };
+}
+
+/** Remove the active assignment from a draft entirely (not a reassignment
+ *  — nobody is responsible for it afterward). Preserves the row (marked
+ *  'reassigned' — the same "no longer active, never deleted" history
+ *  status reassignment uses) rather than deleting it. */
+export async function unassignDraftAction(draftId: string): Promise<ActionResult> {
+  const ctx = await requireAdminService();
+  if (!ctx.ok) return { ok: false, error: ctx.error };
+
+  const { data: current } = await ctx.service
+    .from("draft_assignments")
+    .select("id, reviewer_id")
+    .eq("draft_id", draftId)
+    .not("status", "in", "(completed,reassigned)");
+  if (!current?.length) return { ok: true };
+
+  for (const a of current) {
+    await ctx.service.from("draft_assignments").update({ status: "reassigned" }).eq("id", a.id);
+    await notify({
+      recipient: a.reviewer_id,
+      actor: ctx.session.userId,
+      type: "draft_assigned",
+      title: "An assignment was removed",
+      href: reviewHref(""),
+      draftId,
+    });
+  }
+  await logAudit({ actor: ctx.session.userId, action: "draft_unassigned", draftId });
+  return { ok: true };
+}
+
+/**
+ * Admin-only: approve a submitted review WITHOUT publishing it. Kept as a
+ * separate action from publishAction on purpose (spec: "Approve and
+ * Publish are separate actions") — publishing then requires review_status
+ * = 'approved' rather than being a side effect of the publish RPC itself.
+ */
+export async function approveReviewAction(draftId: string): Promise<ActionResult> {
+  const session = await getReviewerSession();
+  if (!session) return { ok: false, error: "Not signed in." };
+  if (session.profile.role !== "admin") return { ok: false, error: "Only an admin can approve a review." };
+
+  const service = getServiceSupabase();
+  if (!service) return { ok: false, error: "Server not configured." };
+
+  const { data: draft } = await service
+    .from("gene_page_drafts")
+    .select("gene_symbol, review_status")
+    .eq("id", draftId)
+    .maybeSingle();
+  if (!draft) return { ok: false, error: "Draft not found." };
+  if (draft.review_status !== "submitted_for_approval") {
+    return { ok: false, error: "This draft hasn't been submitted for approval yet." };
+  }
+
+  const approvedAt = new Date().toISOString();
+  const { error } = await service
+    .from("gene_page_drafts")
+    .update({ review_status: "approved", reviewed_by: session.userId, reviewed_at: approvedAt })
+    .eq("id", draftId);
+  if (error) return { ok: false, error: error.message };
+
+  await notifyDraftAssignee(draftId, {
+    actor: session.userId,
+    type: "review_approved",
+    title: `${draft.gene_symbol} was approved`,
+    href: reviewHref(`/${draftId}`),
+    dedupeKey: `review:${draftId}:approved:${approvedAt}`,
+  });
+  await logAudit({ actor: session.userId, action: "review_approved", draftId });
 
   return { ok: true };
 }
@@ -579,14 +723,31 @@ export async function unpublishGeneAction(geneSlug: string): Promise<ActionResul
   const service = getServiceSupabase();
   if (!service) return { ok: false, error: "Server not configured." };
 
+  const { data: current } = await service
+    .from("gene_page_versions")
+    .select("id, source_draft_id")
+    .eq("gene_slug", geneSlug)
+    .eq("status", "published")
+    .maybeSingle();
+  if (!current) return { ok: false, error: "This gene isn't currently published." };
+
+  const unpublishedAt = new Date().toISOString();
   const { error } = await service
     .from("gene_page_versions")
-    .update({ status: "archived" })
-    .eq("gene_slug", geneSlug)
-    .eq("status", "published");
+    .update({ status: "archived", unpublished_at: unpublishedAt, unpublished_by: session.userId })
+    .eq("id", current.id);
   if (error) return { ok: false, error: error.message };
 
-  await logAudit({ actor: session.userId, action: "gene_unpublished", after: { geneSlug } });
+  await logAudit({ actor: session.userId, action: "gene_unpublished", after: { geneSlug, versionId: current.id } });
+  if (current.source_draft_id) {
+    await notifyDraftAssignee(current.source_draft_id, {
+      actor: session.userId,
+      type: "gene_unpublished",
+      title: `${geneSlug.toUpperCase()} was unpublished`,
+      href: reviewHref(`/${current.source_draft_id}`),
+      dedupeKey: `gene:${geneSlug}:unpublished:${unpublishedAt}`,
+    });
+  }
   revalidatePath(`/genetic-insights/${geneSlug}`);
   revalidatePath("/review/admin");
   return { ok: true };

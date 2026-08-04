@@ -6,7 +6,8 @@ import { geneGrid } from "@/lib/geneGrid";
 import GeneArticles, { type Article } from "@/components/site/GeneArticles";
 import ListenButton from "@/components/site/ListenButton";
 import { getResearchItems } from "@/lib/researchRepo";
-import { getPublishedGeneVersion } from "@/lib/reviewer/publicContent";
+import Link from "next/link";
+import { getPublishedGeneVersion, wasGeneEverPublished } from "@/lib/reviewer/publicContent";
 import GeneDraftView from "@/components/review/GeneDraftView";
 import { flattenAnySection } from "@/lib/geneResearch/types";
 import type { GenePageDraft } from "@/lib/geneResearch/types";
@@ -142,6 +143,29 @@ export default async function GenePage({ params }: { params: { gene: string } })
             <InTheNews articles={articles} showSource />
             <GeneFooter lastReviewed="published, human-reviewed version" />
           </div>
+        </article>
+      </div>
+    );
+  }
+
+  // ---- Branch A.5: was published, then explicitly taken down ------------------
+  // Must NOT fall through to the legacy fallback below — that would silently
+  // resurrect old content as if nothing happened. Show a stable, branded
+  // "being updated" message at the same URL instead.
+  if (await wasGeneEverPublished(params.gene)) {
+    return (
+      <div className="bg-cream">
+        <article className={`${GENE_COL} px-5 py-24 text-center`}>
+          <h1 className="font-display text-3xl font-medium text-forest">This page is being updated</h1>
+          <p className="mt-4 text-ink/70">
+            This Genetic Insight is currently being updated. Please check back soon.
+          </p>
+          <Link
+            href="/genetic-insights"
+            className="mt-8 inline-block rounded-md bg-forest px-5 py-2.5 font-semibold text-white hover:bg-forest-dark"
+          >
+            Back to Genetic Insights
+          </Link>
         </article>
       </div>
     );

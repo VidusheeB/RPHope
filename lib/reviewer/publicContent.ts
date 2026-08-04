@@ -4,6 +4,7 @@
 // during gradual migration (most genes have no published version yet).
 
 import { getSupabase } from "../supabase";
+import { getServiceSupabase } from "../supabaseAdmin";
 import type { GenePageDraft } from "../geneResearch/types";
 
 export type PublishedGeneVersion = {
@@ -62,5 +63,32 @@ export async function getPublishedGeneVersion(
     return pickNewestPublished(data as { version_number: number; status: string; content: unknown }[]);
   } catch {
     return null;
+  }
+}
+
+/**
+ * Was this gene EVER published — i.e. does an archived gene_page_versions
+ * row exist even though nothing is published right now? Distinguishes
+ * "never reviewed" (fine to fall back to legacy genesData.json) from "was
+ * live, then an admin took it down" (must show the branded "being updated"
+ * message instead — never silently reveal the old legacy content as if
+ * nothing happened).
+ *
+ * gene_page_versions has no public RLS policy for archived rows (only
+ * status = 'published' is anon-readable), so this existence-only check
+ * uses the service-role client. It never returns row content, only a
+ * boolean, so nothing unpublished is exposed. */
+export async function wasGeneEverPublished(slug: string): Promise<boolean> {
+  const service = getServiceSupabase();
+  if (!service) return false;
+  try {
+    const { data } = await service
+      .from("gene_page_versions")
+      .select("id")
+      .eq("gene_slug", slug)
+      .limit(1);
+    return Boolean(data?.length);
+  } catch {
+    return false;
   }
 }

@@ -17,9 +17,13 @@ describe("gene review workspace — per-sentence verification control removed (s
     expect(src).toMatch(/\[\{entry\.number\}\]/);
   });
 
-  it("has no Request Changes UI section", () => {
-    expect(src).not.toMatch(/Request changes/);
-    expect(src).not.toMatch(/requestChangesAction/);
+});
+
+describe("Request changes — restored as a modal per RP Hope Admin Phase 1 (static)", () => {
+  it("opens a dialog rather than an always-visible inline section", () => {
+    expect(src).toMatch(/requestChangesAction/);
+    expect(src).toMatch(/requestChangesOpen/);
+    expect(src).toMatch(/role="dialog"/);
   });
 });
 

@@ -144,20 +144,22 @@ export type AdminPublishReadinessInput = {
   resolutions: { flagIndex: number; status: FlagResolutionStatus }[];
   isAdmin: boolean;
   adminCanPublish: boolean;
-  /** True once a reviewer has submitted (or an admin is deliberately
-   *  overriding — see requireSubmission). */
+  /** Publishing requires the draft to already be 'approved' — approval is a
+   *  separate, prior admin action (see approveReviewAction), never a side
+   *  effect of publishing itself. */
   reviewStatus: DraftReviewStatus;
   confirmationChecked: boolean;
   openBlockingTicketCount?: number;
-  /** Admins may override the normal "must be submitted first" requirement
+  /** Admins may override the normal "must be approved first" requirement
    *  (spec: "Override normal workflow restrictions when necessary"). */
   adminOverride?: boolean;
 };
 
 /**
- * Admin-only gate for "Approve & Publish." Reviewers can never reach this —
- * enforced here (isAdmin) AND re-checked server-side in the publish action,
- * never trusted from the client.
+ * Admin-only gate for "Publish." Reviewers can never reach this — enforced
+ * here (isAdmin) AND re-checked server-side in the publish action, never
+ * trusted from the client. Requires a PRIOR, separate approval (see
+ * approveReviewAction) — approving never auto-publishes.
  */
 export function evaluateAdminPublishReadiness(input: AdminPublishReadinessInput): Readiness {
   const blockers = baseContentBlockers(input);
@@ -167,8 +169,8 @@ export function evaluateAdminPublishReadiness(input: AdminPublishReadinessInput)
   if (!input.adminCanPublish) {
     blockers.push("Your account does not have publishing permission.");
   }
-  if (input.reviewStatus !== "submitted_for_approval" && !input.adminOverride) {
-    blockers.push("This draft hasn't been submitted for approval yet.");
+  if (input.reviewStatus !== "approved" && !input.adminOverride) {
+    blockers.push("This draft hasn't been approved yet.");
   }
   if (!input.confirmationChecked) {
     blockers.push("Check the final confirmation box to publish.");

@@ -121,7 +121,7 @@ describe("evaluateAdminPublishReadiness — admin-only \"Approve & Publish\" gat
     resolutions: resolvedAll(2),
     isAdmin: true,
     adminCanPublish: true,
-    reviewStatus: "submitted_for_approval" as const,
+    reviewStatus: "approved" as const,
     confirmationChecked: true,
   };
 
@@ -141,13 +141,13 @@ describe("evaluateAdminPublishReadiness — admin-only \"Approve & Publish\" gat
     expect(r.blockers.join(" ")).toMatch(/publishing permission/i);
   });
 
-  it("a draft that was never submitted blocks publication unless overridden", () => {
+  it("a draft that was never approved blocks publication unless overridden", () => {
     const r = evaluateAdminPublishReadiness({ ...base, reviewStatus: "unreviewed" });
     expect(r.canProceed).toBe(false);
-    expect(r.blockers.join(" ")).toMatch(/submitted/i);
+    expect(r.blockers.join(" ")).toMatch(/approved/i);
   });
 
-  it("adminOverride bypasses the submitted-status requirement", () => {
+  it("adminOverride bypasses the approved-status requirement", () => {
     const r = evaluateAdminPublishReadiness({ ...base, reviewStatus: "unreviewed", adminOverride: true });
     expect(r.canProceed).toBe(true);
   });
