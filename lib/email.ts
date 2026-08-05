@@ -16,6 +16,10 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://rp-hope.vercel.app
 
 export const emailConfigured = Boolean(process.env.RESEND_API_KEY);
 
+export function buildApprovalUrl(approvalToken: string): string {
+  return `${SITE_URL}/stories/approve/${approvalToken}`;
+}
+
 function getClient(): Resend | null {
   const key = process.env.RESEND_API_KEY;
   if (!key) return null;
@@ -65,7 +69,7 @@ export async function sendApprovalRequestEmail(
     "Your story is ready to review — RP Hope",
     `Hi ${fullName},\n\n` +
       "We've finished reviewing and lightly editing your story. Please take a look and let us know if it's ready to publish:\n\n" +
-      `${SITE_URL}/stories/approve/${approvalToken}\n\n` +
+      `${buildApprovalUrl(approvalToken)}\n\n` +
       "You can approve it as-is or request changes from that page.\n\n" +
       "— RP Hope"
   );

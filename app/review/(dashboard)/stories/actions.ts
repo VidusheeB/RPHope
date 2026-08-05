@@ -13,9 +13,15 @@ import {
   sendApprovalRequestEmail,
   sendStoryPublishedEmail,
   sendStoryDeclinedEmail,
+  buildApprovalUrl,
+  emailConfigured,
 } from "@/lib/email";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
+
+export type SendForApprovalResult =
+  | { ok: true; emailSent: boolean; approvalUrl: string }
+  | { ok: false; error: string };
 
 /** Save reviewer edits to the story text. Any active reviewer. */
 export async function saveStoryEdits(id: string, storyText: string): Promise<ActionResult> {
@@ -34,7 +40,7 @@ export async function saveStoryEdits(id: string, storyText: string): Promise<Act
 
 /** Send the edited draft to the submitter for their approval. Only valid
  *  when edit_permission = 'review_first'. */
-export async function sendForApproval(id: string): Promise<ActionResult> {
+export async function sendForApproval(id: string): Promise<SendForApprovalResult> {
   const session = await requireReviewer();
   const service = getServiceSupabase();
   if (!service) return { ok: false, error: "Not configured." };
@@ -63,7 +69,7 @@ export async function sendForApproval(id: string): Promise<ActionResult> {
 
   await sendApprovalRequestEmail(story.email as string, story.full_name as string, token);
   revalidatePath(`/review/stories/${id}`);
-  return { ok: true };
+  return { ok: true, emailSent: emailConfigured, approvalUrl: buildApprovalUrl(token) };
 }
 
 /** Publish a story. Requires can_publish (from reviewer_profiles), same

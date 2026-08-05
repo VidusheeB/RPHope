@@ -40,6 +40,7 @@ export default function StoryReviewEditor({
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [approvalLink, setApprovalLink] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState("");
 
   const dirty = text !== story.story_text;
@@ -55,9 +56,19 @@ export default function StoryReviewEditor({
   async function handleSendForApproval() {
     setBusy("approval");
     setMessage(null);
+    setApprovalLink(null);
     const res = await sendForApproval(story.id);
     setBusy(null);
-    setMessage(res.ok ? "Sent to the submitter for approval." : res.error);
+    if (!res.ok) {
+      setMessage(res.error);
+      return;
+    }
+    if (res.emailSent) {
+      setMessage("Sent to the submitter for approval.");
+    } else {
+      setMessage("Email delivery isn't configured, so nothing was sent automatically. Copy this link and send it to the submitter yourself:");
+      setApprovalLink(res.approvalUrl);
+    }
   }
 
   async function handlePublish() {
@@ -156,6 +167,13 @@ export default function StoryReviewEditor({
       </section>
 
       {message && <p className="text-ink/80">{message}</p>}
+      {approvalLink && (
+        <p className="break-all rounded-md border border-ink/10 bg-cream-header p-3 text-sm">
+          <a href={approvalLink} className="text-forest underline" target="_blank" rel="noreferrer">
+            {approvalLink}
+          </a>
+        </p>
+      )}
 
       {story.status === "pending_review" && (
         <section className="flex flex-wrap items-center gap-3 border-t border-ink/10 pt-6">
