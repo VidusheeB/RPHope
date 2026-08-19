@@ -9,10 +9,12 @@ export const metadata: Metadata = {
     "RP Hope hosts global events to raise awareness and research dollars — the Spring Fundraiser and Green Cane Day.",
 };
 
-// Events are managed in Wix. Re-reading every 5 minutes means an edit Carin
-// makes shows up quickly without a deploy; registration state is re-checked
-// live at submit time regardless of this window.
-export const revalidate = 300;
+// Events are managed in Wix, so the page reads Wix on every request. This is
+// deliberately NOT ISR: `revalidate` serves the cached page first and refreshes
+// in the background, which means the visitor who arrives right after Carin
+// edits an event sees the stale version. Events are low-traffic and the payoff
+// is that what a visitor sees always matches the Wix dashboard.
+export const dynamic = "force-dynamic";
 
 export default async function EventsPage() {
   const { events, unavailable } = await listUpcomingEvents();

@@ -7,7 +7,8 @@ import { getEventBySlug } from "@/lib/wix/events";
 import { formatEventDate, formatEventLocation } from "@/lib/wix/format";
 import type { SiteEvent } from "@/lib/wix/types";
 
-export const revalidate = 300;
+// Always current — see the note in app/events/page.tsx.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
