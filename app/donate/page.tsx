@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import DonateForm from "@/components/site/DonateForm";
 import Eyebrow from "@/components/site/Eyebrow";
+import { STRIPE_DONATE_URL } from "@/lib/donate";
 
 export const metadata: Metadata = {
   title: "Donate — RP Hope",
@@ -27,7 +27,16 @@ export default function DonatePage() {
               progression of RP and supporting newly diagnosed families.
             </p>
 
-            <DonateForm />
+            <a
+              href={STRIPE_DONATE_URL}
+              className="mt-6 inline-flex items-center justify-center gap-2 rounded-md bg-forest px-6 py-3.5 text-base font-bold text-white transition hover:bg-forest-dark focus:outline-none focus:ring-2 focus:ring-gold focus:ring-offset-2"
+            >
+              Donate now
+              <span aria-hidden="true">→</span>
+            </a>
+            <p className="mt-3 text-sm text-ink/70">
+              You&rsquo;ll choose your amount on Stripe&rsquo;s secure payment page.
+            </p>
           </section>
 
           <section>

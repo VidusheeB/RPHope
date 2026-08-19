@@ -684,24 +684,22 @@ approval or that explicit upfront trust; same content-governance spirit as the r
   a reviewer can watch it and type the story text themselves.
 
 ### Still to do (roadmap)
-- **Donations (`/donate`) — CODE BUILT, blocked on Stripe login/keys from Carin.** Uses **Stripe
-  Checkout** (hosted): one integration gets cards + **Apple Pay** + **Google Pay** + Link, accessible,
-  receipts handled. **What's built (working, typechecked, verified locally):** `lib/stripe.ts`
-  (server client + `stripeConfigured` guard), `app/api/checkout/route.ts` (one-time = `payment` mode;
-  monthly = `subscription` mode with an inline recurring price — no dashboard Products/Prices needed),
-  `components/site/DonateForm.tsx` (Frequency toggle + preset/Other amounts), `/donate/success` +
-  `/donate/cancelled` pages. Page no longer says "demo". Without keys the endpoint returns a clean 503.
-  **Running TODO to finish (do in order):**
-  - [ ] **Waiting on Carin** to hand over the Stripe login (org's existing account, used via Wix).
-        When she does: confirm it's a real Stripe account (dashboard.stripe.com), NOT "Wix Payments";
-        check whether any recurring donations already live in Stripe.
-  - [ ] **Test mode first.** In Stripe (Test mode ON) → Developers → API keys → copy the **Test**
-        secret key (`sk_test_…`).
-  - [ ] Add to `.env.local`: `STRIPE_SECRET_KEY=sk_test_…` and `NEXT_PUBLIC_SITE_URL=http://localhost:3000`.
-  - [ ] `npm run dev` → `/donate` → pay with test card `4242 4242 4242 4242` (future expiry, any CVC).
-        Land on Thank You; also test the **Monthly** toggle (appears under Billing → Subscriptions).
-  - [ ] **Go live:** add `STRIPE_SECRET_KEY` (the **live** `sk_live_…` key) to Vercel env (Production),
-        redeploy.
+- **Donations (`/donate`) — LIVE via a Stripe Payment Link.** The Donate button hands off to a
+  **Stripe-hosted donation page** (`lib/donate.ts` → `STRIPE_DONATE_URL`). Donors choose the amount
+  and one-time/monthly on Stripe's own page, so **no API key is needed** and Carin can change
+  presets, wording, or branding in the Stripe dashboard with no deploy. This is what unblocked
+  donations — the custom flow below was stuck waiting on credentials.
+  - ⚠️ **The custom Stripe Checkout flow is DORMANT, not deleted** — `lib/stripe.ts`,
+    `app/api/checkout/route.ts`, `components/site/DonateForm.tsx`, and `/donate/success` +
+    `/donate/cancelled` all still exist and still typecheck, but **nothing renders or calls them**.
+    They implement an on-site amount picker (presets + monthly toggle) that needs
+    `STRIPE_SECRET_KEY`. If that key ever arrives and an on-site flow is wanted, re-render
+    `<DonateForm />` in `app/donate/page.tsx` in place of the link. Don't "fix" the unused code
+    or delete it on a tidy-up pass without deciding that question first.
+  - To change where Donate goes, edit the single constant in `lib/donate.ts`.
+  **Remaining TODO:**
+  - [ ] Confirm on the Stripe page itself that **monthly/recurring** is offered (the old on-site
+        toggle is no longer in play — Stripe's page is now the only place that's configured).
   - [ ] Stripe dashboard polish: Settings → Payment methods → enable **Apple Pay / Google Pay**;
         Settings → Emails → enable "Successful payments" receipts.
   - [ ] Apply for Stripe's **nonprofit rate** (2.2% + 30¢) — [stripe.com/docs/nonprofit](https://stripe.com/docs/nonprofit).
