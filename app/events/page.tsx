@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import CTAButton from "@/components/site/CTAButton";
+import EventCard from "@/components/site/events/EventCard";
+import { listUpcomingEvents } from "@/lib/wix/events";
 
 export const metadata: Metadata = {
   title: "Events — RP Hope",
@@ -8,39 +9,14 @@ export const metadata: Metadata = {
     "RP Hope hosts global events to raise awareness and research dollars — the Spring Fundraiser and Green Cane Day.",
 };
 
-// Event content is faithful to the original Wix events pages. Images are the
-// real RP Hope event assets, placed where Wix used them (Spring Fundraiser
-// flyer, the green cane, and the low-vision awareness campaign still).
-const events = [
-  {
-    title: "Spring Fundraiser — “1-Day in April”",
-    when: "Sunday, April 26, 2026 · 7 AM–7 PM (your time zone)",
-    where: "Global · Virtual",
-    body: "Our 5th annual Spring Fundraiser. Walk, run, cycle, or hike — any distance, any time that day. Register, print your race bib, and take a selfie on race day. Teams join from Singapore, Australia, Nepal, the U.S., New Zealand, the Netherlands, Germany, Panama, Colombia, Brazil, and Canada.",
-    img: {
-      src: "/events/spring-fundraiser-2026.jpg",
-      w: 1000,
-      h: 1250,
-      alt: "RP Hope “1-Day in April” Spring Fundraiser flyer showing families holding race bibs and event details for Sunday, April 26.",
-    },
-    tag: "Fundraiser",
-  },
-  {
-    title: "Green Cane Day",
-    when: "Saturday, September 26 · Virtual",
-    where: "Teams in Argentina and Uruguay",
-    body: "A day to raise awareness about the green cane and the low-vision community. The green cane signals low vision (distinct from the white cane used for blindness), helping build recognition and understanding.",
-    img: {
-      src: "/events/green-cane.jpg",
-      w: 700,
-      h: 700,
-      alt: "A folding green mobility cane with a black grip, used to signal low vision.",
-    },
-    tag: "Awareness",
-  },
-];
+// Events are managed in Wix. Re-reading every 5 minutes means an edit Carin
+// makes shows up quickly without a deploy; registration state is re-checked
+// live at submit time regardless of this window.
+export const revalidate = 300;
 
-export default function EventsPage() {
+export default async function EventsPage() {
+  const { events, unavailable } = await listUpcomingEvents();
+
   return (
     <div className="bg-cream">
       {/* Awareness hero */}
@@ -69,40 +45,26 @@ export default function EventsPage() {
       </div>
 
       <div className="mx-auto max-w-4xl px-5 py-16">
-        <div className="space-y-8">
-          {events.map((e) => (
-            <article
-              key={e.title}
-              className="grid items-center gap-6 rounded-lg border border-ink/10 bg-white p-6 sm:grid-cols-[minmax(0,1fr)_1.3fr]"
-            >
-              <Image
-                src={e.img.src}
-                alt={e.img.alt}
-                width={e.img.w}
-                height={e.img.h}
-                className="w-full rounded-md object-cover"
-              />
-              <div>
-                <span className="inline-block rounded-full bg-mint px-3 py-1 text-xs font-bold text-forest">
-                  {e.tag}
-                </span>
-                <h2 className="mt-3 font-display text-2xl font-medium tracking-tight text-ink">
-                  {e.title}
-                </h2>
-                <p className="mt-2 font-semibold text-forest">{e.when}</p>
-                <p className="text-sm text-ink/60">{e.where}</p>
-                <p className="mt-4 text-ink/75">{e.body}</p>
-                <div className="mt-5">
-                  <CTAButton href="/donate" variant="primary" arrow>
-                    Register &amp; support
-                  </CTAButton>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+        {events.length > 0 ? (
+          <div className="space-y-8">
+            {events.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-ink/10 bg-white p-8 text-center">
+            <h2 className="font-display text-2xl font-medium tracking-tight text-ink">
+              {unavailable ? "Our events list is taking a moment" : "No upcoming events right now"}
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-ink/75">
+              {unavailable
+                ? "We couldn't load our events just now. Please refresh in a little while, or email us and we'll tell you what's coming up."
+                : "We don't have an event on the calendar at the moment. New events are announced here — and we'd love to hear from you in the meantime."}
+            </p>
+          </div>
+        )}
 
-        <p className="mt-10 text-sm text-ink/55">
+        <p className="mt-10 text-sm text-ink/70">
           Want to bring an RP Hope team to your country or ask about an event?{" "}
           <a
             href="mailto:information@rphope.org"

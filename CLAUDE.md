@@ -289,7 +289,10 @@ New version (live app at repo root):
   submitter to approve or request changes to their edited draft
 - `/review/stories`, `/review/stories/[id]` — reviewer dashboard for story
   submissions (separate, lightweight pipeline — see below)
-- `/donate`, `/events` — recreated (restyle to new brand still pending)
+- `/donate` — recreated (restyle to new brand still pending)
+- `/events` — **live from Wix Events** (see "Events — Wix Events integration" below); no longer a
+  hardcoded list
+- `/events/[slug]` — event detail + RP Hope-branded RSVP form written straight into Wix
 - `/privacy-policy`, `/terms-of-use` — stubs
 - `/review`, `/review/admin`, `/review/login|set-password|reset-password` — reviewer dashboard
   (auth-gated, `noindex`; see roadmap note)
@@ -314,6 +317,8 @@ New version (live app at repo root):
 - `/api/stories/synthesize` — cleans up a dictated/typed draft (`gpt-5.4`, `reasoning_effort: "medium"`,
   same call shape as `/api/openai/rp-expert`): removes filler words, light grammar only, preserves the
   submitter's own wording.
+- `/api/events/[eventId]/register` — creates an RSVP in **Wix Events**. Re-reads the event's live
+  state and question set from Wix before writing, so a stale tab can't register into a closed event.
 
 > **Note:** `/api/assistant` and `/api/explain` (the old Anthropic-powered voice brain and the
 > per-gene simplify/analogy endpoint) **have been deleted**. The voice assistant now runs on OpenAI
@@ -526,6 +531,76 @@ Archived original-site clone (reference only, excluded from build): `StaticDemoO
     results AND on every card. No Supabase table needed yet (the type carries `status_review` so a
     `manual`/`pending_review` record path exists for the future). **No manual setup required.**
 
+### Events — Wix Events integration (CODE BUILT, needs Wix API key)
+
+**The one place we deliberately did NOT leave Wix.** Everything else on this site moved off Wix, but
+event management stays there: Carin already runs RP Hope's events from the Wix dashboard, and the
+whole point of this integration is that she keeps doing exactly that. **Wix Events is the single
+source of truth** for events AND registrations — RP Hope is only the visitor-facing frontend.
+
+- **No parallel system.** There is no `events` or `registrations` table in Supabase and there must
+  not be one. Guests are never mirrored locally. Carin manages guests where she always has:
+  Wix Dashboard → Events → [event] → Guests (edit, remove, waitlist, check-in, export).
+- **Nothing about events is hardcoded.** Titles, dates, locations, images, capacity, registration
+  windows, and the registration *questions* all come from Wix at request time. Carin adding a
+  question, closing registration, or publishing a new event needs **no code change and no deploy**.
+
+**APIs chosen** (current, non-deprecated — verified against dev.wix.com):
+- **Events V3** via `wixEventsV2.queryEvents` / `getEventBySlug` / `getEvent` — `fields: ["DETAILS",
+  "TEXTS","REGISTRATION","FORM","URLS"]`. The `FORM` fieldset is what returns the live question set.
+- **RSVP V2** via `rsvpV2.createRsvp` (`POST /events/v2/rsvps`). Deliberately NOT the older RSVP v1.
+- Official `@wix/sdk` + `@wix/events` packages, matching this repo's use-the-official-SDK convention.
+
+**Auth — server-only, no visitor OAuth.** Both the events read scope (`SCOPE.DC-EVENTS.READ-EVENTS`)
+and the RSVP write scope (`SCOPE.DC-EVENTS.MANAGE-GUEST-LIST`) are **elevated and not visitor-safe**,
+so there is no browser-side Wix client and no OAuth flow to build — every call goes through our
+server with an API key (`Authorization: <API_KEY>` + `wix-site-id`, raw key, not `Bearer`).
+`WIX_API_KEY`/`WIX_SITE_ID` are server-only and must never take a `NEXT_PUBLIC_` prefix.
+
+**Code map** (`lib/wix/`, mirroring the `lib/trials/` layering):
+- `client.ts` — `wixConfigured` + null-guarded SDK client, same shape as `lib/stripe.ts`. Without
+  keys the site still builds and `/events` shows a calm "taking a moment" state.
+- `mapEvent.ts` / `formSchema.ts` — pure, unit-tested mapping. `toSiteEvent()` narrows Wix's huge
+  optional-everything `Event`; `toRegistrationFields()` flattens `form.controls[].inputs[]` into
+  renderable questions; `validateAnswers()` checks a submission against that same definition.
+- `events.ts` / `rsvp.ts` — the network layer. `rsvp.ts` maps Wix's documented application-error
+  codes (`RSVPS_CLOSED`, `GUEST_LIMIT_EXCEEDED`, `MEMBER_EMAIL_ALREADY_REGISTERED`, …) to friendly
+  sentences; Wix's own developer-facing strings are never shown to a visitor.
+- UI: `components/site/events/EventCard.tsx`, `RegistrationForm.tsx`; pages `app/events/page.tsx`
+  (`revalidate = 300`) and `app/events/[slug]/page.tsx`.
+
+**Things that are load-bearing — don't undo them:**
+- **Submit-time re-validation.** The register route re-fetches the event + form from Wix on every
+  call. A visitor whose tab was open when Carin closed registration gets a 409, not a booking.
+- **Wix's response is authoritative.** Success is only reported after Wix confirms. A "yes" that Wix
+  converts to `WAITLIST` (event filled up mid-request) is reported to the visitor as waitlisted.
+- **Field IDs, not labels.** Submissions use Wix's stable `inputName`; labels are display-only and
+  Carin can re-word them freely.
+- **Wix sends the confirmation email**, so `lib/email.ts` is deliberately NOT wired in here — a
+  second RP Hope email would conflict with Wix's own.
+- **No PII in logs.** Only event ID + Wix error code are logged, never names/emails/answers.
+- **Rich text is never rendered as HTML.** Wix returns Ricos JSON nodes; `extractParagraphs()` pulls
+  text only, so there is no `dangerouslySetInnerHTML` path and nothing to sanitize.
+- Registration state derivation is deliberately conservative: anything not positively confirmed open
+  falls through to "closed" rather than showing a form Wix would reject.
+
+**Not built (deliberate, documented, not silently dropped):**
+- **Ticketed/paid events** — the detail page shows an honest "email us for a ticket link" notice
+  rather than a half-working checkout. Adding Wix-hosted Events Checkout later is the clean next
+  step; `lib/wix/` already separates events/rsvp/forms for it.
+- Attendee self-service cancellation, and any guest management in RP Hope Admin — both stay in Wix.
+- Filtering which Wix events appear here (Query Events can't filter by category). Currently every
+  published event on the site shows, which is fine because the Wix site is RP Hope's own.
+
+**Manual setup required before this works** (until then `/events` shows the empty state, everything
+else on the site is unaffected):
+1. Generate an API key at **https://manage.wix.com/account/api-keys**, scoped to **only the RP Hope
+   site**, with the Wix Events read + manage-guest-list permissions.
+2. Grab the **Site ID** from the Wix dashboard URL (the segment after `/dashboard/`).
+3. Set `WIX_API_KEY` and `WIX_SITE_ID` in `.env.local` and in Vercel (Production + Preview), redeploy.
+4. Test against a **throwaway Wix test event first**, never a real one — an API-created RSVP lands in
+   the real guest list.
+
 ### How content was sourced (so it can be reproduced)
 - Scraped the live Wix site via its Wix sitemaps (~280 URLs: ~30 pages, 66 events, 168 posts).
 - `reference/content/` holds the scraped markdown; `scripts/scrape_rphope.py` is the scraper.
@@ -630,7 +705,8 @@ approval or that explicit upfront trust; same content-governance spirit as the r
   - [ ] Stripe dashboard polish: Settings → Payment methods → enable **Apple Pay / Google Pay**;
         Settings → Emails → enable "Successful payments" receipts.
   - [ ] Apply for Stripe's **nonprofit rate** (2.2% + 30¢) — [stripe.com/docs/nonprofit](https://stripe.com/docs/nonprofit).
-  - [ ] **Restyle `/donate` + `/events`** to the new forest/gold brand (still on old Wix teal/maroon tokens).
+  - [ ] **Restyle `/donate`** to the new forest/gold brand (still on old Wix teal/maroon tokens).
+        (`/events` is already on the new brand — it was rebuilt for the Wix Events integration.)
   - [ ] (Optional later) Stripe **Customer Portal** link so monthly donors can self-manage/cancel.
   - **Zelle can't be embedded** (no merchant API) — only a manual "send to this email/phone" display option.
 - Move gene **detail** reads into Supabase (add `face_of_rp`, articles columns; seed full data).

@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  images: {
+    // Event images are hosted by Wix (the events source of truth) and resolved
+    // to this CDN host by `media.getImageUrl`.
+    remotePatterns: [{ protocol: "https", hostname: "static.wixstatic.com" }],
+  },
   async redirects() {
     // The legal copy was consolidated into /policies so there is exactly one
     // copy to keep current. These must be real HTTP redirects: calling
