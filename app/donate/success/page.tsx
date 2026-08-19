@@ -34,8 +34,8 @@ export default function DonateSuccessPage() {
         — and helps newly diagnosed families find their footing.
       </p>
       <p className="mt-4 text-ink/70">
-        A receipt has been emailed to you by Stripe. If you have any questions,
-        reach us at{" "}
+        Stripe emails your receipt to the address you entered. If you have any
+        questions, reach us at{" "}
         <a
           className="font-semibold text-forest underline hover:text-forest-dark"
           href="mailto:information@rphope.org"
@@ -44,12 +44,20 @@ export default function DonateSuccessPage() {
         </a>
         .
       </p>
-      <Link
-        href="/"
-        className="mt-8 inline-block rounded-md bg-forest px-6 py-3 font-bold text-white hover:bg-forest-dark"
-      >
-        Return home
-      </Link>
+      <div className="mt-8 flex flex-wrap justify-center gap-3">
+        <Link
+          href="/"
+          className="inline-block rounded-md bg-forest px-6 py-3 font-bold text-white hover:bg-forest-dark focus:outline-none focus:ring-2 focus:ring-gold focus:ring-offset-2"
+        >
+          Return home
+        </Link>
+        <Link
+          href="/events"
+          className="inline-block rounded-md border border-ink/30 px-6 py-3 font-bold text-ink hover:border-ink hover:bg-ink/5 focus:outline-none focus:ring-2 focus:ring-gold focus:ring-offset-2"
+        >
+          See our events
+        </Link>
+      </div>
     </div>
   );
 }
