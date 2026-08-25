@@ -54,15 +54,17 @@ describe("fetchNcbiGeneRecord — three distinct outcomes", () => {
     if (result.ok) expect(result.record).toBeNull();
   });
 
-  it("ok:false with an error when the NCBI request itself fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => jsonResponse({}, 429))
-    );
+  // NCBI rate-limits per source IP, so a 429 can arrive even when we are within
+  // the documented limit. ncbiFetch retries with backoff (1s, 2s, 4s) before
+  // giving up, which is why these two tests need a timeout past the default 5s.
+  it("retries a 429, then reports the error once attempts are exhausted", async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({}, 429));
+    vi.stubGlobal("fetch", fetchMock);
     const result = await fetchNcbiGeneRecord("RPGR");
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toContain("429");
-  });
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  }, 20_000);
 
   it("ok:false when fetch throws (network error)", async () => {
     vi.stubGlobal(
@@ -74,5 +76,5 @@ describe("fetchNcbiGeneRecord — three distinct outcomes", () => {
     const result = await fetchNcbiGeneRecord("RPGR");
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toContain("network down");
-  });
+  }, 20_000);
 });

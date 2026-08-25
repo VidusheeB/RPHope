@@ -6,7 +6,7 @@
 // Public API, no key required (subject to the same NCBI rate limit as
 // ncbi.ts/pubmed.ts — throttled via ncbiThrottle.ts).
 
-import { throttleNcbi } from "./ncbiThrottle";
+import { ncbiFetch } from "./ncbiThrottle";
 
 const BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 
@@ -24,8 +24,7 @@ export async function fetchGeneToPubmedElink(geneId: string): Promise<ElinkResul
     geneId
   )}&retmode=json${apiKeyParam()}`;
   try {
-    await throttleNcbi();
-    const res = await fetch(url, { headers: { accept: "application/json" } });
+    const res = await ncbiFetch(url, { headers: { accept: "application/json" } });
     if (!res.ok) {
       const detail = `elink HTTP ${res.status}`;
       console.warn(`  [elink] gene-to-pubmed lookup failed for gene ${geneId}: ${detail}`);

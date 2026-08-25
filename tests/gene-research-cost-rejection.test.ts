@@ -24,6 +24,7 @@ function bundle(): GeneSourceBundle {
   return {
     geneSymbol: "LCA5",
     geneSlug: "lca5",
+    evidence: null,
     geneRecord: { sourceId: "ncbi-gene:167691", geneId: "167691", symbol: "LCA5", aliases: [] },
     literatureRecords: [],
     trialRecords: [],

@@ -35,10 +35,31 @@ const OFF_TOPIC_TERMS =
 
 export type RelevanceVerdict = { relevant: true } | { relevant: false; reason: string };
 
+/** Build a matcher for this gene's own disease names (lib/geneCatalog.ts,
+ *  column C). IRD_TERMS is a general list and cannot name every syndrome —
+ *  without this, a genuine Bardet-Biedl paper about ARL6 that discusses
+ *  obesity and polydactyly but no retinal term is dropped as irrelevant. These
+ *  terms are passed PER GENE, so widening the gate for ARL6 cannot widen it
+ *  for any other gene. */
+function diseaseContextMatcher(diseaseTerms: string[]): RegExp | null {
+  const escaped = diseaseTerms
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  if (!escaped.length) return null;
+  return new RegExp(`(${escaped.join("|")})`, "i");
+}
+
 export function assessRelevance(
   record: Pick<LiteratureRecord, "title" | "abstract">,
+  /** This gene's disease names — extra "always keep" context, same weight as
+   *  IRD_TERMS. Defaults to none, preserving the original behaviour. */
+  diseaseTerms: string[] = [],
 ): RelevanceVerdict {
   const text = `${record.title} ${record.abstract}`;
+
+  const diseaseMatcher = diseaseContextMatcher(diseaseTerms);
+  if (diseaseMatcher?.test(text)) return { relevant: true };
 
   const hasIrd = IRD_TERMS.test(text);
   // Strong IRD context overrides everything — always keep.

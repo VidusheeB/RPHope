@@ -25,6 +25,7 @@ describe("generation prompt — patient-friendly prevalence rule (feature 3)", (
   it("carries the qualitative frequency instruction into the per-gene requirements", () => {
     const prompt = buildUserPrompt({
       geneSymbol: "LCA5",
+      evidenceTierBlock: "",
       geneRecordJson: "{}",
       literatureRecordsJson: "[]",
       clinicalTrialRecordsJson: "[]",
@@ -40,6 +41,7 @@ describe("generation prompt — unverified trial references (feature 1)", () => 
   it("includes an unverified_trial_references block in the user prompt", () => {
     const prompt = buildUserPrompt({
       geneSymbol: "LCA5",
+      evidenceTierBlock: "",
       geneRecordJson: "{}",
       literatureRecordsJson: "[]",
       clinicalTrialRecordsJson: "[]",

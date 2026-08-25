@@ -14,7 +14,7 @@
 // legitimately nonexistent gene, which is exactly what this type prevents.
 
 import type { GeneVerificationResult } from "./types";
-import { throttleNcbi } from "./ncbiThrottle";
+import { ncbiFetch } from "./ncbiThrottle";
 
 const BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 
@@ -24,8 +24,7 @@ function apiKeyParam(): string {
 }
 
 async function getJson(url: string): Promise<unknown> {
-  await throttleNcbi();
-  const res = await fetch(url, { headers: { accept: "application/json" } });
+  const res = await ncbiFetch(url, { headers: { accept: "application/json" } });
   if (!res.ok) throw new Error(`NCBI request failed: HTTP ${res.status}`);
   return res.json();
 }

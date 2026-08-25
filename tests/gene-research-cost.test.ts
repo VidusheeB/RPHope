@@ -6,6 +6,7 @@ function bundle(literatureCount: number): GeneSourceBundle {
   return {
     geneSymbol: "RPGR",
     geneSlug: "rpgr",
+    evidence: null,
     geneRecord: { sourceId: "ncbi-gene:6103", geneId: "6103", symbol: "RPGR", aliases: [] },
     literatureRecords: Array.from({ length: literatureCount }, (_, i) => ({
       sourceId: `pubmed:${i}`,

@@ -6,6 +6,7 @@ function bundle(overrides: Partial<GeneSourceBundle> = {}): GeneSourceBundle {
   return {
     geneSymbol: "RPGR",
     geneSlug: "rpgr",
+    evidence: null,
     geneRecord: {
       sourceId: "ncbi-gene:6103",
       geneId: "6103",

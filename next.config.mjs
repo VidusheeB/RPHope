@@ -1,3 +1,5 @@
+import { geneRedirectRules } from "./lib/geneRedirects.mjs";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -14,6 +16,8 @@ const nextConfig = {
       { source: "/disclaimer", destination: "/policies#disclaimer", permanent: true },
       { source: "/terms-of-use", destination: "/policies#terms", permanent: true },
       { source: "/privacy-policy", destination: "/policies#privacy", permanent: true },
+      // Gene URLs retired by the 94-gene reconciliation — see lib/geneRedirects.mjs.
+      ...geneRedirectRules(),
     ];
   },
 };

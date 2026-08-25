@@ -1,0 +1,921 @@
+[
+  {
+    "gene": "ABCA4",
+    "slug": "abca4",
+    "aliases": [],
+    "diseaseTerms": [
+      "Stargardt disease"
+    ],
+    "evidenceTier": "established",
+    "framingNote": "High-dose vitamin A is contraindicated in ABCA4 disease. Say so on the page."
+  },
+  {
+    "gene": "ADGRA3",
+    "slug": "adgra3",
+    "aliases": [
+      "GPR125"
+    ],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": "Renamed from GPR125. Older papers use the old symbol."
+  },
+  {
+    "gene": "ADIPOR1",
+    "slug": "adipor1",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "candidate",
+    "framingNote": "Not in GeneReviews. Few reports. Label the evidence as limited."
+  },
+  {
+    "gene": "AGBL5",
+    "slug": "agbl5",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "AHR",
+    "slug": "ahr",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "candidate",
+    "framingNote": "Not in GeneReviews. Few reports. Label the evidence as limited."
+  },
+  {
+    "gene": "ARHGEF18",
+    "slug": "arhgef18",
+    "aliases": [
+      "RP78",
+      "P114-RhoGEF",
+      "p114RhoGEF",
+      "SA-RhoGEF"
+    ],
+    "diseaseTerms": [],
+    "evidenceTier": "reported",
+    "framingNote": "Real RP gene, published after the 2023 GeneReviews revision."
+  },
+  {
+    "gene": "ARL2BP",
+    "slug": "arl2bp",
+    "aliases": [
+      "RP66",
+      "RP82",
+      "BART",
+      "BART1"
+    ],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "ARL3",
+    "slug": "arl3",
+    "aliases": [
+      "RP83",
+      "ARFL3",
+      "JBTS35"
+    ],
+    "diseaseTerms": [
+      "Joubert syndrome"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "ARL6",
+    "slug": "arl6",
+    "aliases": [
+      "BBS3",
+      "RP55"
+    ],
+    "diseaseTerms": [
+      "Bardet-Biedl syndrome"
+    ],
+    "evidenceTier": "established",
+    "framingNote": "Your BBS3 row is this gene. Keep BBS3 as a search term only."
+  },
+  {
+    "gene": "BBS1",
+    "slug": "bbs1",
+    "aliases": [
+      "BBS2L2"
+    ],
+    "diseaseTerms": [
+      "Bardet-Biedl syndrome"
+    ],
+    "evidenceTier": "established",
+    "framingNote": "Causes nonsyndromic RP on its own, which is why it belongs here."
+  },
+  {
+    "gene": "BBS2",
+    "slug": "bbs2",
+    "aliases": [],
+    "diseaseTerms": [
+      "Bardet-Biedl syndrome"
+    ],
+    "evidenceTier": "established",
+    "framingNote": "Causes nonsyndromic RP on its own."
+  },
+  {
+    "gene": "BEST1",
+    "slug": "best1",
+    "aliases": [
+      "VMD2"
+    ],
+    "diseaseTerms": [
+      "Bestrophinopathy",
+      "vitelliform macular dystrophy",
+      "Best disease"
+    ],
+    "evidenceTier": "established",
+    "framingNote": "Can be dominant OR recessive."
+  },
+  {
+    "gene": "BEST2",
+    "slug": "best2",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "disputed",
+    "framingNote": "Not on the 94-gene include list. The existing page quotes EyeWiki, but that quote is about BEST1 and says only BEST1 has been linked to human eye disease; GeneCards lists no RP link. Retained pending Carin's decision. If retrieval confirms no RP association, the page must say the evidence does not support it."
+  },
+  {
+    "gene": "CA4",
+    "slug": "ca4",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "CERKL",
+    "slug": "cerkl",
+    "aliases": [],
+    "diseaseTerms": [
+      "Cone-rod dystrophy"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "CFAP418",
+    "slug": "cfap418",
+    "aliases": [
+      "C8orf37"
+    ],
+    "diseaseTerms": [
+      "Bardet-Biedl syndrome"
+    ],
+    "evidenceTier": "established",
+    "framingNote": "Renamed from C8orf37. Most papers still say C8orf37 - search both."
+  },
+  {
+    "gene": "CLCC1",
+    "slug": "clcc1",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "reported",
+    "framingNote": "Real RP gene, published after the 2023 GeneReviews revision."
+  },
+  {
+    "gene": "CLRN1",
+    "slug": "clrn1",
+    "aliases": [
+      "USH3A"
+    ],
+    "diseaseTerms": [
+      "Usher syndrome type 3",
+      "Usher syndrome type 3A"
+    ],
+    "evidenceTier": "established",
+    "framingNote": "This is the gene behind USH3A. Page should be CLRN1, USH3A a search term."
+  },
+  {
+    "gene": "CNGA1",
+    "slug": "cnga1",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "CNGB1",
+    "slug": "cngb1",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "CRB1",
+    "slug": "crb1",
+    "aliases": [],
+    "diseaseTerms": [
+      "Leber congenital amaurosis",
+      "Coats-like exudative vasculopathy"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "CRX",
+    "slug": "crx",
+    "aliases": [],
+    "diseaseTerms": [
+      "Leber congenital amaurosis",
+      "cone-rod dystrophy"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "CWC27",
+    "slug": "cwc27",
+    "aliases": [],
+    "diseaseTerms": [
+      "Retinal degeneration with brachydactyly"
+    ],
+    "evidenceTier": "phenotype-adjacent",
+    "framingNote": "RP is part of a broader syndrome. Page must say what else is involved."
+  },
+  {
+    "gene": "CYP4V2",
+    "slug": "cyp4v2",
+    "aliases": [],
+    "diseaseTerms": [
+      "Bietti crystalline dystrophy"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "DHDDS",
+    "slug": "dhdds",
+    "aliases": [
+      "RP59"
+    ],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": "RP59 is the locus name for this gene, not a separate entry."
+  },
+  {
+    "gene": "DHX38",
+    "slug": "dhx38",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "EMC1",
+    "slug": "emc1",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "ENSA",
+    "slug": "ensa",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "disputed",
+    "framingNote": "Not on the 94-gene include list. No RP association found; ENSA regulates potassium channels in pancreatic cells and is a diabetes candidate gene. Retained pending Carin's decision. If retrieval confirms no RP association, the page must say the evidence does not support it."
+  },
+  {
+    "gene": "EYS",
+    "slug": "eys",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": "One of the most common causes worldwide."
+  },
+  {
+    "gene": "FAM161A",
+    "slug": "fam161a",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "FSCN2",
+    "slug": "fscn2",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "disputed",
+    "framingNote": "GeneReviews lists it but calls it an unlikely cause. Page must say that."
+  },
+  {
+    "gene": "GUCA1B",
+    "slug": "guca1b",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "HGSNAT",
+    "slug": "hgsnat",
+    "aliases": [],
+    "diseaseTerms": [
+      "Mucopolysaccharidosis IIIC",
+      "Sanfilippo syndrome type C"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "HK1",
+    "slug": "hk1",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "IDH3B",
+    "slug": "idh3b",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "IFT140",
+    "slug": "ift140",
+    "aliases": [],
+    "diseaseTerms": [
+      "Mainzer-Saldino syndrome",
+      "short-rib thoracic dysplasia"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "IFT172",
+    "slug": "ift172",
+    "aliases": [],
+    "diseaseTerms": [
+      "Short-rib thoracic dysplasia",
+      "Bardet-Biedl syndrome"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "IMPDH1",
+    "slug": "impdh1",
+    "aliases": [],
+    "diseaseTerms": [
+      "Leber congenital amaurosis"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "IMPG1",
+    "slug": "impg1",
+    "aliases": [],
+    "diseaseTerms": [
+      "Vitelliform macular dystrophy"
+    ],
+    "evidenceTier": "reported",
+    "framingNote": "Primarily a macular dystrophy gene. Frame carefully."
+  },
+  {
+    "gene": "IMPG2",
+    "slug": "impg2",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "INPP5E",
+    "slug": "inpp5e",
+    "aliases": [],
+    "diseaseTerms": [
+      "Joubert syndrome",
+      "MORM syndrome",
+      "retinal ciliopathy"
+    ],
+    "evidenceTier": "phenotype-adjacent",
+    "framingNote": "Keep the retinal-ciliopathy framing already on the live page."
+  },
+  {
+    "gene": "KIAA1549",
+    "slug": "kiaa1549",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "KIF3B",
+    "slug": "kif3b",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "candidate",
+    "framingNote": "Not in GeneReviews. Evidence is emerging. Label it as limited."
+  },
+  {
+    "gene": "KIZ",
+    "slug": "kiz",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "KLHL7",
+    "slug": "klhl7",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "LCA5",
+    "slug": "lca5",
+    "aliases": [],
+    "diseaseTerms": [
+      "Leber congenital amaurosis"
+    ],
+    "evidenceTier": "phenotype-adjacent",
+    "framingNote": "This is your LCA typo row. Primarily an LCA gene, not classic RP."
+  },
+  {
+    "gene": "LRAT",
+    "slug": "lrat",
+    "aliases": [],
+    "diseaseTerms": [
+      "Leber congenital amaurosis",
+      "early-onset retinal dystrophy"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "MAK",
+    "slug": "mak",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "MERTK",
+    "slug": "mertk",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": "A gene therapy trial has been run for MERTK RP. Worth flagging to patients."
+  },
+  {
+    "gene": "MVK",
+    "slug": "mvk",
+    "aliases": [],
+    "diseaseTerms": [
+      "Mevalonate kinase deficiency"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "NEK2",
+    "slug": "nek2",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": "Your NEK1 row was almost certainly meant to be this. NEK1 is not an RP gene."
+  },
+  {
+    "gene": "NEUROD1",
+    "slug": "neurod1",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "NR2E3",
+    "slug": "nr2e3",
+    "aliases": [],
+    "diseaseTerms": [
+      "Enhanced S-cone syndrome",
+      "Goldmann-Favre syndrome"
+    ],
+    "evidenceTier": "established",
+    "framingNote": "Can be dominant OR recessive."
+  },
+  {
+    "gene": "NRL",
+    "slug": "nrl",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": "Can be dominant OR recessive."
+  },
+  {
+    "gene": "OFD1",
+    "slug": "ofd1",
+    "aliases": [],
+    "diseaseTerms": [
+      "Oral-facial-digital syndrome type 1",
+      "Joubert syndrome"
+    ],
+    "evidenceTier": "established",
+    "framingNote": "MISSING FROM YOUR LIST. X-linked. Needs a new page."
+  },
+  {
+    "gene": "PCARE",
+    "slug": "pcare",
+    "aliases": [
+      "C2orf71"
+    ],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": "Renamed from C2orf71. Search both."
+  },
+  {
+    "gene": "PDE6A",
+    "slug": "pde6a",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "PDE6B",
+    "slug": "pde6b",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "PDE6G",
+    "slug": "pde6g",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "POMGNT1",
+    "slug": "pomgnt1",
+    "aliases": [],
+    "diseaseTerms": [
+      "Muscle-eye-brain disease"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "PRCD",
+    "slug": "prcd",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "PROM1",
+    "slug": "prom1",
+    "aliases": [],
+    "diseaseTerms": [
+      "Stargardt-like macular dystrophy",
+      "cone-rod dystrophy"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "PROS1",
+    "slug": "pros1",
+    "aliases": [],
+    "diseaseTerms": [
+      "Protein S deficiency"
+    ],
+    "evidenceTier": "candidate",
+    "framingNote": "One 2019 paper, two families, authors call it a candidate gene. Say so."
+  },
+  {
+    "gene": "PRPF3",
+    "slug": "prpf3",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "PRPF31",
+    "slug": "prpf31",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": "Some variants hide in noncoding DNA and are missed by standard panels."
+  },
+  {
+    "gene": "PRPF4",
+    "slug": "prpf4",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "reported",
+    "framingNote": "Real adRP gene, not in the GeneReviews table."
+  },
+  {
+    "gene": "PRPF6",
+    "slug": "prpf6",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "PRPF8",
+    "slug": "prpf8",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "PRPH2",
+    "slug": "prph2",
+    "aliases": [
+      "RDS",
+      "RP7",
+      "TSPAN22",
+      "AOFMD",
+      "AVMD",
+      "CACD2",
+      "MDBS1"
+    ],
+    "diseaseTerms": [
+      "Macular dystrophy",
+      "pattern dystrophy",
+      "digenic RP"
+    ],
+    "evidenceTier": "established",
+    "framingNote": "Very common cause. Older papers say RDS. Digenic with ROM1."
+  },
+  {
+    "gene": "RBP3",
+    "slug": "rbp3",
+    "aliases": [
+      "IRBP"
+    ],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "RDH12",
+    "slug": "rdh12",
+    "aliases": [],
+    "diseaseTerms": [
+      "Leber congenital amaurosis"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "REEP6",
+    "slug": "reep6",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "reported",
+    "framingNote": "Real arRP gene, published after the 2023 GeneReviews revision."
+  },
+  {
+    "gene": "RGR",
+    "slug": "rgr",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "RHO",
+    "slug": "rho",
+    "aliases": [],
+    "diseaseTerms": [
+      "Congenital stationary night blindness"
+    ],
+    "evidenceTier": "established",
+    "framingNote": "The single most common cause of dominant RP."
+  },
+  {
+    "gene": "RLBP1",
+    "slug": "rlbp1",
+    "aliases": [],
+    "diseaseTerms": [
+      "Bothnia retinal dystrophy",
+      "retinitis punctata albescens"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "ROM1",
+    "slug": "rom1",
+    "aliases": [],
+    "diseaseTerms": [
+      "Digenic RP"
+    ],
+    "evidenceTier": "established",
+    "framingNote": "Causes RP together with PRPH2. Explain the pairing on both pages."
+  },
+  {
+    "gene": "RP1",
+    "slug": "rp1",
+    "aliases": [
+      "DCDC4A",
+      "ORP1"
+    ],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": "Can be dominant OR recessive."
+  },
+  {
+    "gene": "RP1L1",
+    "slug": "rp1l1",
+    "aliases": [],
+    "diseaseTerms": [
+      "Occult macular dystrophy"
+    ],
+    "evidenceTier": "reported",
+    "framingNote": "Primarily a macular dystrophy gene. Frame carefully."
+  },
+  {
+    "gene": "RP2",
+    "slug": "rp2",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": "X-linked."
+  },
+  {
+    "gene": "RP9",
+    "slug": "rp9",
+    "aliases": [
+      "PAP1"
+    ],
+    "diseaseTerms": [],
+    "evidenceTier": "disputed",
+    "framingNote": "GeneReviews says the PAP1 evidence was not supported later. Page must say that."
+  },
+  {
+    "gene": "RPE65",
+    "slug": "rpe65",
+    "aliases": [],
+    "diseaseTerms": [
+      "Leber congenital amaurosis",
+      "Luxturna"
+    ],
+    "evidenceTier": "established",
+    "framingNote": "FDA-approved gene therapy exists for this gene. Biggest page on the site."
+  },
+  {
+    "gene": "RPGR",
+    "slug": "rpgr",
+    "aliases": [
+      "RP3"
+    ],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": "X-linked, most common xlRP cause. The ORF15 region is often missed by panels."
+  },
+  {
+    "gene": "SAG",
+    "slug": "sag",
+    "aliases": [],
+    "diseaseTerms": [
+      "Oguchi disease"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "SAMD11",
+    "slug": "samd11",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "reported",
+    "framingNote": "Real arRP gene, published after the 2023 GeneReviews revision."
+  },
+  {
+    "gene": "SEMA4A",
+    "slug": "sema4a",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "SLC7A14",
+    "slug": "slc7a14",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "SNRNP200",
+    "slug": "snrnp200",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "SPATA7",
+    "slug": "spata7",
+    "aliases": [],
+    "diseaseTerms": [
+      "Leber congenital amaurosis"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "SPP2",
+    "slug": "spp2",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "TOPORS",
+    "slug": "topors",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "TRNT1",
+    "slug": "trnt1",
+    "aliases": [],
+    "diseaseTerms": [
+      "SIFD",
+      "sideroblastic anemia with immunodeficiency"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "TTC8",
+    "slug": "ttc8",
+    "aliases": [
+      "BBS8"
+    ],
+    "diseaseTerms": [
+      "Bardet-Biedl syndrome"
+    ],
+    "evidenceTier": "established",
+    "framingNote": "MISSING FROM YOUR LIST. Needs a new page."
+  },
+  {
+    "gene": "TULP1",
+    "slug": "tulp1",
+    "aliases": [],
+    "diseaseTerms": [
+      "Leber congenital amaurosis"
+    ],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "USH2A",
+    "slug": "ush2a",
+    "aliases": [],
+    "diseaseTerms": [
+      "Usher syndrome type 2",
+      "Usher syndrome type 2A",
+      "usherin"
+    ],
+    "evidenceTier": "established",
+    "framingNote": "Gene and disease share a name here. Your current page name is correct."
+  },
+  {
+    "gene": "ZNF408",
+    "slug": "znf408",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  },
+  {
+    "gene": "ZNF513",
+    "slug": "znf513",
+    "aliases": [],
+    "diseaseTerms": [],
+    "evidenceTier": "established",
+    "framingNote": ""
+  }
+]

@@ -11,6 +11,8 @@
 // whose results, if any, arrive here as ordinary supplied records like
 // everything else — see webSearchFallback.ts.
 
+import type { EvidenceTier } from "../geneCatalog";
+
 export const SYSTEM_PROMPT = `You are the evidence-synthesis writer for RP Hope's Genetic Insights Library.
 
 Your task is to evaluate a supplied bundle of biomedical evidence and
@@ -165,6 +167,14 @@ Provide only:
 Direct visitors to RP Hope's Clinical Trials Finder for personalized
 screening. Never determine eligibility.
 
+Some trial records carry a provenance of "disease_search". These were found by
+searching the gene's associated SYNDROME (for example Bardet-Biedl syndrome or
+Usher syndrome type 3) rather than the gene symbol, because most syndrome
+studies never name the causative gene. They may be relevant to someone with
+this gene, but they are NOT gene-specific: say plainly that the study is for
+the broader condition rather than for this gene, and never imply it targets
+this gene.
+
 Some trial records carry a provenance of "discovered_from_literature" — these
 were resolved directly from a ClinicalTrials.gov identifier named in a
 publication, and are as authoritative as any other registry record. If the
@@ -218,6 +228,8 @@ Set reviewStatus to "unreviewed".`;
 
 export type UserPromptInput = {
   geneSymbol: string;
+  /** Rendered evidence-tier block, or "" when the gene is not in the catalog. */
+  evidenceTierBlock: string;
   geneRecordJson: string;
   literatureRecordsJson: string;
   clinicalTrialRecordsJson: string;
@@ -226,12 +238,48 @@ export type UserPromptInput = {
   unverifiedTrialReferencesJson: string;
 };
 
+/** How each evidence tier must be framed on the page. These are content-
+ *  governance rules from RP_Hope_genes_to_include_94.xlsx, not style
+ *  preferences: a reader has no way to tell a gene behind most dominant RP
+ *  from one with two published families unless the page says so. */
+const TIER_INSTRUCTIONS: Record<EvidenceTier, string> = {
+  established:
+    "This gene's link to retinitis pigmentosa is established (it appears in GeneReviews NBK1417). You may state the association plainly, still citing supplied sources for every specific claim.",
+  reported:
+    "This is a real RP gene, but it was published after the April 2023 GeneReviews revision and so is not in that reference table. State the association as reported in the literature rather than as long-established, and do not imply a GeneReviews listing.",
+  candidate:
+    "This gene is a CANDIDATE only — one or two reports. The page MUST say the evidence is limited, in the patient-facing prose, not only in a review note. Do not describe it as a known or established cause of RP. If the supplied evidence does not support an RP link at all, say that plainly.",
+  "phenotype-adjacent":
+    "This gene causes a broader condition in which retinal degeneration is ONE feature — it is not classic isolated RP. The page MUST explain what else the condition involves, so a reader does not assume their diagnosis is limited to the eye.",
+  disputed:
+    "This gene's RP association is DISPUTED — it was listed historically, but later evidence did not support it. The page MUST say so directly in the patient-facing prose. Do not present it as a cause of RP. If the supplied evidence contains no credible RP association, state that the evidence does not support one, and record it in reviewFlags.",
+};
+
+/** The <evidence_tier> block, or "" for a gene absent from the catalog. */
+export function buildEvidenceTierBlock(
+  evidence: { tier: EvidenceTier; framingNote: string } | null
+): string {
+  if (!evidence) return "";
+  const note = evidence.framingNote.trim();
+  return `
+<evidence_tier>
+Tier: ${evidence.tier}
+
+${TIER_INSTRUCTIONS[evidence.tier]}${note ? `\n\nReviewer's note for this specific gene (follow it): ${note}` : ""}
+
+This framing requirement takes precedence over how confident the supplied
+literature sounds. A well-written paper about a candidate gene does not make
+the gene established.
+</evidence_tier>`;
+}
+
 export function buildUserPrompt(input: UserPromptInput): string {
   return `Evaluate the following evidence bundle and draft an unreviewed Genetic Insights page for ${input.geneSymbol}.
 
 <gene_record>
 ${input.geneRecordJson}
 </gene_record>
+${input.evidenceTierBlock}
 
 <literature_records>
 ${input.literatureRecordsJson}

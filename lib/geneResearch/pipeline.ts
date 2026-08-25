@@ -37,6 +37,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchNcbiGeneRecord } from "./ncbi";
 import { getSearchTerms } from "./aliases";
+import { getCatalogGene } from "../geneCatalog";
 import { fetchGeneToPubmedElink } from "./elink";
 import { fetchPubMedRecords, fetchPubMedRecordsByPmid } from "./pubmed";
 import { fetchEuropePmcRecords } from "./europepmc";
@@ -127,8 +128,27 @@ export async function assembleSourceBundle(
   }
   const geneRecord = geneResult.record;
 
-  // Step 2: build the search-term set from the verified record.
-  const { allTerms, safeAliases, excludedAliases } = getSearchTerms(geneRecord);
+  // Step 2: build the search-term set from the verified record, then fold in
+  // the hand-verified aliases from lib/geneCatalog.ts. NCBI's "Also known as"
+  // list is the primary source and is always current, but the sheet's column B
+  // was checked against HGNC / NCBI GTR / GeneReviews and occasionally carries
+  // a symbol NCBI does not list (searching CFAP418 without C8orf37 misses a
+  // decade of research). Union, deduplicated case-insensitively.
+  const catalogGene = getCatalogGene(geneSlug);
+  const catalogAliases = catalogGene?.aliases ?? [];
+  const diseaseTerms = catalogGene?.diseaseTerms ?? [];
+
+  const base = getSearchTerms(geneRecord);
+  const seenTerm = new Set(base.allTerms.map((t) => t.toLowerCase()));
+  const addedAliases = catalogAliases.filter((a) => {
+    const k = a.toLowerCase();
+    if (seenTerm.has(k)) return false;
+    seenTerm.add(k);
+    return true;
+  });
+  const allTerms = [...base.allTerms, ...addedAliases];
+  const safeAliases = [...base.safeAliases, ...addedAliases];
+  const excludedAliases = base.excludedAliases;
 
   // Step 3a: ELink Gene-to-PubMed (NCBI-bound, best-effort). A curated
   // association list — high precision, but a transient failure here must not
@@ -161,7 +181,7 @@ export async function assembleSourceBundle(
   // hosts, run in parallel now the NCBI-bound calls are done.
   const [europePmcResult, trialsResult] = await Promise.all([
     fetchEuropePmcRecords(geneRecord.symbol, allTerms),
-    fetchTrialSummaries(geneSymbol),
+    fetchTrialSummaries(geneSymbol, diseaseTerms),
   ]);
   if (!europePmcResult.ok) {
     return {
@@ -188,7 +208,7 @@ export async function assembleSourceBundle(
   const relevant: LiteratureRecord[] = [];
   const gateExcluded: LiteratureRecord[] = [];
   for (const c of candidates) {
-    const verdict = assessRelevance(c);
+    const verdict = assessRelevance(c, diseaseTerms);
     if (verdict.relevant) {
       relevant.push(c);
     } else {
@@ -253,6 +273,9 @@ export async function assembleSourceBundle(
       geneSymbol: geneRecord.symbol,
       geneSlug,
       geneRecord,
+      evidence: catalogGene
+        ? { tier: catalogGene.evidenceTier, framingNote: catalogGene.framingNote }
+        : null,
       literatureRecords: selected,
       trialRecords,
       approvedResources: APPROVED_GENERAL_RESOURCES,

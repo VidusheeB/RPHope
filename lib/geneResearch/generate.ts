@@ -19,7 +19,7 @@
 // every subsequent gene's call hits the cache.
 
 import Anthropic from "@anthropic-ai/sdk";
-import { SYSTEM_PROMPT, buildUserPrompt } from "./prompts";
+import { SYSTEM_PROMPT, buildUserPrompt, buildEvidenceTierBlock } from "./prompts";
 import { GENE_PAGE_SCHEMA } from "./schema";
 import { enforceLimits } from "./postprocess";
 import { validateDraft } from "./validate";
@@ -177,6 +177,7 @@ export async function generateGenePage(
 
   const userPrompt = buildUserPrompt({
     geneSymbol: bundle.geneSymbol,
+    evidenceTierBlock: buildEvidenceTierBlock(bundle.evidence),
     geneRecordJson: JSON.stringify(bundle.geneRecord, null, 2),
     literatureRecordsJson: JSON.stringify(bundle.literatureRecords, null, 2),
     clinicalTrialRecordsJson: JSON.stringify(bundle.trialRecords, null, 2),

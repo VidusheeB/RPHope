@@ -23,7 +23,7 @@
 
 import type { LiteratureRecord, FoundBy } from "./types";
 import { classifyEvidence, scoreLiteratureRecord } from "./rank";
-import { throttleNcbi } from "./ncbiThrottle";
+import { ncbiFetch } from "./ncbiThrottle";
 
 const BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 const RETRIEVAL_LIMIT = 100;
@@ -78,8 +78,7 @@ async function esearchPmids(term: string, retmax: number): Promise<PubMedFetchRe
   const url = `${BASE}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(
     term
   )}&retmax=${retmax}&sort=relevance&retmode=json${apiKeyParam()}`;
-  await throttleNcbi();
-  const res = await fetch(url, { headers: { accept: "application/json" } });
+  const res = await ncbiFetch(url, { headers: { accept: "application/json" } });
   if (!res.ok) {
     const detail = `esearch HTTP ${res.status}`;
     console.warn(`  [pubmed] ${detail} for term: ${term.slice(0, 120)}`);
@@ -158,8 +157,7 @@ async function efetchAbstracts(
     const url = `${BASE}/efetch.fcgi?db=pubmed&id=${batch.join(
       ","
     )}&rettype=abstract&retmode=xml${apiKeyParam()}`;
-    await throttleNcbi();
-    const res = await fetch(url, { headers: { accept: "application/xml" } });
+    const res = await ncbiFetch(url, { headers: { accept: "application/xml" } });
     if (!res.ok) {
       const detail = `efetch HTTP ${res.status}`;
       console.warn(`  [pubmed] ${detail} for ${batch.length} id(s)`);

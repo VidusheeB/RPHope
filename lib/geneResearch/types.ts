@@ -21,6 +21,8 @@
  *  failed (network/API error) — these are NOT the same thing. "Zero records"
  *  is legitimate evidence-thinness; a hard failure blocks generation (see
  *  validate.ts's "required retrieval failed" reject condition). */
+import type { EvidenceTier } from "../geneCatalog";
+
 export type RetrievalResult<T> =
   | { ok: true; records: T[] }
   | { ok: false; error: string };
@@ -100,7 +102,15 @@ export type LiteratureRecord = {
 
 /** How a trial record entered the bundle: the normal gene-name CT.gov search,
  *  or resolved directly from an NCT ID a selected publication named. */
-export type TrialProvenance = "gene_search" | "discovered_from_literature";
+export type TrialProvenance =
+  | "gene_search"
+  | "discovered_from_literature"
+  /** Found by searching the gene's SYNDROME rather than its symbol. Most
+   *  syndrome trials never name the causative gene, so requiring the symbol
+   *  returned zero studies for genes like ARL6 (Bardet-Biedl) and CLRN1 (Usher
+   *  type 3). These are relevant to someone with that gene but are NOT
+   *  gene-specific, and the draft must say so. */
+  | "disease_search";
 
 /** A ClinicalTrials.gov record, trimmed to what the prompt needs. */
 export type TrialSummaryRecord = {
@@ -164,6 +174,12 @@ export type GeneSourceBundle = {
   geneSymbol: string;
   geneSlug: string;
   geneRecord: NcbiGeneRecord;
+  /** How well established this gene's RP link is, plus the sheet's per-gene
+   *  framing instruction (lib/geneCatalog.ts). Passed into generation so a
+   *  candidate/disputed/phenotype-adjacent page states its own limits — a
+   *  reader cannot otherwise tell RHO, which causes most dominant RP, from
+   *  PROS1, which has two families behind it. */
+  evidence: { tier: EvidenceTier; framingNote: string } | null;
   literatureRecords: LiteratureRecord[];
   trialRecords: TrialSummaryRecord[];
   approvedResources: ApprovedResource[];

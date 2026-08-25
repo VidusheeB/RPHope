@@ -35,11 +35,38 @@ function toSummary(
   };
 }
 
+/** ClinicalTrials.gov `query.cond` value for a gene.
+ *
+ *  "retinitis pigmentosa" alone is NOT enough. Many RP genes' trials are
+ *  registered under the syndrome, not under RP: CLRN1's studies are listed as
+ *  Usher syndrome type 3, ABCA4's as Stargardt disease, HGSNAT's as Sanfilippo
+ *  syndrome. Searching only the RP condition silently returned zero trials for
+ *  those genes. The disease terms come from lib/geneCatalog.ts (the sheet's
+ *  column C), which is exactly the "feed the API the disease names too" note in
+ *  its README.
+ *
+ *  Terms are OR'd using CT.gov v2's Essie expression syntax, and quoted so a
+ *  multi-word disease name matches as a phrase rather than as loose words. */
+export function buildTrialCondition(diseaseTerms: string[]): string {
+  const terms = ["retinitis pigmentosa", ...diseaseTerms]
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const seen = new Set<string>();
+  const unique = terms.filter((t) => {
+    const k = t.toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  return unique.map((t) => `"${t.replace(/"/g, "")}"`).join(" OR ");
+}
+
 export async function fetchTrialSummaries(
-  geneSymbol: string
+  geneSymbol: string,
+  diseaseTerms: string[] = []
 ): Promise<{ ok: true; records: TrialSummaryRecord[] } | { ok: false; error: string }> {
   const result = await fetchTrialsResult({
-    condition: "retinitis pigmentosa",
+    condition: buildTrialCondition(diseaseTerms),
     term: geneSymbol,
     pageSize: 20,
   });
@@ -49,10 +76,38 @@ export async function fetchTrialSummaries(
     return { ok: false, error: result.error };
   }
 
-  return {
-    ok: true,
-    records: result.records.map((t) => toSummary(t, "gene_search")),
-  };
+  const byNct = new Map<string, TrialSummaryRecord>();
+  for (const t of result.records) {
+    byNct.set(t.id.toUpperCase(), toSummary(t, "gene_search"));
+  }
+
+  // Second pass: the gene's own syndrome, with NO gene term. Most syndrome
+  // trials never name the causative gene, so the gene-term search above returns
+  // zero for ARL6 (Bardet-Biedl), CLRN1 (Usher type 3), HGSNAT (Sanfilippo) and
+  // similar — studies someone with that gene could genuinely look at. These are
+  // marked "disease_search" and geneSpecific: false so the draft presents them
+  // as syndrome-level, never as gene-specific. This is NOT the "generic trials
+  // that merely mention inherited retinal disease" case: the condition searched
+  // is this gene's own disease, not a blanket RP query.
+  for (const term of diseaseTerms) {
+    const byDisease = await fetchTrialsResult({
+      condition: `"${term.replace(/"/g, "")}"`,
+      pageSize: 20,
+    });
+    if (!byDisease.ok) {
+      // Best-effort: the gene-term results above are already in hand, so a
+      // failure here thins the bundle rather than sinking the gene.
+      console.warn(`  [trials] disease search failed for "${term}": ${byDisease.error}`);
+      continue;
+    }
+    for (const t of byDisease.records) {
+      const key = t.id.toUpperCase();
+      if (byNct.has(key)) continue; // the gene-specific hit is the stronger one
+      byNct.set(key, { ...toSummary(t, "disease_search"), geneSpecific: false });
+    }
+  }
+
+  return { ok: true, records: Array.from(byNct.values()) };
 }
 
 /**
