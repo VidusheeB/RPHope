@@ -13,7 +13,8 @@
     "research:pull": "tsx scripts/research-pull.ts",
     "test": "vitest run",
     "gene-pages:draft": "tsx scripts/gene-pages-draft.ts",
-    "gene-pages:spend": "tsx scripts/gene-pages-spend.ts"
+    "gene-pages:spend": "tsx scripts/gene-pages-spend.ts",
+    "genes:sync": "tsx scripts/sync-genes.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",

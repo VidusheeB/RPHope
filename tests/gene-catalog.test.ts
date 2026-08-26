@@ -171,3 +171,16 @@ describe("gene data has no retired entries", () => {
     expect(lca5).toBeUndefined();
   });
 });
+
+describe("library membership comes from the catalog, not the database", () => {
+  // A database that has drifted from the reviewed sheet must not be able to
+  // shrink the library. Production was serving 66 genes — including retired
+  // duplicates and an `abgl5` typo — while the reconciled list held 94, and
+  // nothing surfaced the discrepancy because an unlisted gene is invisible.
+  it("exposes every catalog gene regardless of what the DB returns", async () => {
+    const { getGeneGrid } = await import("@/lib/genesRepo");
+    const { items } = await getGeneGrid();
+    expect(items).toHaveLength(geneCatalog.length);
+    expect(items.map((i) => i.slug).sort()).toEqual(geneCatalog.map((g) => g.slug).sort());
+  });
+});
