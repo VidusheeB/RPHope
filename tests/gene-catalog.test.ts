@@ -8,6 +8,9 @@ import { GENE_REDIRECTS } from "@/lib/geneRedirects.mjs";
 import { buildTrialCondition } from "@/lib/geneResearch/trials";
 import { assessRelevance } from "@/lib/geneResearch/relevance";
 import { buildEvidenceTierBlock } from "@/lib/geneResearch/prompts";
+import { normalizeGene } from "@/lib/trials/normalize";
+import genesData from "@/lib/genesData.json";
+import geneArticles from "@/lib/geneArticles.json";
 
 describe("gene catalog", () => {
   it("holds the sheet's 94 genes plus BEST2 and ENSA", () => {
@@ -110,5 +113,61 @@ describe("evidence tier block", () => {
     expect(buildEvidenceTierBlock({ tier: "established", framingNote: "" })).toContain(
       "established"
     );
+  });
+});
+
+describe("retired gene symbols still resolve", () => {
+  // A lab report or an older paper may name a symbol the library no longer
+  // lists. Falling through to "no match" reads to a visitor as "your gene
+  // isn't here", which is wrong — it is here, under its current name.
+  it("resolves an HGNC-renamed symbol to the current gene", () => {
+    const r = normalizeGene("C8orf37");
+    expect(r.status).toBe("corrected");
+    expect(r.normalized).toBe("CFAP418");
+    expect(r.confidence).toBe("high");
+  });
+
+  it("resolves a merged duplicate's old symbol", () => {
+    expect(normalizeGene("USH3A").normalized).toBe("CLRN1");
+    expect(normalizeGene("BBS3").normalized).toBe("ARL6");
+  });
+
+  it("does not let an alias shadow a real gene of its own", () => {
+    // USH2A is a gene in its own right, not an alias for anything.
+    const r = normalizeGene("USH2A");
+    expect(r.status).toBe("exact");
+    expect(r.normalized).toBe("USH2A");
+  });
+
+  it("still reports a genuine non-gene as unmatched", () => {
+    expect(normalizeGene("zzzznotagene").status).toBe("none");
+  });
+});
+
+describe("gene data has no retired entries", () => {
+  it("keeps genesData and the article index inside the current library", () => {
+    const slugs = new Set(geneCatalog.map((g) => g.slug));
+    for (const g of genesData as { slug: string }[]) {
+      expect(slugs.has(g.slug), `genesData has retired gene "${g.slug}"`).toBe(true);
+    }
+    for (const key of Object.keys(geneArticles)) {
+      expect(slugs.has(key), `geneArticles has retired gene "${key}"`).toBe(true);
+    }
+  });
+
+  it("carried C8orf37's real content over to CFAP418", () => {
+    const cfap = (genesData as { slug: string; summary?: string }[]).find(
+      (g) => g.slug === "cfap418"
+    );
+    expect(cfap?.summary).toBeTruthy();
+    // The page must say why older research uses a different symbol.
+    expect(cfap?.summary).toContain("C8orf37");
+  });
+
+  it("did NOT turn the old LCA disease page into the LCA5 gene page", () => {
+    // "LCA" was Leber congenital amaurosis, a disease caused by ~25 genes.
+    // LCA5 is one of them. Reusing that text here would be medically wrong.
+    const lca5 = (genesData as { slug: string }[]).find((g) => g.slug === "lca5");
+    expect(lca5).toBeUndefined();
   });
 });

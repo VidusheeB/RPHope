@@ -7,6 +7,7 @@
 // AI is reserved for relevance explanation downstream (lib/trials/explain.ts).
 
 import { geneGrid } from "@/lib/geneGrid";
+import { geneCatalog } from "@/lib/geneCatalog";
 import { canonGene } from "./geneUtil";
 
 // ---- Condition normalization ----------------------------------------------
@@ -111,6 +112,27 @@ const KNOWN_GENES: string[] = Array.from(
   new Set(geneGrid.map((g) => g.display.toUpperCase())),
 );
 
+// Former and alternative symbols -> the gene's current name.
+//
+// A visitor's lab report or an older paper may name a symbol the library no
+// longer lists: HGNC renamed C8orf37 to CFAP418, and USH3A / BBS3 are older
+// names for CLRN1 / ARL6. Typing one of those used to fall through to fuzzy
+// matching and usually resolve to nothing, which reads to the visitor as "your
+// gene isn't here." Aliases are verified data from lib/geneCatalog.ts (the
+// sheet's column B), so this is still a dictionary lookup, not a guess.
+const GENE_ALIASES: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  for (const g of geneCatalog) {
+    for (const alias of g.aliases) {
+      const key = canonGene(alias);
+      // Never let an alias shadow a real gene symbol that exists in its own
+      // right (a gene's current name always wins).
+      if (key && !map[key]) map[key] = g.gene.toUpperCase();
+    }
+  }
+  return map;
+})();
+
 function levenshtein(a: string, b: string): number {
   const m = a.length;
   const n = b.length;
@@ -149,7 +171,22 @@ export function normalizeGene(raw: string): GeneNormalization {
     };
   }
 
-  // 2. Prefix matches (e.g. "USH" → USH2A, USH3A). If several, it's ambiguous.
+  // 2. A former or alternative symbol for a gene we do list (e.g. "C8orf37" ->
+  //     CFAP418, "USH3A" -> CLRN1). Verified aliases, so treat as a confident
+  //     correction rather than a fuzzy guess.
+  const aliasHit = GENE_ALIASES[token];
+  if (aliasHit && !KNOWN_GENES.includes(token)) {
+    return {
+      raw: text,
+      status: "corrected",
+      normalized: aliasHit,
+      candidates: [aliasHit],
+      confidence: "high",
+      source: "exact",
+    };
+  }
+
+  // 3. Prefix matches (e.g. "USH" → USH2A). If several, it's ambiguous.
   const prefixHits = KNOWN_GENES.filter((g) => g.startsWith(token) && g !== token);
   if (prefixHits.length === 1) {
     return {
