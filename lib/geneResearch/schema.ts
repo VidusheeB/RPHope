@@ -131,6 +131,54 @@ export const GENE_PAGE_SCHEMA = {
   ],
 } as const;
 
+// ---------------------------------------------------------------------------
+// The VALIDATION schema (Ajv) — deliberately NOT the same object as the one
+// sent to the API.
+//
+// GENE_PAGE_SCHEMA above constrains what Opus may produce, and asks for only
+// { id, type, title, url } per source. But generate.ts then runs enrichSources()
+// which merges real bibliographic detail (journal, year, pmid, doi, abstract,
+// trialId, provenance) in from the evidence bundle — deliberately, so the model
+// is never asked to restate a PMID it could get wrong.
+//
+// Validating that ENRICHED object against the model-facing schema rejected
+// every draft with "data/sources/N must NOT have additional properties",
+// because `sourceCitation` sets additionalProperties: false. The enrichment and
+// the validation were each correct on their own and contradicted each other.
+//
+// So: the model-facing schema stays strict and minimal (Opus is not asked for
+// these fields), while the validation schema additionally permits the fields
+// our own trusted code adds. Everything else is shared, so the two cannot
+// drift apart. Ajv validates what we actually SAVE, which is the stronger
+// guarantee than validating a shape we then modify.
+const enrichedSourceCitation = {
+  ...sourceCitation,
+  properties: {
+    ...sourceCitation.properties,
+    authors: { type: "array", items: { type: "string" } },
+    journal: { type: "string" },
+    year: { type: "number" },
+    pmid: { type: "string" },
+    doi: { type: "string" },
+    trialId: { type: "string" },
+    abstract: { type: "string" },
+    provenance: {
+      type: "string",
+      enum: ["pubmed", "europepmc", "clinicaltrials", "ncbi-gene", "rphope-resource", "web"],
+    },
+  },
+  // `required` is unchanged: the enriched fields are all optional, because they
+  // don't apply to every source type (an ncbi-gene source has no PMID).
+};
+
+export const GENE_PAGE_VALIDATION_SCHEMA = {
+  ...GENE_PAGE_SCHEMA,
+  properties: {
+    ...GENE_PAGE_SCHEMA.properties,
+    sources: { type: "array", items: enrichedSourceCitation },
+  },
+} as const;
+
 /** The top-level keys the spec requires, used by a test to guard against drift. */
 export const GENE_PAGE_TOP_LEVEL_FIELDS = [
   "gene",

@@ -30,6 +30,11 @@ export type SpendEntry = {
   costUsd: number;
   /** Whether the draft was kept. Rejected/failed calls were still billed. */
   outcome: "ok" | "rejected" | "failed";
+  /** True when the amount is apportioned rather than read from real usage —
+   *  only used to backfill spend from before this ledger existed. The total
+   *  stays accurate; the per-gene split is an estimate. */
+  estimated?: boolean;
+  note?: string;
 };
 
 /** Append one billed call. Never throws — a ledger write must not sink a run

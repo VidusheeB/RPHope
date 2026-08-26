@@ -41,7 +41,7 @@ if (process.argv.includes("--by-gene")) {
     byGene.set(e.gene, row);
   }
   console.log("\nBy gene (most expensive first):");
-  for (const [gene, row] of [...byGene].sort((a, b) => b[1].usd - a[1].usd)) {
+  for (const [gene, row] of Array.from(byGene.entries()).sort((a, b) => b[1].usd - a[1].usd)) {
     const retries = row.calls > 1 ? ` (${row.calls} calls: ${row.outcomes.join(", ")})` : "";
     console.log(`  ${gene.padEnd(12)} $${row.usd.toFixed(3)}${retries}`);
   }

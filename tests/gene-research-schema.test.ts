@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { GENE_PAGE_SCHEMA, GENE_PAGE_TOP_LEVEL_FIELDS } from "@/lib/geneResearch/schema";
+import { validateDraftSchemaOnly } from "@/lib/geneResearch/validate";
 import { estimateCostUsd } from "@/lib/geneResearch/generate";
 import { APPROVED_GENERAL_RESOURCES } from "@/lib/geneResearch/resources";
 
@@ -92,5 +93,73 @@ describe("sourceCitation type enum", () => {
   it("includes 'web' alongside the three structured databases and rphope-resource", () => {
     const json = JSON.stringify(GENE_PAGE_SCHEMA);
     expect(json).toContain('"web"');
+  });
+});
+
+// The bug this guards against: generate.ts enriches each source with real
+// bibliographic detail from the evidence bundle AFTER Opus responds, then
+// validates. Validating that enriched object against the model-facing schema
+// (additionalProperties: false, four allowed keys) rejected every single draft
+// with "data/sources/N must NOT have additional properties" — five genes were
+// generated and thrown away before anyone noticed. Ajv must accept what we
+// actually save.
+describe("validation schema vs. the model-facing schema", () => {
+  const draft = (sources: unknown[]) => {
+    const sentenced = { sentences: [{ text: "A sentence.", sourceIds: ["pubmed:1"] }] };
+    const base: Record<string, unknown> = {
+      gene: "RPGR",
+      questionsForClinician: ["What does this mean for me?"],
+      researchCards: [],
+      sources,
+      reviewFlags: [],
+      reviewStatus: "unreviewed",
+      generatedAt: "2026-08-25T00:00:00.000Z",
+    };
+    for (const k of [
+      "summaryCard", "whatThisGeneMeans", "howItMayAffectVision", "whatIsKnown",
+      "whatIsUncertain", "whatYouCanDoNext", "forFamilyAndCaregivers",
+      "treatmentAndResearch", "clinicalTrialSummary",
+    ]) base[k] = sentenced;
+    return base;
+  };
+
+  const bare = { id: "pubmed:1", type: "pubmed", title: "A paper", url: "https://x.test" };
+  const enriched = {
+    ...bare,
+    journal: "Nature",
+    year: 2024,
+    pmid: "12345",
+    doi: "10.1/x",
+    abstract: "Abstract text.",
+    provenance: "pubmed",
+  };
+
+  it("accepts a draft whose sources have been enriched", () => {
+    expect(validateDraftSchemaOnly(draft([enriched]))).toEqual({ ok: true });
+  });
+
+  it("still accepts an un-enriched draft", () => {
+    expect(validateDraftSchemaOnly(draft([bare]))).toEqual({ ok: true });
+  });
+
+  it("accepts a trial source enriched with its NCT id", () => {
+    const trial = {
+      id: "clinicaltrials:NCT1", type: "clinicaltrials", title: "A study",
+      url: "https://x.test", trialId: "NCT1", provenance: "clinicaltrials",
+    };
+    expect(validateDraftSchemaOnly(draft([trial]))).toEqual({ ok: true });
+  });
+
+  it("still rejects a genuinely unknown field", () => {
+    const result = validateDraftSchemaOnly(draft([{ ...bare, madeUpField: "x" }]));
+    expect(result.ok).toBe(false);
+  });
+
+  it("keeps the model-facing schema minimal, so Opus is never asked for them", () => {
+    // Opus must not be asked to restate a PMID it could get wrong — that is the
+    // whole reason enrichment exists.
+    expect(Object.keys(GENE_PAGE_SCHEMA.properties.sources.items.properties)).toEqual([
+      "id", "type", "title", "url",
+    ]);
   });
 });

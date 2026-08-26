@@ -10,12 +10,15 @@
 //     guarantee).
 
 import Ajv from "ajv";
-import { GENE_PAGE_SCHEMA } from "./schema";
+import { GENE_PAGE_VALIDATION_SCHEMA } from "./schema";
 import { allValidSourceIds, NARRATIVE_SECTION_KEYS, normalizeSentencedText } from "./types";
 import type { GenePageDraft, GeneSourceBundle, RejectReason, ValidationResult } from "./types";
 
 const ajv = new Ajv({ allErrors: true, strict: false });
-const validateSchema = ajv.compile(GENE_PAGE_SCHEMA);
+// The validation schema, not the model-facing one: by this point generate.ts
+// has enriched each source with real bibliographic detail from the evidence
+// bundle. See the note in schema.ts.
+const validateSchema = ajv.compile(GENE_PAGE_VALIDATION_SCHEMA);
 
 /** Schema-only validation (no evidence bundle needed) — used by the reviewer
  *  publish gate, which validates a draft's structure independently of any
