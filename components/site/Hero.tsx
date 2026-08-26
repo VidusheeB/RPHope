@@ -1,20 +1,13 @@
 import CTAButton from "./CTAButton";
+import HeroBackdrop from "./HeroBackdrop";
 import Eyebrow from "./Eyebrow";
 
 export default function Hero() {
   return (
     <section className="relative isolate overflow-hidden bg-forest-deep">
-      {/* Background image + dark teal overlay */}
-      <div className="absolute inset-0 -z-10">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/home/eye-a.jpg"
-          alt=""
-          aria-hidden="true"
-          className="h-full w-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-forest-deep via-forest-deep/95 to-forest/70" />
-      </div>
+      {/* Rotating hero photography + dark teal overlay. See HeroBackdrop for
+          the reduced-motion and contrast reasoning. */}
+      <HeroBackdrop />
 
       <div className="mx-auto max-w-7xl px-5 py-24 lg:py-32">
         <div className="max-w-2xl">
