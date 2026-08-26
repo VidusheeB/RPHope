@@ -28,6 +28,12 @@ const config: Config = {
         // ---- legacy tokens (keep so the older replica pages still render) ----
         teal: { DEFAULT: "#234b43", dark: "#16322d" },
         maroon: { DEFAULT: "#8a1c1c", dark: "#6f1616" },
+        // The two "act now" controls — the header Donate button and the voice
+        // launcher — in the owner-specified maroon. Kept separate from the
+        // legacy `maroon` above, which exists only so the archived Wix replica
+        // in StaticDemoOriginal/ still renders and must not shift.
+        // White on #661414 measures 12.5:1, comfortably AAA.
+        "maroon-brand": { DEFAULT: "#661414", dark: "#4d0f0f" },
         link: "#1f5e8a",
       },
       fontFamily: {

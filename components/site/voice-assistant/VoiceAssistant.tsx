@@ -66,7 +66,7 @@ export default function VoiceAssistant() {
           type="button"
           onClick={() => setOpen(true)}
           aria-haspopup="dialog"
-          className="fixed bottom-4 right-4 z-50 inline-flex min-h-[48px] items-center gap-2 rounded-full bg-forest px-5 py-3 font-bold text-white shadow-lg transition hover:bg-forest-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
+          className="fixed bottom-4 right-4 z-50 inline-flex min-h-[48px] items-center gap-2 rounded-full bg-maroon-brand px-5 py-3 font-bold text-white shadow-lg transition hover:bg-maroon-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
           data-voice-assistant
         >
           <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">

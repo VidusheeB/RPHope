@@ -63,7 +63,7 @@ export default function Header() {
 
           <Link
             href="/donate"
-            className="inline-flex items-center gap-2 rounded-md bg-forest px-5 py-2.5 font-semibold text-white hover:bg-forest-dark"
+            className="inline-flex items-center gap-2 rounded-md bg-maroon-brand px-5 py-2.5 font-semibold text-white hover:bg-maroon-brand-dark"
           >
             <svg
               aria-hidden="true"
