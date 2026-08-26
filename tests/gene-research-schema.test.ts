@@ -43,10 +43,21 @@ describe("GENE_PAGE_SCHEMA", () => {
       "treatmentAndResearch",
       "clinicalTrialSummary",
     ] as const) {
+      // These nine sections are $ref'd rather than inlined — nine inline copies
+      // blew past the Structured Outputs grammar-size ceiling (see schema.ts).
+      // Follow the reference to check the shape it resolves to.
       const field = GENE_PAGE_SCHEMA.properties[key];
-      expect(field.required).toEqual(["sentences"]);
-      const sentenceItem = field.properties.sentences.items;
-      expect(sentenceItem.required).toEqual(["text", "sourceIds"]);
+      expect(field).toEqual({ $ref: "#/$defs/sentencedText" });
+
+      const sentenced = GENE_PAGE_SCHEMA.$defs.sentencedText;
+      expect(sentenced.required).toEqual(["sentences"]);
+      expect(sentenced.properties.sentences.items).toEqual({
+        $ref: "#/$defs/citedSentence",
+      });
+      expect(GENE_PAGE_SCHEMA.$defs.citedSentence.required).toEqual([
+        "text",
+        "sourceIds",
+      ]);
     }
   });
 });

@@ -27,7 +27,14 @@ import {
   hasExistingDraft,
 } from "../lib/geneResearch/pipeline";
 import { formatRetrievalDiagnostics } from "../lib/geneResearch/diagnostics";
-import { estimateCostBeforeGeneration } from "../lib/geneResearch/generate";
+import { estimateCostBeforeGeneration, GENERATION_MODEL } from "../lib/geneResearch/generate";
+import {
+  recordSpend,
+  readSpendLog,
+  summarizeSpend,
+  formatSpendSummary,
+  SPEND_LOG_PATH,
+} from "../lib/geneResearch/spendLog";
 
 // Where --retrieve-only writes its per-candidate diagnostic reports. Gitignored
 // (see .gitignore: gene-review-scratch/) — local audit output, never committed.
@@ -90,6 +97,24 @@ async function main() {
   let failed = 0;
   let skipped = 0;
   let cumulativeCost = 0;
+  // Genes that now have a draft — used to project the remaining spend.
+  const draftedSlugs = new Set<string>();
+
+  function logSpend(
+    gene: string,
+    result: { inputTokens?: number; outputTokens?: number; estimatedCostUsd?: number },
+    outcome: "ok" | "rejected" | "failed"
+  ) {
+    recordSpend({
+      at: new Date().toISOString(),
+      gene,
+      model: GENERATION_MODEL,
+      inputTokens: result.inputTokens ?? 0,
+      outputTokens: result.outputTokens ?? 0,
+      costUsd: result.estimatedCostUsd ?? 0,
+      outcome,
+    });
+  }
   const outcomes: { gene: string; outcome: string; detail: string }[] = [];
 
   for (const gene of targets) {
@@ -133,6 +158,7 @@ async function main() {
     if (!force && (await hasExistingDraft(supabase, gene.slug))) {
       console.log("skipped (already drafted — use --force to regenerate)");
       skipped++;
+      draftedSlugs.add(gene.slug);
       continue;
     }
     console.log(""); // newline after "  GENE … "
@@ -176,6 +202,8 @@ async function main() {
     if (result.outcome === "ok") {
       ok++;
       cumulativeCost += result.estimatedCostUsd;
+      draftedSlugs.add(gene.slug);
+      logSpend(gene.display, result, "ok");
       console.log(
         `done (${result.inputTokens} in / ${result.outputTokens} out, ~$${result.estimatedCostUsd.toFixed(
           3
@@ -189,6 +217,7 @@ async function main() {
       // toward the budget and report it, even though the draft is discarded.
       if (typeof result.estimatedCostUsd === "number") {
         cumulativeCost += result.estimatedCostUsd;
+        logSpend(gene.display, result, "rejected");
       }
       const detail = result.reasons.map((r) => `${r.code}: ${r.detail}`).join("; ");
       outcomes.push({ gene: gene.display, outcome: "rejected", detail });
@@ -202,6 +231,7 @@ async function main() {
       // If the failure came after a billed response, count and report it too.
       if (typeof result.estimatedCostUsd === "number") {
         cumulativeCost += result.estimatedCostUsd;
+        logSpend(gene.display, result, "failed");
       }
       outcomes.push({ gene: gene.display, outcome: "failed", detail: result.error });
       const costNote =
@@ -226,7 +256,15 @@ async function main() {
   console.log(`  rejected: ${rejected}`);
   console.log(`  failed: ${failed}`);
   console.log(`  skipped (already drafted): ${skipped}`);
-  console.log(`  cumulative cost: ~$${cumulativeCost.toFixed(3)}`);
+  console.log(`  this run cost:   ~$${cumulativeCost.toFixed(3)}`);
+
+  // Running total across every batch so far, not just this one.
+  // Genes in the full library still without a draft. Only genes touched this
+  // run are known for certain, so this is a ceiling when running a subset —
+  // enough to project the remaining spend, which is what it is for.
+  const remaining = geneGrid.filter((g) => !draftedSlugs.has(g.slug)).length;
+  console.log(`\nSpend to date (${SPEND_LOG_PATH}):`);
+  console.log(formatSpendSummary(summarizeSpend(readSpendLog()), remaining));
   if (outcomes.length) {
     console.log("  details:");
     for (const o of outcomes) console.log(`    - ${o.gene} (${o.outcome}): ${o.detail}`);

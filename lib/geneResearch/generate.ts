@@ -31,7 +31,10 @@ import type {
   SourceCitation,
 } from "./types";
 
-const MODEL = "claude-opus-4-8";
+/** The generation model. Exported so the spend ledger records which model was
+ *  actually billed, rather than assuming. */
+export const GENERATION_MODEL = "claude-opus-4-8";
+const MODEL = GENERATION_MODEL;
 const MAX_TOKENS = 12000;
 
 // Standard pricing (not batch): $5/M input, $25/M output. Update if pricing

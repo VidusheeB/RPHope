@@ -104,6 +104,26 @@ in the Supabase SQL editor. Creates `gene_page_drafts` (mirrors the
 `research_items` pattern — every row is `unreviewed` until a human approves
 it).
 
+## Tracking what it has cost
+
+The CLI prints per-gene and cumulative cost for the run in front of you, but a
+library drafted in batches over several days needs a running total. Every
+BILLED call is appended to `gene-review-scratch/spend-log.jsonl` — including
+rejected and failed ones, because a draft that was generated and then discarded
+for citing an unknown source still cost real money, and a ledger that hides
+those understates the run.
+
+```bash
+npm run gene-pages:spend              # total, split by kept vs. discarded, projected remainder
+npm run gene-pages:spend -- --by-gene # per-gene breakdown, most expensive first
+```
+
+Every drafting run also prints this summary at the end. The ledger is gitignored
+(same place as the retrieval diagnostics) and holds no secrets — commit it if
+you want a permanent record for the org's books. `lib/geneResearch/spendLog.ts`
+is the module; it never throws, so a ledger write cannot sink a run that has
+already spent the money.
+
 ## Cost controls
 
 - **Pre-generation estimate**: printed before each Opus call, based on the

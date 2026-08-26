@@ -12,7 +12,8 @@
     "db:seed": "node scripts/seed-genes.mjs",
     "research:pull": "tsx scripts/research-pull.ts",
     "test": "vitest run",
-    "gene-pages:draft": "tsx scripts/gene-pages-draft.ts"
+    "gene-pages:draft": "tsx scripts/gene-pages-draft.ts",
+    "gene-pages:spend": "tsx scripts/gene-pages-spend.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.105.0",
