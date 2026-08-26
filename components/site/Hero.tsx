@@ -4,7 +4,7 @@ import Eyebrow from "./Eyebrow";
 
 export default function Hero() {
   return (
-    <section className="relative isolate overflow-hidden bg-forest-deep">
+    <section className="relative isolate overflow-hidden bg-ink">
       {/* Rotating hero photography + dark teal overlay. See HeroBackdrop for
           the reduced-motion and contrast reasoning. */}
       <HeroBackdrop />

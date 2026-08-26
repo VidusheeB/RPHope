@@ -86,11 +86,18 @@ export default function HeroBackdrop() {
           }}
         />
       ))}
-      {/* Keeps the white heading readable over any photo in the set. */}
-      <div className="absolute inset-0 bg-gradient-to-r from-forest-deep via-forest-deep/85 to-forest-deep/45" />
-      {/* Extra floor under the text block on small screens, where the copy
-          spans the full width and the gradient alone is not enough. */}
-      <div className="absolute inset-0 bg-forest-deep/35 sm:bg-transparent" />
+      {/* NO green tint — the photographs show in their own colours.
+          What remains is a NEUTRAL darkening confined to the side the copy sits
+          on, fading to fully transparent by the midpoint, so the right half of
+          every photo is completely untouched. Something has to be here: white
+          text directly on the brightest photos in this set measures about
+          1.4:1, far under the 4.5:1 floor, and this site's readers are the
+          people least able to absorb that. Black rather than forest so it reads
+          as a shadow on the photo, not a coloured panel over it. */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
+      {/* On small screens the copy spans the full width, so the horizontal
+          fade alone leaves the lower text over bare photo. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent sm:hidden" />
     </div>
   );
 }
