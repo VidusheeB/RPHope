@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getGene, type Gene } from "@/lib/genes";
 import { renderWithGlossary } from "@/lib/glossaryLinkify";
 import { geneGrid } from "@/lib/geneGrid";
+import { getCatalogGene, EVIDENCE_TIER_LABEL } from "@/lib/geneCatalog";
+import { EVIDENCE_TIER_NOTE } from "@/lib/geneEvidenceNotes";
 import GeneArticles, { type Article } from "@/components/site/GeneArticles";
 import ListenButton from "@/components/site/ListenButton";
 import { getResearchItems } from "@/lib/researchRepo";
@@ -250,17 +252,46 @@ export default async function GenePage({ params }: { params: { gene: string } })
   // ---- Branch C: grid-only gene (in the grid, no detailed content yet) ---------
   const item = geneGrid.find((g) => g.slug === params.gene);
   if (!item) notFound();
+  // Real, human-verified facts from the 94-gene sheet (lib/geneCatalog.ts).
+  // A page awaiting its written summary can still show what we actually know:
+  // how established the gene's RP link is, what else it has been called, and
+  // which disease names its research is published under. None of this is
+  // AI-generated, so it needs no review gate.
+  const catalog = getCatalogGene(params.gene);
   return (
     <div className="bg-cream">
       <article className={`${GENE_COL} px-5 py-12`}>
         <GeneCrumb />
         <IdentityCard
           gene={item.display}
-          glance={<GeneField label="Disease Category">{item.label}</GeneField>}
+          glance={
+            <>
+              <GeneField label="Disease Category">{item.label}</GeneField>
+              {catalog && (
+                <GeneField label="Evidence for the link to RP">
+                  {EVIDENCE_TIER_LABEL[catalog.evidenceTier]}
+                </GeneField>
+              )}
+              {catalog && catalog.aliases.length > 0 && (
+                <GeneField label="Also known as">{catalog.aliases.join(", ")}</GeneField>
+              )}
+              {catalog && catalog.diseaseTerms.length > 0 && (
+                <GeneField label="Also researched under">
+                  {catalog.diseaseTerms.join("; ")}
+                </GeneField>
+              )}
+            </>
+          }
         />
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <StatusTrials geneSlug={params.gene} />
         </div>
+        {catalog && catalog.evidenceTier !== "established" && (
+          <p className="mt-6 rounded-xl border-2 border-gold/60 bg-butter/50 p-5 text-ink">
+            <strong>About the evidence:</strong>{" "}
+            {EVIDENCE_TIER_NOTE[catalog.evidenceTier]}
+          </p>
+        )}
         <p className="mt-6 rounded-xl border border-ink/12 bg-white p-5 text-ink/70">
           A clear, everyday-language overview of this gene is being prepared and will appear here
           once reviewed.
