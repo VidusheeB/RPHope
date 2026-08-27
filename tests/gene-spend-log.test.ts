@@ -78,13 +78,28 @@ describe("spend summary", () => {
     expect(s.totalUsd).toBeCloseTo(0.3, 5);
   });
 
-  it("projects the remaining spend from the average so far", () => {
+  it("projects from kept drafts, not from total spend over genes touched", () => {
     const out = formatSpendSummary(
       summarizeSpend([entry({ costUsd: 0.2 }), entry({ gene: "ABCA4", costUsd: 0.2 })]),
       10
     );
     expect(out).toContain("$0.40");
     expect(out).toContain("~$2.00 more for the remaining 10");
+  });
+
+  it("does not let one-off wasted spend inflate the projection", () => {
+    // A bug once rejected five generated drafts. Folding that into the per-gene
+    // rate forever would overstate the remaining cost by roughly double.
+    const out = formatSpendSummary(
+      summarizeSpend([
+        entry({ gene: "A", costUsd: 0.3, outcome: "ok" }),
+        entry({ gene: "B", costUsd: 0.4, outcome: "rejected" }),
+        entry({ gene: "C", costUsd: 0.4, outcome: "rejected" }),
+      ]),
+      10
+    );
+    expect(out).toContain("~$3.00 more for the remaining 10"); // 0.30 x 10, not 1.10/3 x 10
+    expect(out).toContain("all-in average incl. discarded work");
   });
 
   it("reports an empty ledger plainly", () => {

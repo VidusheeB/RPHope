@@ -69,6 +69,9 @@ export async function fetchTrialSummaries(
     condition: buildTrialCondition(diseaseTerms),
     term: geneSymbol,
     pageSize: 20,
+    // Required retrieval for a gene run — a transient failure here rejects the
+    // gene, so retry rather than lose it from the batch.
+    retryAttempts: 3,
   });
 
   if (!result.ok) {
@@ -93,6 +96,7 @@ export async function fetchTrialSummaries(
     const byDisease = await fetchTrialsResult({
       condition: `"${term.replace(/"/g, "")}"`,
       pageSize: 20,
+      retryAttempts: 3,
     });
     if (!byDisease.ok) {
       // Best-effort: the gene-term results above are already in hand, so a

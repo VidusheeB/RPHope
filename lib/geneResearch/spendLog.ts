@@ -115,11 +115,21 @@ export function formatSpendSummary(s: SpendSummary, remainingGenes?: number): st
       } rejected/failed — billed anyway)`
     );
   }
-  const perGene = s.totalUsd / s.genes;
-  lines.push(`  average/gene:    $${perGene.toFixed(3)}`);
-  if (remainingGenes && remainingGenes > 0) {
+  // Project from the cost of drafts we actually KEPT, not from total spend
+  // divided by genes touched. The latter folds one-off wasted spend (a bug that
+  // rejected five drafts, since fixed) into the per-gene rate forever, and
+  // overstated the remaining cost by roughly double.
+  const keptGenes = s.byOutcome.ok.calls;
+  const perKept = keptGenes > 0 ? s.byOutcome.ok.usd / keptGenes : 0;
+  lines.push(`  cost per kept draft: $${perKept.toFixed(3)}  (${keptGenes} kept)`);
+  if (s.wastedUsd > 0) {
     lines.push(
-      `  projected:       ~$${(perGene * remainingGenes).toFixed(2)} more for the remaining ${remainingGenes} gene(s)`
+      `  (all-in average incl. discarded work: $${(s.totalUsd / s.genes).toFixed(3)}/gene)`
+    );
+  }
+  if (remainingGenes && remainingGenes > 0 && perKept > 0) {
+    lines.push(
+      `  projected:       ~$${(perKept * remainingGenes).toFixed(2)} more for the remaining ${remainingGenes} gene(s)`
     );
   }
   if (s.firstAt) lines.push(`  period:          ${s.firstAt.slice(0, 10)} → ${s.lastAt?.slice(0, 10)}`);

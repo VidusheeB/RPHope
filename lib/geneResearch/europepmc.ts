@@ -12,6 +12,7 @@
 import type { LiteratureRecord, FoundBy } from "./types";
 import { classifyEvidence, scoreLiteratureRecord } from "./rank";
 import { RETINAL_VOCABULARY } from "./pubmed";
+import { fetchWithRetry } from "./fetchRetry";
 
 const BASE = "https://www.ebi.ac.uk/europepmc/webservices/rest/search";
 const RETRIEVAL_LIMIT = 100;
@@ -56,7 +57,13 @@ async function search(
     query
   )}&format=json&resultType=core&pageSize=${RETRIEVAL_LIMIT}`;
   try {
-    const res = await fetch(url, { headers: { accept: "application/json" } });
+    // Required retrieval: a transient blip here rejects the whole gene, so
+    // retry before giving up. See fetchRetry.ts.
+    const res = await fetchWithRetry(
+      url,
+      { headers: { accept: "application/json" } },
+      { onRetry: (n, why) => console.warn(`  [europepmc] retry ${n} after ${why}`) }
+    );
     if (!res.ok) {
       const detail = `HTTP ${res.status}`;
       console.warn(`  [europepmc] search failed: ${detail}`);

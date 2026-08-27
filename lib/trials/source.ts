@@ -8,6 +8,7 @@
 
 import type { TrialRecord } from "./types";
 import { KNOWN_GENES } from "./normalize";
+import { fetchWithRetry } from "../geneResearch/fetchRetry";
 
 const API = "https://clinicaltrials.gov/api/v2/studies";
 
@@ -158,7 +159,12 @@ export async function fetchTrialsResult({
   term,
   statuses,
   pageSize = 50,
-}: FetchTrialsParams): Promise<FetchTrialsResult> {
+  // Retries default OFF so the visitor-facing Clinical Trials Finder keeps its
+  // fast, honest failure — nobody should wait through backoff for a search
+  // page. The gene-page pipeline opts in, because there a dropped connection
+  // rejects the whole gene and costs a manual re-run.
+  retryAttempts = 1,
+}: FetchTrialsParams & { retryAttempts?: number }): Promise<FetchTrialsResult> {
   const url = new URL(API);
   url.searchParams.set("query.cond", condition);
   if (term) url.searchParams.set("query.term", term);
@@ -171,12 +177,19 @@ export async function fetchTrialsResult({
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
   try {
-    const res = await fetch(url.toString(), {
-      signal: controller.signal,
-      headers: { accept: "application/json" },
-      // always hit the live registry; this route is force-dynamic
-      cache: "no-store",
-    });
+    const res = await fetchWithRetry(
+      url.toString(),
+      {
+        signal: controller.signal,
+        headers: { accept: "application/json" },
+        // always hit the live registry; this route is force-dynamic
+        cache: "no-store",
+      },
+      {
+        attempts: retryAttempts,
+        onRetry: (n, why) => console.warn(`  [trials] retry ${n} after ${why}`),
+      }
+    );
     if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
     const json = await res.json();
     const studies: unknown[] = json?.studies || [];
