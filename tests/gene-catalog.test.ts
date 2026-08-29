@@ -8,7 +8,8 @@ import { GENE_REDIRECTS } from "@/lib/geneRedirects.mjs";
 import { buildTrialCondition } from "@/lib/geneResearch/trials";
 import { assessRelevance } from "@/lib/geneResearch/relevance";
 import { buildEvidenceTierBlock } from "@/lib/geneResearch/prompts";
-import { normalizeGene } from "@/lib/trials/normalize";
+import { normalizeGene, normalizeCondition } from "@/lib/trials/normalize";
+import { CONDITIONS } from "@/lib/trials/intakeOptions";
 import genesData from "@/lib/genesData.json";
 import geneArticles from "@/lib/geneArticles.json";
 
@@ -182,5 +183,27 @@ describe("library membership comes from the catalog, not the database", () => {
     const { items } = await getGeneGrid();
     expect(items).toHaveLength(geneCatalog.length);
     expect(items.map((i) => i.slug).sort()).toEqual(geneCatalog.map((g) => g.slug).sort());
+  });
+});
+
+describe("clinical trials intake — condition options", () => {
+  it("no longer offers Stargardt or LCA as headline choices", () => {
+    const values = CONDITIONS.map((c) => c.value);
+    expect(values).not.toContain("stargardt disease");
+    expect(values).not.toContain("leber congenital amaurosis");
+  });
+
+  it("still routes someone who types them, rather than dead-ending", () => {
+    // Removing the options must not remove the capability: both reach the
+    // free-text box behind "Other inherited retinal disease" / "Not sure".
+    expect(normalizeCondition("Stargardt").ctgovCondition).toBe("stargardt disease");
+    expect(normalizeCondition("LCA").ctgovCondition).toBe("leber congenital amaurosis");
+    expect(normalizeCondition("leber congenital amaurosis").confidence).not.toBe("low");
+  });
+
+  it("keeps a free-text path available from the remaining options", () => {
+    const values = CONDITIONS.map((c) => c.value);
+    expect(values).toContain("inherited retinal disease");
+    expect(values).toContain("__not_sure__");
   });
 });
