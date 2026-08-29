@@ -129,6 +129,10 @@ function mapStudy(study: any): TrialRecord | null {
     locations,
     eligibility_text: ps.eligibilityModule?.eligibilityCriteria,
     contacts,
+    last_update_posted:
+      ps.statusModule?.lastUpdatePostDateStruct?.date ||
+      ps.statusModule?.lastUpdateSubmitDate ||
+      undefined,
     last_synced_at: new Date().toISOString(),
     status_review: "published",
   };

@@ -19,6 +19,10 @@ export type TrialRecord = {
   conditions: string[];
   genes: string[];
   gene_scope: "gene_specific" | "gene_agnostic" | "unknown_or_mixed";
+  /** Date ClinicalTrials.gov itself last updated the record (NOT our retrieval
+   *  time — that is `last_synced_at`). A reviewer checking a status claim needs
+   *  to know how fresh the registry entry is, not when we happened to fetch it. */
+  last_update_posted?: string;
   study_type?: "interventional" | "observational" | "registry" | "screening" | "unknown";
   intervention_names?: string[];
   phase?: string;

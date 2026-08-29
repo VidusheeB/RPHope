@@ -96,6 +96,10 @@ export type LiteratureRecord = {
   /** Set by the category-balanced selection step (rank.ts). Undefined before
    *  selection has run. */
   selected?: boolean;
+  /** Set when this record absorbed a preprint of the same study during dedup.
+   *  Kept so a reviewer can see the preprint was found and deliberately
+   *  collapsed, rather than silently missing. */
+  supersededPreprint?: { sourceId: string; doi?: string; title: string };
   /** Populated when selected === false. */
   exclusionReason?: string;
 };
@@ -119,9 +123,30 @@ export type TrialSummaryRecord = {
   title: string;
   status: string;
   studyType?: string;
+  /** TRUE only when the trial's own text names THIS gene (or one of its
+   *  aliases). Derived from the registry record's detected genes, never from
+   *  which search found it — a study reached via the syndrome search can still
+   *  be gene-specific (BF844 targets CLRN1 N48K but registers under Usher
+   *  syndrome type 3), and inferring this from the search method mislabelled it. */
   geneSpecific: boolean;
   briefSummary?: string;
   url: string;
+  // --- Audit fields -----------------------------------------------------
+  // A reviewer has to be able to check a status/phase claim after Opus has
+  // written prose about it. ID + title + abstract alone left them unable to.
+  /** Trial phase(s) as registered, e.g. "PHASE1, PHASE2". */
+  phase?: string;
+  /** Conditions the study is registered under. */
+  conditions?: string[];
+  /** Intervention names — what the study actually administers. */
+  interventionNames?: string[];
+  /** Gene symbols detected in the registry record's own text. Empty means the
+   *  study is not gene-targeted (syndrome- or condition-level). */
+  targetGenes?: string[];
+  /** Date ClinicalTrials.gov last updated the record. */
+  lastUpdatePosted?: string;
+  /** When WE fetched it — so a stale status claim can be dated. */
+  retrievedAt?: string;
   /** Defaults to "gene_search". "discovered_from_literature" means it was
    *  fetched directly by an NCT ID found in a selected paper. */
   provenance?: TrialProvenance;
@@ -134,6 +159,18 @@ export type TrialSummaryRecord = {
  *  live ClinicalTrials.gov record. The citing publication is kept; the draft
  *  may state the registry record could not be verified, and must not present
  *  the trial's recruitment status as current. */
+/** A trial dropped from a gene's bundle because the registry record targets a
+ *  DIFFERENT gene. Kept as an internal audit record only — these must never
+ *  reach patient-facing prose (an AXV-101 BBS1 trial surfaced on the CFAP418
+ *  page this way). */
+export type ExcludedTrialRecord = {
+  nctId: string;
+  title: string;
+  /** The other gene(s) the study targets. */
+  targetGenes: string[];
+  reason: string;
+};
+
 export type UnverifiedTrialReference = {
   nctId: string;
   referencedBySourceIds: string[];

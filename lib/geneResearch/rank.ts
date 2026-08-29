@@ -141,9 +141,61 @@ function normalizeTitle(title: string): string {
     .trim();
 }
 
+/** A preprint server DOI/URL, i.e. a version of record that is NOT peer
+ *  reviewed. 10.1101 is Cold Spring Harbor — bioRxiv and medRxiv. */
+export function isPreprint(r: {
+  doi?: string;
+  journal?: string;
+  url?: string;
+  sourceId?: string;
+}): boolean {
+  const doi = (r.doi ?? "").toLowerCase();
+  const hay = `${r.journal ?? ""} ${r.url ?? ""} ${r.sourceId ?? ""}`.toLowerCase();
+  if (doi.startsWith("10.1101/")) return true;
+  if (/\bppr\d+/.test(hay)) return true; // Europe PMC preprint IDs
+  return /biorxiv|medrxiv|research\s*square|preprint/.test(hay);
+}
+
+/** Significant title tokens, for matching a preprint to its published version.
+ *  Stopwords are dropped so a reworded subtitle does not defeat the match. */
+const TITLE_STOPWORDS = new Set([
+  "a", "an", "the", "of", "in", "on", "for", "and", "or", "to", "with", "by",
+  "from", "as", "at", "is", "are", "its", "via", "using", "study", "novel",
+]);
+
+function titleTokens(title: string): Set<string> {
+  return new Set(
+    normalizeTitle(title)
+      .split(" ")
+      .filter((w) => w.length > 2 && !TITLE_STOPWORDS.has(w))
+  );
+}
+
+/** Jaccard overlap of significant title tokens. */
+export function titleSimilarity(a: string, b: string): number {
+  const ta = titleTokens(a);
+  const tb = titleTokens(b);
+  if (!ta.size || !tb.size) return 0;
+  let shared = 0;
+  for (const t of Array.from(ta)) if (tb.has(t)) shared++;
+  return shared / (ta.size + tb.size - shared);
+}
+
+/** Two records are the same study in different versions when their titles are
+ *  near-identical. Deliberately high (0.85) — this collapses two records into
+ *  one, so a false positive would silently drop a genuinely distinct paper. */
+const VERSION_MATCH_THRESHOLD = 0.85;
+
 /**
  * Deduplicate literature records across sources/queries by PMID, then DOI,
- * then normalized title. Unlike a plain "keep first" dedup, this MERGES
+ * then normalized title.
+ *
+ * Also collapses a PREPRINT and its peer-reviewed version of record, which the
+ * exact-key passes cannot catch: they carry different DOIs (10.1101/… vs the
+ * journal's), usually different PMIDs, and often a reworded title. INPP5E's
+ * medRxiv preprint and PMID 34188062 shipped as two separate research cards
+ * because of this. When both versions are present the PUBLISHED one is kept —
+ * it is the citable record — and the preprint's provenance is merged into it. Unlike a plain "keep first" dedup, this MERGES
  * `foundBy` across duplicates — a candidate found by both PubMed's broad
  * search AND ELink is a stronger relevance signal than either alone, and
  * that signal is preserved here, not discarded. Does NOT sort or cap — that
@@ -160,17 +212,58 @@ export function dedupeLiterature(records: LiteratureRecord[]): LiteratureRecord[
     const doiKey = r.doi?.trim().toLowerCase();
     const titleKey = normalizeTitle(r.title);
 
+    // A duplicate found by any means: a shared PMID/DOI/exact title, OR a
+    // preprint and its version of record, whose titles match closely but whose
+    // identifiers never do. The identical-title case is the COMMON preprint
+    // case, so version handling cannot live only in the fuzzy branch.
     const existing =
       (pmidKey && byPmid.get(pmidKey)) ||
       (doiKey && byDoi.get(doiKey)) ||
-      (titleKey && byTitle.get(titleKey));
+      (titleKey && byTitle.get(titleKey)) ||
+      out.find(
+        (o) =>
+          isPreprint(o) !== isPreprint(r) && // exactly one is a preprint
+          titleSimilarity(o.title, r.title) >= VERSION_MATCH_THRESHOLD
+      );
 
     if (existing) {
-      // Merge provenance into the first-seen record; keep the richer
-      // abstract if the duplicate has one and the original doesn't.
+      // Merge provenance into the kept record; keep the richer abstract if the
+      // duplicate has one and the original doesn't.
       existing.foundBy = Array.from(new Set([...existing.foundBy, ...r.foundBy]));
       if (!existing.abstract && r.abstract) existing.abstract = r.abstract;
       if (!existing.doi && r.doi) existing.doi = r.doi;
+
+      // Preprint + peer-reviewed version of the same study: the published one
+      // is the citable record, so make sure IT is what survives, whichever
+      // order they arrived in.
+      if (isPreprint(existing) !== isPreprint(r)) {
+        const published = isPreprint(existing) ? r : existing;
+        // Snapshot the preprint's identity BEFORE any promotion below: when the
+        // preprint IS `existing`, the promotion overwrites these very fields in
+        // place, and reading them afterwards would report the published DOI as
+        // the superseded preprint's.
+        const preprintSource = isPreprint(existing) ? existing : r;
+        const supersededPreprint = {
+          sourceId: preprintSource.sourceId,
+          ...(preprintSource.doi ? { doi: preprintSource.doi } : {}),
+          title: preprintSource.title,
+        };
+        if (published !== existing) {
+          existing.sourceId = published.sourceId;
+          existing.source = published.source;
+          existing.pmid = published.pmid;
+          existing.doi = published.doi;
+          existing.title = published.title;
+          existing.journal = published.journal;
+          existing.year = published.year;
+          existing.url = published.url;
+          if (published.abstract) existing.abstract = published.abstract;
+          if (published.pmid) byPmid.set(published.pmid.trim(), existing);
+          if (published.doi) byDoi.set(published.doi.trim().toLowerCase(), existing);
+          byTitle.set(normalizeTitle(published.title), existing);
+        }
+        existing.supersededPreprint = supersededPreprint;
+      }
       continue;
     }
 

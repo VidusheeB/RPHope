@@ -181,7 +181,7 @@ export async function assembleSourceBundle(
   // hosts, run in parallel now the NCBI-bound calls are done.
   const [europePmcResult, trialsResult] = await Promise.all([
     fetchEuropePmcRecords(geneRecord.symbol, allTerms),
-    fetchTrialSummaries(geneSymbol, diseaseTerms),
+    fetchTrialSummaries(geneSymbol, diseaseTerms, allTerms),
   ]);
   if (!europePmcResult.ok) {
     return {
@@ -229,8 +229,24 @@ export async function assembleSourceBundle(
     selected.map((r) => ({ sourceId: r.sourceId, title: r.title, abstract: r.abstract }))
   );
   const geneSearchTrials = rankAndCapTrials(trialsResult.records, TRIAL_LIMIT);
-  const { merged: mergedTrials, unverified: unverifiedTrialReferences } =
-    await mergeLiteratureReferencedTrials(geneSearchTrials, nctReferences);
+  const {
+    merged: mergedTrials,
+    unverified: unverifiedTrialReferences,
+    excluded: literatureExcludedTrials,
+  } = await mergeLiteratureReferencedTrials(
+    geneSearchTrials,
+    nctReferences,
+    geneSymbol,
+    allTerms
+  );
+  // Internal audit only — other-gene studies must never reach the prompt.
+  const excludedTrials = [...trialsResult.excluded, ...literatureExcludedTrials];
+  if (excludedTrials.length) {
+    console.warn(
+      `  [trials] excluded ${excludedTrials.length} other-gene study(ies): ` +
+        excludedTrials.map((e) => `${e.nctId} (${e.targetGenes.join("/")})`).join(", ")
+    );
+  }
   // Re-rank/cap after merging in literature-discovered trials so a paper-named
   // trial the gene search missed can still surface within the cap.
   const trialRecords = rankAndCapTrials(mergedTrials, TRIAL_LIMIT);

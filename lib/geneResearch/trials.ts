@@ -12,11 +12,43 @@ import type {
   TrialSummaryRecord,
   TrialProvenance,
   UnverifiedTrialReference,
+  ExcludedTrialRecord,
 } from "./types";
+
+/** Does this registry record's own text name `geneSymbol` (or an alias)?
+ *
+ *  Case-insensitive exact symbol match against the genes CT.gov's mapping
+ *  detected — substring matching would make CFAP418 match "CFAP418L" and
+ *  BBS1 match "BBS10". */
+function namesGene(targetGenes: string[], geneSymbol: string, aliases: string[]): boolean {
+  const wanted = new Set(
+    [geneSymbol, ...aliases].map((g) => g.trim().toUpperCase()).filter(Boolean)
+  );
+  return targetGenes.some((g) => wanted.has(g.trim().toUpperCase()));
+}
+
+/** How a trial relates to the gene whose page we are drafting.
+ *
+ *  This is decided from the trial's OWN detected genes, never from which query
+ *  found it. Both of the review's trial errors came from the old inference:
+ *  a study found via the syndrome search was forced to `geneSpecific: false`
+ *  even when it targeted this gene (BF844 → CLRN1), and a study targeting a
+ *  different gene rode the syndrome search into the bundle (AXV-101 → BBS1 on
+ *  the CFAP418 page). */
+export function classifyTrialForGene(
+  targetGenes: string[],
+  geneSymbol: string,
+  aliases: string[] = []
+): "gene_specific" | "other_gene" | "not_gene_targeted" {
+  if (!targetGenes.length) return "not_gene_targeted";
+  if (namesGene(targetGenes, geneSymbol, aliases)) return "gene_specific";
+  return "other_gene";
+}
 
 function toSummary(
   t: TrialRecord,
   provenance: TrialProvenance,
+  geneSpecific: boolean,
   referencedBySourceIds?: string[]
 ): TrialSummaryRecord {
   return {
@@ -25,10 +57,18 @@ function toSummary(
     title: t.title,
     status: t.status,
     studyType: t.study_type,
-    geneSpecific: t.gene_scope === "gene_specific",
+    geneSpecific,
     briefSummary: t.brief_summary,
     url: t.source_url,
     provenance,
+    // Audit fields — a reviewer must be able to re-check a status or phase
+    // claim against the registry without re-running the pipeline.
+    phase: t.phase,
+    conditions: t.conditions,
+    interventionNames: t.intervention_names,
+    targetGenes: t.genes,
+    lastUpdatePosted: t.last_update_posted,
+    retrievedAt: t.last_synced_at,
     ...(referencedBySourceIds && referencedBySourceIds.length
       ? { referencedBySourceIds }
       : {}),
@@ -63,8 +103,12 @@ export function buildTrialCondition(diseaseTerms: string[]): string {
 
 export async function fetchTrialSummaries(
   geneSymbol: string,
-  diseaseTerms: string[] = []
-): Promise<{ ok: true; records: TrialSummaryRecord[] } | { ok: false; error: string }> {
+  diseaseTerms: string[] = [],
+  aliases: string[] = []
+): Promise<
+  | { ok: true; records: TrialSummaryRecord[]; excluded: ExcludedTrialRecord[] }
+  | { ok: false; error: string }
+> {
   const result = await fetchTrialsResult({
     condition: buildTrialCondition(diseaseTerms),
     term: geneSymbol,
@@ -80,9 +124,31 @@ export async function fetchTrialSummaries(
   }
 
   const byNct = new Map<string, TrialSummaryRecord>();
-  for (const t of result.records) {
-    byNct.set(t.id.toUpperCase(), toSummary(t, "gene_search"));
-  }
+  const excluded: ExcludedTrialRecord[] = [];
+
+  // Gene-specificity comes from the registry record's own detected genes, and a
+  // study that targets a DIFFERENT gene is dropped here rather than presented
+  // as a syndrome-level option. Dropped records are returned for the audit log,
+  // never for the prompt.
+  const consider = (t: TrialRecord, provenance: TrialProvenance) => {
+    const key = t.id.toUpperCase();
+    if (byNct.has(key)) return;
+    const relation = classifyTrialForGene(t.genes ?? [], geneSymbol, aliases);
+    if (relation === "other_gene") {
+      if (!excluded.some((e) => e.nctId === key)) {
+        excluded.push({
+          nctId: key,
+          title: t.title,
+          targetGenes: t.genes ?? [],
+          reason: `Targets ${(t.genes ?? []).join(", ")}, not ${geneSymbol}.`,
+        });
+      }
+      return;
+    }
+    byNct.set(key, toSummary(t, provenance, relation === "gene_specific"));
+  };
+
+  for (const t of result.records) consider(t, "gene_search");
 
   // Second pass: the gene's own syndrome, with NO gene term. Most syndrome
   // trials never name the causative gene, so the gene-term search above returns
@@ -104,14 +170,14 @@ export async function fetchTrialSummaries(
       console.warn(`  [trials] disease search failed for "${term}": ${byDisease.error}`);
       continue;
     }
-    for (const t of byDisease.records) {
-      const key = t.id.toUpperCase();
-      if (byNct.has(key)) continue; // the gene-specific hit is the stronger one
-      byNct.set(key, { ...toSummary(t, "disease_search"), geneSpecific: false });
-    }
+    // NOTE: these are no longer force-marked geneSpecific:false. A syndrome
+    // search legitimately surfaces gene-specific studies (BF844 is registered
+    // under Usher syndrome type 3 but is built around mutant CLRN1 N48K), so
+    // `consider` reads the record's own genes instead of assuming.
+    for (const t of byDisease.records) consider(t, "disease_search");
   }
 
-  return { ok: true, records: Array.from(byNct.values()) };
+  return { ok: true, records: Array.from(byNct.values()), excluded };
 }
 
 /**
@@ -129,12 +195,19 @@ export async function fetchTrialSummaries(
  */
 export async function mergeLiteratureReferencedTrials(
   geneSearchTrials: TrialSummaryRecord[],
-  references: { nctId: string; referencedBySourceIds: string[] }[]
-): Promise<{ merged: TrialSummaryRecord[]; unverified: UnverifiedTrialReference[] }> {
+  references: { nctId: string; referencedBySourceIds: string[] }[],
+  geneSymbol: string,
+  aliases: string[] = []
+): Promise<{
+  merged: TrialSummaryRecord[];
+  unverified: UnverifiedTrialReference[];
+  excluded: ExcludedTrialRecord[];
+}> {
   const byNct = new Map<string, TrialSummaryRecord>();
   for (const t of geneSearchTrials) byNct.set(t.nctId.toUpperCase(), t);
 
   const unverified: UnverifiedTrialReference[] = [];
+  const excluded: ExcludedTrialRecord[] = [];
 
   for (const ref of references) {
     const key = ref.nctId.toUpperCase();
@@ -150,7 +223,28 @@ export async function mergeLiteratureReferencedTrials(
 
     const study = await fetchStudyByNctId(ref.nctId);
     if (study.ok && study.record) {
-      byNct.set(key, toSummary(study.record, "discovered_from_literature", ref.referencedBySourceIds));
+      // A paper can name a trial for a different gene (a comparison arm, a
+      // related programme). Same rule as the gene search: classify from the
+      // registry record's own genes, and quarantine another gene's study.
+      const relation = classifyTrialForGene(study.record.genes ?? [], geneSymbol, aliases);
+      if (relation === "other_gene") {
+        excluded.push({
+          nctId: key,
+          title: study.record.title,
+          targetGenes: study.record.genes ?? [],
+          reason: `Referenced by selected literature but targets ${(study.record.genes ?? []).join(", ")}, not ${geneSymbol}.`,
+        });
+        continue;
+      }
+      byNct.set(
+        key,
+        toSummary(
+          study.record,
+          "discovered_from_literature",
+          relation === "gene_specific",
+          ref.referencedBySourceIds
+        )
+      );
     } else {
       const reason = study.ok
         ? "ClinicalTrials.gov has no study with this ID (registry record could not be verified)."
@@ -160,5 +254,5 @@ export async function mergeLiteratureReferencedTrials(
     }
   }
 
-  return { merged: Array.from(byNct.values()), unverified };
+  return { merged: Array.from(byNct.values()), unverified, excluded };
 }

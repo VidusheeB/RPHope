@@ -140,7 +140,8 @@ describe("mergeLiteratureReferencedTrials", () => {
 
     const { merged, unverified } = await mergeLiteratureReferencedTrials(
       [],
-      [{ nctId: "NCT05616793", referencedBySourceIds: ["pubmed:40598770"] }]
+      [{ nctId: "NCT05616793", referencedBySourceIds: ["pubmed:40598770"] }],
+      "LCA5"
     );
 
     expect(spy).toHaveBeenCalledWith("NCT05616793");
@@ -155,7 +156,8 @@ describe("mergeLiteratureReferencedTrials", () => {
     const spy = vi.spyOn(source, "fetchStudyByNctId");
     const { merged } = await mergeLiteratureReferencedTrials(
       [geneSearchSummary("NCT05616793")],
-      [{ nctId: "NCT05616793", referencedBySourceIds: ["pubmed:1"] }]
+      [{ nctId: "NCT05616793", referencedBySourceIds: ["pubmed:1"] }],
+      "LCA5"
     );
     // No direct fetch needed — the trial was already in the gene-search set.
     expect(spy).not.toHaveBeenCalled();
@@ -169,7 +171,8 @@ describe("mergeLiteratureReferencedTrials", () => {
 
     const { merged, unverified } = await mergeLiteratureReferencedTrials(
       [],
-      [{ nctId: "NCT09999999", referencedBySourceIds: ["pubmed:2"] }]
+      [{ nctId: "NCT09999999", referencedBySourceIds: ["pubmed:2"] }],
+      "LCA5"
     );
 
     expect(merged).toHaveLength(0); // no fabricated trial
@@ -182,7 +185,8 @@ describe("mergeLiteratureReferencedTrials", () => {
     vi.spyOn(source, "fetchStudyByNctId").mockResolvedValue({ ok: false, error: "HTTP 500" });
     const { merged, unverified } = await mergeLiteratureReferencedTrials(
       [],
-      [{ nctId: "NCT08888888", referencedBySourceIds: ["pubmed:3"] }]
+      [{ nctId: "NCT08888888", referencedBySourceIds: ["pubmed:3"] }],
+      "LCA5"
     );
     expect(merged).toHaveLength(0);
     expect(unverified[0].reason).toContain("HTTP 500");
