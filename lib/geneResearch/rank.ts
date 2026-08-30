@@ -167,7 +167,10 @@ function titleTokens(title: string): Set<string> {
   return new Set(
     normalizeTitle(title)
       .split(" ")
-      .filter((w) => w.length > 2 && !TITLE_STOPWORDS.has(w))
+      // Numbers are kept whatever their length: they are often the ONLY thing
+      // separating two genuinely different papers ("... part 1" vs "part 2",
+      // cohort sizes, series numbers). Dropping them scored such pairs 1.000.
+      .filter((w) => (/^\d+$/.test(w) || w.length > 2) && !TITLE_STOPWORDS.has(w))
   );
 }
 

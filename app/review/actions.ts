@@ -14,6 +14,11 @@ import { getServerSupabase } from "@/lib/supabaseServer";
 import { getServiceSupabase } from "@/lib/supabaseAdmin";
 import { getReviewerSession } from "@/lib/reviewer/session";
 import {
+  contentEditStamp,
+  approvalStamp,
+  reopenStamp,
+} from "@/lib/reviewer/auditStamp";
+import {
   evaluateSubmissionReadiness,
   evaluateApprovalReadiness,
   evaluateAdminPublishReadiness,
@@ -50,7 +55,7 @@ export async function saveDraftAction(
 
   const { error } = await supabase
     .from("gene_page_drafts")
-    .update({ ...patch, last_activity_at: new Date().toISOString(), last_edited_by: user.id })
+    .update({ ...patch, ...contentEditStamp(user.id) })
     .eq("id", draftId);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
@@ -233,6 +238,9 @@ export async function submitReviewAction(input: {
     .from("gene_page_drafts")
     .update({
       ...serializeDraft(input.content),
+      // Re-submitting takes the page out of "approved", so any earlier
+      // approval is cleared — it described different content.
+      ...reopenStamp(session.userId),
       review_status: "submitted_for_approval",
       submitted_at: submittedAt,
       submitted_by: session.userId,
@@ -281,6 +289,8 @@ export async function requestChangesAction(input: {
   const { error } = await service
     .from("gene_page_drafts")
     .update({
+      // Sending it back un-approves it: clear the stale reviewer stamp.
+      ...reopenStamp(session.userId),
       review_status: "changes_requested",
       changes_requested_note: input.note,
       changes_requested_at: changesRequestedAt,
@@ -388,7 +398,7 @@ export async function publishAction(input: {
   //    is non-fatal to the atomic publish, but we surface it).
   const { error: saveErr } = await service
     .from("gene_page_drafts")
-    .update({ ...serializeDraft(input.content), last_edited_by: session.userId })
+    .update({ ...serializeDraft(input.content), ...contentEditStamp(session.userId) })
     .eq("id", input.draftId);
   if (saveErr) return { ok: false, error: `Could not save latest edits: ${saveErr.message}` };
 
@@ -505,7 +515,10 @@ export async function restoreVersionAction(versionId: string): Promise<ActionRes
 export async function saveAdminNoteAction(draftId: string, note: string): Promise<ActionResult> {
   const ctx = await requireAdminService();
   if (!ctx.ok) return { ok: false, error: ctx.error };
-  const { error } = await ctx.service.from("gene_page_drafts").update({ admin_note: note }).eq("id", draftId);
+  const { error } = await ctx.service
+    .from("gene_page_drafts")
+    .update({ admin_note: note, ...contentEditStamp(ctx.session.userId) })
+    .eq("id", draftId);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
@@ -801,7 +814,7 @@ export async function approveReviewAction(input: {
   const approvedAt = new Date().toISOString();
   const { error } = await service
     .from("gene_page_drafts")
-    .update({ review_status: "approved", reviewed_by: session.userId, reviewed_at: approvedAt })
+    .update({ review_status: "approved", ...approvalStamp(session.userId, new Date(approvedAt)) })
     .eq("id", draftId);
   if (error) return { ok: false, error: error.message };
 

@@ -250,14 +250,14 @@ describe("content edits are attributed to whoever actually made them (static)", 
     const src = read("app/review/actions.ts");
     const fnStart = src.indexOf("export async function saveDraftAction");
     const fnBody = src.slice(fnStart, src.indexOf("\n}\n", fnStart));
-    expect(fnBody).toContain("last_edited_by: user.id");
+    expect(fnBody).toContain("contentEditStamp(user.id)");
   });
 
   it("publishAction's pre-publish save also stamps last_edited_by from the admin's own session, not the reviewer's", () => {
     const src = read("app/review/actions.ts");
     const fnStart = src.indexOf("export async function publishAction");
     const fnBody = src.slice(fnStart, src.indexOf("\n}\n", fnStart));
-    expect(fnBody).toContain("last_edited_by: session.userId");
+    expect(fnBody).toContain("contentEditStamp(session.userId)");
   });
 });
 
