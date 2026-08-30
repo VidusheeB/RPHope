@@ -35,7 +35,13 @@ import type {
  *  actually billed, rather than assuming. */
 export const GENERATION_MODEL = "claude-opus-4-8";
 const MODEL = GENERATION_MODEL;
-const MAX_TOKENS = 12000;
+// Headroom matters more than a tight cap: a response cut off at the limit is
+// truncated mid-JSON and the whole gene is lost, having already been billed for
+// the full output. A 10-gene run lost INPP5E and USH2A that way, both stopping
+// at exactly 12000 tokens, while successful genes used 8.6k-10.5k. Raised to
+// leave room for the longest pages. Cost is driven by tokens actually produced,
+// so a higher ceiling costs nothing on a normal gene.
+const MAX_TOKENS = 20000;
 
 // Standard pricing (not batch): $5/M input, $25/M output. Update if pricing
 // changes.
@@ -219,6 +225,17 @@ export async function generateGenePage(
     outputTokens,
     estimatedCostUsd: estimateCostUsd(inputTokens, outputTokens),
   };
+
+  // Say plainly when the response was cut off at the token ceiling. This
+  // previously surfaced as "not valid JSON", which sent debugging toward the
+  // model's output when the real cause was the cap.
+  if (message.stop_reason === "max_tokens") {
+    throw new GenerationError(
+      `Opus response for ${bundle.geneSymbol} was truncated at the ${MAX_TOKENS}-token limit ` +
+        `(${outputTokens} output tokens). Raise MAX_TOKENS in lib/geneResearch/generate.ts.`,
+      usage
+    );
+  }
 
   const textBlock = message.content.find(
     (b): b is Anthropic.Beta.Messages.BetaTextBlock => b.type === "text"

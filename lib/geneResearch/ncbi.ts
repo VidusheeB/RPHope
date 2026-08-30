@@ -18,6 +18,11 @@ import { ncbiFetch } from "./ncbiThrottle";
 
 const BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 
+/** How many esearch hits to check for an exact symbol match. A "[sym]" query
+ *  should return one gene, but it demonstrably does not always put the right
+ *  one first, so we look past the head of the list before giving up. */
+const MAX_CANDIDATE_IDS = 5;
+
 function apiKeyParam(): string {
   const key = process.env.NCBI_API_KEY;
   return key ? `&api_key=${encodeURIComponent(key)}` : "";
@@ -39,25 +44,56 @@ export async function fetchNcbiGeneRecord(
     const search = (await getJson(searchUrl)) as {
       esearchresult?: { idlist?: string[] };
     };
-    const geneId = search.esearchresult?.idlist?.[0];
-    if (!geneId) {
+    const idList = (search.esearchresult?.idlist ?? []).slice(0, MAX_CANDIDATE_IDS);
+    if (!idList.length) {
       return { ok: true, record: null };
     }
 
-    const summaryUrl = `${BASE}/esummary.fcgi?db=gene&id=${geneId}&retmode=json${apiKeyParam()}`;
+    // Fetch every candidate, not just the first. esearch's ordering is NOT a
+    // relevance guarantee: a "[sym]" query for INPP5E returned PMPCA first, and
+    // because the old code took idlist[0] and then relabelled itself with
+    // whatever came back (`rec.name || symbol`), the pipeline silently built an
+    // INPP5E page out of a different gene's record. One comma-separated
+    // esummary keeps this to a single extra-free request.
+    const summaryUrl = `${BASE}/esummary.fcgi?db=gene&id=${idList.join(",")}&retmode=json${apiKeyParam()}`;
     const summary = (await getJson(summaryUrl)) as {
       result?: Record<string, unknown>;
     };
-    const rec = summary.result?.[geneId] as
-      | {
-          name?: string;
-          description?: string;
-          summary?: string;
-          chromosome?: string;
-          otheraliases?: string;
-        }
-      | undefined;
-    if (!rec) {
+
+    type SummaryRec = {
+      name?: string;
+      description?: string;
+      summary?: string;
+      chromosome?: string;
+      otheraliases?: string;
+    };
+
+    // Accept ONLY a record whose official symbol is the one we asked for.
+    // Anything else is a different gene, and publishing it under this gene's
+    // slug would be worse than having no page at all.
+    const wanted = symbol.trim().toUpperCase();
+    let geneId: string | undefined;
+    let rec: SummaryRec | undefined;
+    for (const id of idList) {
+      const candidate = summary.result?.[id] as SummaryRec | undefined;
+      if (!candidate) continue;
+      if ((candidate.name ?? "").trim().toUpperCase() === wanted) {
+        geneId = id;
+        rec = candidate;
+        break;
+      }
+    }
+
+    if (!geneId || !rec) {
+      const got = idList
+        .map((id) => (summary.result?.[id] as SummaryRec | undefined)?.name)
+        .filter(Boolean)
+        .join(", ");
+      console.warn(
+        `  [ncbi] no exact symbol match for ${symbol}` +
+          (got ? ` (NCBI returned: ${got})` : "") +
+          " — refusing to use a different gene's record"
+      );
       return { ok: true, record: null };
     }
 
@@ -66,6 +102,7 @@ export async function fetchNcbiGeneRecord(
       record: {
         sourceId: `ncbi-gene:${geneId}`,
         geneId,
+        // rec.name is now guaranteed to equal the requested symbol.
         symbol: rec.name || symbol,
         officialFullName: rec.description || undefined,
         summary: rec.summary || undefined,
