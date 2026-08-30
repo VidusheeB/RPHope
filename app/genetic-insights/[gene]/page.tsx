@@ -5,10 +5,8 @@ import { renderWithGlossary } from "@/lib/glossaryLinkify";
 import { geneGrid } from "@/lib/geneGrid";
 import { getCatalogGene, EVIDENCE_TIER_LABEL } from "@/lib/geneCatalog";
 import { EVIDENCE_TIER_NOTE } from "@/lib/geneEvidenceNotes";
-import GeneArticles, { type Article } from "@/components/site/GeneArticles";
 import ListenButton from "@/components/site/ListenButton";
 import GeneSharedGuidance from "@/components/site/GeneSharedGuidance";
-import { getResearchItems } from "@/lib/researchRepo";
 import Link from "next/link";
 import { getPublishedGeneVersion, wasGeneEverPublished } from "@/lib/reviewer/publicContent";
 import GeneDraftView from "@/components/review/GeneDraftView";
@@ -45,7 +43,7 @@ export function generateMetadata({ params }: { params: { gene: string } }): Meta
 }
 
 /** Verbatim listen text for legacy genes (published fields only — no paraphrase). */
-function readableGeneText(gene: Gene, articles: Article[]): string {
+function readableGeneText(gene: Gene): string {
   const parts: string[] = [];
   parts.push(gene.fullName ? `${gene.gene}. ${gene.fullName}.` : `${gene.gene}.`);
   if (gene.diseaseCategory) parts.push(`Disease category: ${gene.diseaseCategory}.`);
@@ -54,10 +52,8 @@ function readableGeneText(gene: Gene, articles: Article[]): string {
   if (gene.eyeHealthStrategies)
     parts.push(`Strategies to preserve eye health: ${gene.eyeHealthStrategies}.`);
   if (gene.summary) parts.push(`Brief description. ${gene.summary}`);
-  if (articles.length > 0) {
-    parts.push("In the news.");
-    for (const a of articles) parts.push(`${a.title.replace(/\.?$/, ".")}`);
-  }
+  // "In the News" was removed from gene pages, so read-aloud no longer
+  // announces article titles either — it must match what is on the page.
   return parts.join(" ");
 }
 
@@ -80,27 +76,12 @@ function readableDraftText(draft: GenePageDraft): string {
   return parts.join(" ");
 }
 
-/** Shared "In the News" section (research items), same look for every gene. */
-function InTheNews({ articles, showSource }: { articles: Article[]; showSource?: boolean }) {
-  return (
-    <section className="mt-12">
-      <div className="flex items-baseline justify-between gap-4">
-        <h2 className="font-display text-3xl font-medium tracking-tight text-ink">In the News</h2>
-        {showSource && (
-          <span className="text-xs font-semibold uppercase tracking-wide text-ink/40">
-            AI-curated from RP Hope&rsquo;s research library
-          </span>
-        )}
-      </div>
-      <div className="mt-6">
-        <GeneArticles articles={articles} />
-      </div>
-    </section>
-  );
-}
+// The "In the News" section was removed from gene pages (owner request,
+// 2026-08-29). The research pipeline and the research_items table are
+// untouched — only the on-page section is gone — so it can be reinstated by
+// rendering GeneArticles again without regenerating anything.
 
 export default async function GenePage({ params }: { params: { gene: string } }) {
-  const articles = await getResearchItems(params.gene);
 
   // ---- Branch A: a human-reviewed, PUBLISHED Supabase version exists ----------
   // Prefer it; render the rich, brief-by-default format. Immutable — later edits
@@ -143,7 +124,6 @@ export default async function GenePage({ params }: { params: { gene: string } })
             />
           </div>
           <div className={GENE_COL}>
-            <InTheNews articles={articles} showSource />
             {/* Universal caregiver/accessibility guidance, shown once here so
                 the generator no longer writes it into every gene's prose. */}
             <GeneSharedGuidance />
@@ -214,7 +194,7 @@ export default async function GenePage({ params }: { params: { gene: string } })
           <IdentityCard
             gene={gene.gene}
             fullName={gene.fullName}
-            listenSlot={<ListenButton text={readableGeneText(gene, articles)} />}
+            listenSlot={<ListenButton text={readableGeneText(gene)} />}
             face={
               gene.faceOfRP?.name && gene.faceOfRP.name !== "—" ? (
                 <FaceOfRP name={gene.faceOfRP.name} location={gene.faceOfRP.location} gene={gene.gene} slug={params.gene} />
@@ -246,7 +226,6 @@ export default async function GenePage({ params }: { params: { gene: string } })
             )}
           </div>
 
-          <InTheNews articles={articles} showSource />
           <GeneSharedGuidance />
           <GeneFooter />
         </article>
@@ -301,7 +280,6 @@ export default async function GenePage({ params }: { params: { gene: string } })
           A clear, everyday-language overview of this gene is being prepared and will appear here
           once reviewed.
         </p>
-        <InTheNews articles={articles} showSource />
         {/* Still useful on a gene whose page is not written yet — the general
             support guidance applies regardless of which gene it is. */}
         <GeneSharedGuidance />
