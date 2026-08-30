@@ -4,6 +4,13 @@ import StoryCard, { excerptOf } from "@/components/site/StoryCard";
 import { curatedStories } from "@/lib/curatedStories";
 import { getPublishedStories } from "@/lib/storySubmissionsRepo";
 
+// Read from Supabase on every request. Taking a story down in the reviewer
+// dashboard has to remove its tile immediately; as a build-time static page
+// this listing kept serving archived stories whose detail pages already 404'd.
+// Matches the gene library landing page, which is force-dynamic for the same
+// reason (content changes outside a deploy).
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Stories — RP Hope",
   description:

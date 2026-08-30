@@ -5,6 +5,9 @@ import { getPublishedStoryById } from "@/lib/storySubmissionsRepo";
 import { geneGrid } from "@/lib/geneGrid";
 import ListenButton from "@/components/site/ListenButton";
 
+// Same reason as the listing: a story taken down must stop rendering at once.
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({
   params,
 }: {

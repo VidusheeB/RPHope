@@ -103,6 +103,7 @@ export async function publishStory(id: string): Promise<ActionResult> {
 
   await sendStoryPublishedEmail(story.email as string, story.full_name as string, id);
   revalidatePath("/stories");
+  revalidatePath(`/stories/${id}`);
   revalidatePath(`/review/stories/${id}`);
   return { ok: true };
 }
@@ -128,6 +129,9 @@ export async function unpublishStoryAction(id: string): Promise<ActionResult> {
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/stories");
+  // The story's own page was missing here, so a taken-down story could still
+  // be served from cache at its direct URL.
+  revalidatePath(`/stories/${id}`);
   revalidatePath(`/review/stories/${id}`);
   revalidatePath("/review/stories");
   return { ok: true };
