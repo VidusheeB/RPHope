@@ -15,5 +15,17 @@ export function getSupabase(): SupabaseClient | null {
   if (!supabaseConfigured) return null;
   return createClient(url!, anonKey!, {
     auth: { persistSession: false },
+    global: {
+      // supabase-js issues its queries through fetch, and Next.js caches fetch
+      // in Server Components. That cached a response from a moment when no
+      // stories were published, so publishing one in the admin never changed
+      // the public page — the query was never actually re-run. Page-level
+      // `force-dynamic` does not help, because the staleness is in the fetch
+      // layer beneath it.
+      //
+      // This data changes outside the request cycle (an admin publishing or
+      // taking something down), so a cached read is always wrong here.
+      fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+    },
   });
 }
