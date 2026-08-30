@@ -69,21 +69,25 @@ export default function GeneLibrary({ items }: { items: GridItem[] }) {
                   className="aspect-square w-full rounded-md object-cover"
                 />
               ) : (
+                // Placeholder for a gene with no Face of RP photo yet. A grey
+                // eye ICON rather than the eye photograph in /public/home: a
+                // real photo here would look like a genuine Face of RP, which
+                // is exactly what this tile means is missing.
                 <span
                   aria-hidden="true"
-                  className="grid aspect-square w-full place-items-center rounded-md bg-cream-card text-forest/40"
+                  className="grid aspect-square w-full place-items-center rounded-md bg-cream-card text-ink/30"
                 >
                   <svg
-                    className="h-8 w-8"
+                    className="h-10 w-10"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="1.5"
                     strokeLinecap="round"
+                    strokeLinejoin="round"
                   >
-                    <path d="M7 3c0 4 10 6 10 9s-10 5-10 9" />
-                    <path d="M17 3c0 4-10 6-10 9s10 5 10 9" />
-                    <path d="M8.5 7h7M8.5 17h7M7.5 10h9M7.5 14h9" />
+                    <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" />
+                    <circle cx="12" cy="12" r="3" />
                   </svg>
                 </span>
               )}
