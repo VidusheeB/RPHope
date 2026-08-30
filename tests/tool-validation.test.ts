@@ -27,6 +27,7 @@ describe("tool input validation", () => {
     expect(names).toEqual(
       [
         "ask_rp_expert",
+        "end_voice_session",
         "get_current_page_context",
         "go_back",
         "list_current_page_sections",

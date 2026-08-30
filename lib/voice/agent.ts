@@ -11,9 +11,19 @@ export const REALTIME_VOICE = "marin";
 export const TRANSCRIBE_MODEL = "gpt-4o-mini-transcribe";
 export const WORKFLOW_NAME = "RP Hope Voice Assistant";
 
+/** Spoken once, automatically, when a new session becomes ready. The user does
+ *  not have to say anything first — pressing "Talk to Hope" is the
+ *  explicit action, and this is the reply to it. */
+export const HOPE_INTRODUCTION =
+  "Hi, I'm Hope, RP Hope's AI voice guide. Ask me anything about this page. " +
+  "You can mute me whenever you need privacy, or say goodbye to end our conversation.";
+
+/** The only thing Hope says when ending; see end_voice_session. */
+export const HOPE_GOODBYE = "Goodbye. I've stopped listening.";
+
 export function createRPHopeAgent(): RealtimeAgent {
   return new RealtimeAgent({
-    name: "RP Hope Guide",
+    name: "Hope",
     instructions: ASSISTANT_INSTRUCTIONS,
     voice: REALTIME_VOICE,
     tools: rpHopeTools,
@@ -34,7 +44,10 @@ export function buildSessionConfig(): Partial<RealtimeSessionConfig> {
         transcription: { model: TRANSCRIBE_MODEL },
         turnDetection: {
           type: "semantic_vad",
-          eagerness: "medium",
+          // "low" gives people more time to finish a sentence before Hope
+          // takes a turn — our audience includes older users and people who
+          // pause mid-thought. Supported by gpt-realtime-2.1 + SDK 0.13.
+          eagerness: "low",
           createResponse: true,
           interruptResponse: true,
         },

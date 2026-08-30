@@ -24,17 +24,23 @@ export default function VoiceControls({
 }) {
   const connected = status === "connected";
   const connecting = status === "connecting";
+  const ending = status === "ending";
 
+  // There is deliberately NO "Start conversation" button: the "Talk to Hope"
+  // launcher starts the session itself, so opening the panel and starting are
+  // one action. While connecting or ending, the status line carries the state
+  // and no control is offered. The only case that still needs a button is a
+  // failed or expired session — without it the panel would be a dead end.
   if (!connected) {
+    if (connecting || ending || status === "unconfigured") return null;
     return (
       <button
         type="button"
         onClick={onStart}
-        disabled={connecting || status === "unconfigured"}
-        className={`${btn} w-full bg-forest text-white hover:bg-forest-dark disabled:opacity-60`}
+        className={`${btn} w-full bg-forest text-white hover:bg-forest-dark`}
       >
         <MicIcon />
-        {connecting ? "Connecting…" : "Start conversation"}
+        Try again
       </button>
     );
   }
@@ -45,7 +51,8 @@ export default function VoiceControls({
         type="button"
         onClick={onToggleMute}
         aria-pressed={muted}
-        className={`${btn} border ${
+        disabled={ending}
+        className={`${btn} border disabled:opacity-60 ${
           muted
             ? "border-ink/30 bg-ink/5 text-ink"
             : "border-forest/40 bg-forest/5 text-forest"
@@ -57,7 +64,8 @@ export default function VoiceControls({
       <button
         type="button"
         onClick={onStopSpeaking}
-        className={`${btn} border border-forest/40 bg-white text-forest hover:bg-forest/5`}
+        disabled={ending}
+        className={`${btn} border border-forest/40 bg-white text-forest hover:bg-forest/5 disabled:opacity-60`}
       >
         <StopIcon />
         Stop speaking
@@ -65,9 +73,10 @@ export default function VoiceControls({
       <button
         type="button"
         onClick={onEnd}
-        className={`${btn} ml-auto bg-ink text-white hover:bg-black`}
+        disabled={ending}
+        className={`${btn} ml-auto bg-ink text-white hover:bg-black disabled:opacity-60`}
       >
-        End
+        {ending ? "Ending…" : "End"}
       </button>
     </div>
   );

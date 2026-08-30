@@ -89,8 +89,8 @@ export const TOUR_STEPS: TourStep[] = [
   {
     id: "voice",
     kind: "page",
-    title: "Talk to RP Hope",
-    body: "For visitors who'd rather not read, RP Hope has a hands-free voice assistant. It knows the whole site and can answer questions, explain a gene, or take you to a page — all out loud. Try it now — tap the Talk to RP Hope button at the bottom right, press Start conversation, and ask a question out loud.",
+    title: "Talk to Hope",
+    body: "For visitors who'd rather not read, RP Hope has a hands-free voice assistant. It knows the whole site and can answer questions, explain a gene, or take you to a page — all out loud. Try it now — tap the Talk to Hope button at the bottom right and ask a question out loud.",
     href: "/",
     cta: "Go to the homepage",
   },

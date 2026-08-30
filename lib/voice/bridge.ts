@@ -12,6 +12,10 @@ export type VoiceBridge = {
   announce: (message: string) => void;
   /** The current pathname. */
   getPathname: () => string;
+  /** End the live voice session (mic off, then close). Idempotent — safe to
+   *  call from the end_voice_session tool and from transcript fallback at the
+   *  same time. */
+  endSession: () => void;
 };
 
 let bridge: VoiceBridge | null = null;

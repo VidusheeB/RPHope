@@ -2,7 +2,7 @@
 
 // "Report an issue" — a persistent floating launcher on every gene review
 // page, same bottom-right placement/shape convention as the public site's
-// "Talk to RP Hope" voice launcher (components/site/voice-assistant/). This
+// "Talk to Hope" voice launcher (components/site/voice-assistant/). This
 // is explicitly NOT chat-styled: no conversational framing, no simulated
 // replies — it just opens a plain internal form in a drawer, without
 // navigating away, so it never disturbs in-progress ReviewEditor edits.

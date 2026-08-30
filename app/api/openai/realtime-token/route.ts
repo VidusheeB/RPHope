@@ -5,6 +5,7 @@
 
 import { NextResponse } from "next/server";
 import { rateLimit, clientKey } from "@/lib/voice/rateLimit";
+import { GLOBAL_SESSION_STARTS_PER_MIN } from "@/lib/voice/capacity";
 
 export const runtime = "nodejs";
 
@@ -24,11 +25,31 @@ export async function POST(req: Request) {
     );
   }
 
+  // Per-visitor cap: stops one client monopolising the assistant.
   const rl = rateLimit(`realtime:${clientKey(req)}`, { limit: 20, windowMs: 60_000 });
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many voice sessions started. Please wait a moment." },
       { status: 429, headers: { "Retry-After": String(rl.retryAfterSec ?? 30) } }
+    );
+  }
+
+  // Account-wide cap. The per-visitor limit alone does not protect the OpenAI
+  // account: twenty visitors each under their own limit can still stampede it
+  // into a 429, which reaches the browser as an unreadable SDP parse error.
+  // Failing here instead is both clearer and cheaper — no token is minted.
+  // Best-effort: in-memory, so it is per server instance, not a global quota.
+  const globalRl = rateLimit("realtime:all", {
+    limit: GLOBAL_SESSION_STARTS_PER_MIN,
+    windowMs: 60_000,
+  });
+  if (!globalRl.ok) {
+    return NextResponse.json(
+      {
+        error:
+          "The voice assistant is busy right now. Please try again in a moment.",
+      },
+      { status: 429, headers: { "Retry-After": String(globalRl.retryAfterSec ?? 30) } }
     );
   }
 

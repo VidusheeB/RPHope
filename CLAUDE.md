@@ -198,8 +198,9 @@ the server only mints a short-lived ephemeral token, so `OPENAI_API_KEY` never r
   **`semantic_vad` turn detection with `interruptResponse: true`** — barge-in is handled by the
   model's VAD, so the user can just start talking to interrupt. No client-side echo/word filtering.
 
-**Flow — there is NO wake phrase.** A launcher button "**Talk to RP Hope**" (bottom-right, mic
-icon) opens the panel; inside, the user presses "**Start conversation**" and simply talks. The mic
+**Flow — there is NO wake phrase.** A launcher button "**Talk to Hope**" (bottom-right, mic
+icon) opens the panel AND starts the session in one action — there is no separate "Start
+conversation" button — and the user simply talks. The mic
 is **never** activated automatically — a session only starts on that explicit action. Status is
 surfaced as Ready / Connecting / Listening / Thinking / Speaking / Microphone muted / error.
 Escape interrupts speech, then closes the panel.
@@ -453,7 +454,7 @@ Archived original-site clone (reference only, excluded from build): `StaticDemoO
   - `MedicalDisclaimerGate` is `z-[110]`, above the tour's `z-[100]`, so the "before you continue"
     gate is answered first rather than being covered while it still traps focus.
   - **Keep the tour copy in sync with the real UI.** Its "try it" prompts name actual controls
-    ("Talk to RP Hope" → "Start conversation", "Listen to this page"). An earlier draft told
+    ("Talk to Hope", "Listen to this page"). An earlier draft told
     visitors to say "Hello Claude" — a wake phrase that does not exist.
 - **Read-aloud button** (`components/site/ListenButton.tsx` + `lib/speech.ts`) — "Listen to this
   page" on gene detail pages. **OpenAI TTS** via `/api/tts` (`gpt-4o-mini-tts`, voice `coral`) —
@@ -467,8 +468,8 @@ Archived original-site clone (reference only, excluded from build): `StaticDemoO
   `app/layout.tsx`. **The full architecture, governance, and browser support are documented in
   "Voice assistant — BUILT" in the Accessibility section above — read that before changing this.**
   Quick map of the code:
-  - UI: `components/site/voice-assistant/` (`VoiceAssistant` launcher "Talk to RP Hope" → panel →
-    "Start conversation"; plus `VoiceAssistantPanel`, `VoiceControls`, `VoiceStatus`,
+  - UI: `components/site/voice-assistant/` (`VoiceAssistant` launcher "Talk to Hope" → panel →
+    starts the session directly; plus `VoiceAssistantPanel`, `VoiceControls`, `VoiceStatus`,
     `VoiceTranscript`, `VoiceSources`). **No wake phrase**; the mic never auto-activates.
   - Session: `hooks/useRPVoiceAssistant.ts` owns the live `RealtimeSession`; `lib/voice/agent.ts`
     holds the agent + session config (`gpt-realtime-2.1`, voice `marin`, `semantic_vad` barge-in).

@@ -25,7 +25,7 @@ export default function VoiceTranscript({
     <div className="flex flex-col gap-2">
       {/* Live caption for screen readers (and sighted users, if enabled). */}
       <div aria-live="polite" className={captions ? "sr-only" : "sr-only"}>
-        {latestAssistant ? `Assistant: ${latestAssistant.text}` : ""}
+        {latestAssistant ? `Hope: ${latestAssistant.text}` : ""}
       </div>
 
       <div
@@ -46,7 +46,7 @@ export default function VoiceTranscript({
                     t.role === "assistant" ? "text-forest" : "text-ink/60"
                   }`}
                 >
-                  {t.role === "assistant" ? "RP Hope Guide" : t.role === "user" ? "You" : "System"}
+                  {t.role === "assistant" ? "Hope" : t.role === "user" ? "You" : "System"}
                 </span>
                 <span className="text-ink/90">
                   {t.text}

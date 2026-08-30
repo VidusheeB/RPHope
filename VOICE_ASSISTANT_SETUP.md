@@ -44,8 +44,8 @@ npm run build
 
 ## 4. Test microphone access
 
-1. Open the site and click **“Talk to RP Hope”** (bottom-right).
-2. Click **Start conversation**. The browser will ask for microphone permission —
+1. Open the site and click **“Talk to Hope”** (bottom-right).
+2. The session starts immediately. The browser will ask for microphone permission —
    allow it. (The mic is **never** activated automatically.)
 3. You should hear a short greeting, then speak naturally. Try: *“What can you tell
    me about RPGR?”*, *“Read this page to me,”* *“Take me to clinical trials,”*

@@ -1,18 +1,14 @@
 "use client";
 
 import type { Activity, ConnectionStatus } from "@/hooks/useRPVoiceAssistant";
+import {
+  VOICE_STATUS_LABELS,
+  voiceStatusKey,
+} from "@/lib/voice/statusLabels";
 
 // Conveys state with TEXT + ICON + shape, never color alone (WCAG 1.4.1).
-const LABELS: Record<string, { label: string; dot: string }> = {
-  connecting: { label: "Connecting…", dot: "animate-pulse bg-gold" },
-  listening: { label: "Listening", dot: "bg-forest" },
-  thinking: { label: "Thinking…", dot: "animate-pulse bg-gold" },
-  speaking: { label: "Speaking", dot: "bg-forest" },
-  muted: { label: "Microphone muted", dot: "bg-ink/40" },
-  error: { label: "Something went wrong", dot: "bg-red-600" },
-  idle: { label: "Ready", dot: "bg-ink/30" },
-};
-
+// The wording lives in lib/voice/statusLabels.ts so it stays identical between
+// the visible label and the announcement.
 export default function VoiceStatus({
   status,
   activity,
@@ -22,17 +18,8 @@ export default function VoiceStatus({
   activity: Activity;
   muted: boolean;
 }) {
-  const key =
-    status === "connecting"
-      ? "connecting"
-      : status === "error"
-      ? "error"
-      : status !== "connected"
-      ? "idle"
-      : muted
-      ? "muted"
-      : activity;
-  const state = LABELS[key] ?? LABELS.idle;
+  const key = voiceStatusKey(status, activity, muted);
+  const state = VOICE_STATUS_LABELS[key] ?? VOICE_STATUS_LABELS.idle;
 
   return (
     <p

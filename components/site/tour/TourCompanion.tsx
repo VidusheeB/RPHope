@@ -35,7 +35,7 @@ const TOUR_TTS_INSTRUCTIONS =
   "expressive, and caring, with natural emotional inflection and real energy, never " +
   "flat or robotic. Keep a brisk, engaging pace. Read gene symbols letter by letter.";
 const TOUR_TTS_RATE = 1.08;
-// Same voice as the "Talk to RP Hope" assistant, so the two feel like one guide.
+// Same voice as the "Talk to Hope" assistant, so the two feel like one guide.
 const TOUR_TTS_VOICE = "marin";
 
 // Event the tour fires on every stop change so the live voice conversation
@@ -138,7 +138,7 @@ export default function TourCompanion() {
 
   // Kiosk lockdown (demo only — this component mounts solely when the tour is
   // enabled). Block ALL user-initiated link navigation so visitors can only go
-  // where the tour or the "Talk to RP Hope" assistant takes them — no wandering
+  // where the tour or the "Talk to Hope" assistant takes them — no wandering
   // off to arbitrary gene pages or the nav/footer. Buttons are untouched, so the
   // tour controls, the voice launcher, and the My RP Pathway / Clinical Trials
   // Finder quizzes and forms all stay fully usable (they're buttons, not links).
@@ -458,7 +458,7 @@ export default function TourCompanion() {
       )}
 
       {/* Always-available "Next stop" — docked bottom-right, stacked ABOVE the
-          "Talk to RP Hope" mic launcher (which owns bottom-4 right-4) so they
+          "Talk to Hope" mic launcher (which owns bottom-4 right-4) so they
           never overlap. Hidden only while the stop modal covers the screen. */}
       {!modalOpen && (
         <button

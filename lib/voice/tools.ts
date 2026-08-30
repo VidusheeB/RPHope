@@ -152,6 +152,23 @@ const go_back = tool({
   },
 });
 
+/** Hope calls this the moment the user signals they are done ("bye",
+ *  "goodbye", "stop listening", "I'm done", "that's all"). The hook's
+ *  endSession is idempotent, so a duplicate call — or a race with the
+ *  transcript-based fallback detector — is harmless. */
+const end_voice_session = tool({
+  name: "end_voice_session",
+  description:
+    "End the voice conversation. Call this immediately when the user says or clearly means goodbye, 'stop listening', 'end the conversation', \"I'm done\", or \"that's all\". Say only the short goodbye line, nothing else.",
+  parameters: z.object({}),
+  execute: async () => {
+    const bridge = getVoiceBridge();
+    if (!bridge) return JSON.stringify({ ok: false, error: "Unavailable." });
+    bridge.endSession();
+    return JSON.stringify({ ok: true, note: "Session ending." });
+  },
+});
+
 const scroll_to_section = tool({
   name: "scroll_to_section",
   description: "Scroll a section of the current page into view and focus it.",
@@ -334,4 +351,5 @@ export const rpHopeTools = [
   set_accessibility_preferences,
   ask_rp_expert,
   submit_story,
+  end_voice_session,
 ];

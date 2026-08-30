@@ -63,7 +63,7 @@ export default function VoiceAssistantPanel({
             tabIndex={-1}
             className="font-display text-lg font-medium tracking-tight text-ink outline-none"
           >
-            Talk to RP Hope
+            Talk to Hope
           </h2>
           <VoiceStatus status={voice.status} activity={voice.activity} muted={voice.muted} />
         </div>
@@ -205,7 +205,7 @@ export default function VoiceAssistantPanel({
 
       {/* Persistent honesty notice */}
       <p className="border-t border-ink/12 bg-white px-4 py-2 text-xs leading-relaxed text-ink/60">
-        The RP Hope Guide can make mistakes and is not a medical professional. For medical
+        Hope is an AI voice guide, can make mistakes, and is not a medical professional. For medical
         decisions, talk with a clinician or genetic counselor.
       </p>
     </div>

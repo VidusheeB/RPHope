@@ -1,6 +1,6 @@
 "use client";
 
-// The public marketing chrome (nav header, footer, "Talk to RP Hope" voice
+// The public marketing chrome (nav header, footer, "Talk to Hope" voice
 // launcher, medical disclaimer gate) must NOT render on the reviewer/admin
 // portal — that tool has its own header (app/review/(dashboard)/layout.tsx)
 // and isn't patient-facing. The root layout renders every page in the app
