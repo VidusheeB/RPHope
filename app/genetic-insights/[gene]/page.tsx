@@ -7,6 +7,7 @@ import { getCatalogGene, EVIDENCE_TIER_LABEL } from "@/lib/geneCatalog";
 import { EVIDENCE_TIER_NOTE } from "@/lib/geneEvidenceNotes";
 import GeneArticles, { type Article } from "@/components/site/GeneArticles";
 import ListenButton from "@/components/site/ListenButton";
+import GeneSharedGuidance from "@/components/site/GeneSharedGuidance";
 import { getResearchItems } from "@/lib/researchRepo";
 import Link from "next/link";
 import { getPublishedGeneVersion, wasGeneEverPublished } from "@/lib/reviewer/publicContent";
@@ -143,6 +144,9 @@ export default async function GenePage({ params }: { params: { gene: string } })
           </div>
           <div className={GENE_COL}>
             <InTheNews articles={articles} showSource />
+            {/* Universal caregiver/accessibility guidance, shown once here so
+                the generator no longer writes it into every gene's prose. */}
+            <GeneSharedGuidance />
             <GeneFooter lastReviewed="published, human-reviewed version" />
           </div>
         </article>
@@ -243,6 +247,7 @@ export default async function GenePage({ params }: { params: { gene: string } })
           </div>
 
           <InTheNews articles={articles} showSource />
+          <GeneSharedGuidance />
           <GeneFooter />
         </article>
       </div>
@@ -297,6 +302,9 @@ export default async function GenePage({ params }: { params: { gene: string } })
           once reviewed.
         </p>
         <InTheNews articles={articles} showSource />
+        {/* Still useful on a gene whose page is not written yet — the general
+            support guidance applies regardless of which gene it is. */}
+        <GeneSharedGuidance />
         <GeneFooter />
       </article>
     </div>

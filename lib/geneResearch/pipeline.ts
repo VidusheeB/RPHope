@@ -45,6 +45,7 @@ import { fetchTrialSummaries, mergeLiteratureReferencedTrials } from "./trials";
 import { collectNctReferences } from "./nct";
 import { assessRelevance } from "./relevance";
 import { APPROVED_GENERAL_RESOURCES } from "./resources";
+import { checkDraftQuality, type QualityReport } from "./quality";
 import {
   dedupeLiterature,
   selectCategoryBalancedEvidence,
@@ -297,6 +298,8 @@ export async function assembleSourceBundle(
       approvedResources: APPROVED_GENERAL_RESOURCES,
       webFallbackRecords,
       unverifiedTrialReferences,
+      excludedTrialCount: excludedTrials.length,
+      preprintsCollapsed: candidates.filter((c) => c.supersededPreprint).length,
     },
     diagnostics,
   };
@@ -311,6 +314,14 @@ export type GeneRunResult =
       outputTokens: number;
       estimatedCostUsd: number;
       reviewFlagCount: number;
+      /** Prose-quality report. Warnings FLAG the draft for a reviewer; they
+       *  never modify or drop content. */
+      quality?: QualityReport;
+      /** Counts for the batch report. */
+      sourceCount?: number;
+      trialsIncluded?: number;
+      trialsExcluded?: number;
+      preprintsCollapsed?: number;
     }
   | {
       geneSlug: string;
@@ -378,6 +389,19 @@ export async function generateAndSaveDraft(
       return { geneSlug, geneSymbol, outcome: "failed", error: `Supabase insert failed: ${error.message}` };
     }
 
+    // Prose-quality pass. Warnings are reported alongside the draft for a
+    // human to act on — the draft is still saved either way, because the
+    // review that motivated these checks warned that automatic shortening is
+    // what destroys medically meaningful detail.
+    const quality = checkDraftQuality(d as unknown as Record<string, unknown>);
+    if (quality.warnings.length) {
+      console.warn(
+        `  [quality] ${geneSymbol}: ${quality.wordCount} words, ` +
+          `${quality.warnings.length} warning(s): ` +
+          quality.warnings.map((w) => w.code).join(", ")
+      );
+    }
+
     return {
       geneSlug,
       geneSymbol,
@@ -386,6 +410,11 @@ export async function generateAndSaveDraft(
       outputTokens: result.outputTokens,
       estimatedCostUsd: result.estimatedCostUsd,
       reviewFlagCount: d.reviewFlags.length,
+      quality,
+      sourceCount: Array.isArray(d.sources) ? d.sources.length : undefined,
+      trialsIncluded: bundle.trialRecords?.length,
+      trialsExcluded: bundle.excludedTrialCount,
+      preprintsCollapsed: bundle.preprintsCollapsed,
     };
   } catch (err) {
     if (err instanceof DraftRejectedError) {

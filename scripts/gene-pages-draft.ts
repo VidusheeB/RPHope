@@ -41,6 +41,9 @@ import {
 const DIAGNOSTICS_DIR = "gene-review-scratch";
 
 const DEFAULT_MAX_COST = 50;
+/** Used for the preflight estimate before any run has been logged. Deliberately
+ *  on the high side so a first batch is over-estimated rather than under. */
+const FALLBACK_COST_PER_GENE = 0.6;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function main() {
@@ -88,7 +91,31 @@ async function main() {
     }: ${targets.map((g) => g.display).join(", ")}`
   );
   if (!retrieveOnly) {
+    // Preflight estimate BEFORE any spend, from observed cost per gene in the
+    // spend log (falling back to a conservative default on the first run), so
+    // the batch can be aborted before it starts rather than mid-way.
+    const priorRuns = readSpendLog().filter((e) => e.costUsd > 0);
+    const observedAvg =
+      priorRuns.length > 0
+        ? priorRuns.reduce((n, e) => n + e.costUsd, 0) / priorRuns.length
+        : null;
+    const perGene = observedAvg ?? FALLBACK_COST_PER_GENE;
+    const projected = perGene * targets.length;
+
+    console.log(
+      `Preflight estimate: ~$${projected.toFixed(2)} for ${targets.length} gene(s) ` +
+        `(~$${perGene.toFixed(3)}/gene, ${observedAvg ? `from ${priorRuns.length} previous run(s)` : "conservative default"}).`
+    );
     console.log(`Hard stop at $${maxCost.toFixed(2)} cumulative cost. This spends real Anthropic API credits.`);
+
+    if (projected > maxCost) {
+      console.log(
+        `\nABORTED before spending anything: the estimate (~$${projected.toFixed(2)}) exceeds the ` +
+          `$${maxCost.toFixed(2)} cap. Re-run with --max-cost=<higher> if that is intended, ` +
+          `or with fewer genes.`
+      );
+      process.exit(1);
+    }
   }
   console.log("Running one gene at a time…\n");
 
@@ -116,6 +143,19 @@ async function main() {
     });
   }
   const outcomes: { gene: string; outcome: string; detail: string }[] = [];
+  /** Per-gene metrics for the end-of-run batch table. */
+  const batchRows: {
+    gene: string;
+    words: number;
+    warnings: number;
+    warningCodes: string[];
+    sources: number;
+    trialsIn: number;
+    trialsOut: number;
+    preprints: number;
+    cost: number;
+    flags: number;
+  }[] = [];
 
   for (const gene of targets) {
     process.stdout.write(`  ${gene.display} … `);
@@ -211,6 +251,40 @@ async function main() {
           result.reviewFlagCount ? `, ${result.reviewFlagCount} review flag(s)` : ""
         })`
       );
+
+      // Prose-quality report. These are WARNINGS for a reviewer — the draft is
+      // saved regardless, because auto-shortening is what loses medical detail.
+      const q = result.quality;
+      if (q) {
+        console.log(
+          `    Prose: ${q.wordCount} words (target ${900}-${1100}), ` +
+            `${q.sentenceCount} sentences, ${q.denseSentenceCount} dense`
+        );
+        if (q.warnings.length === 0) {
+          console.log("    Quality: no warnings");
+        } else {
+          console.log(`    Quality: ${q.warnings.length} warning(s) — flagged for review`);
+          for (const w of q.warnings) console.log(`      • [${w.code}] ${w.message}`);
+        }
+      }
+      console.log(
+        `    Sources: ${result.sourceCount ?? "?"} cited | ` +
+          `Trials: ${result.trialsIncluded ?? 0} included, ${result.trialsExcluded ?? 0} excluded (other gene) | ` +
+          `Preprints collapsed: ${result.preprintsCollapsed ?? 0}`
+      );
+
+      batchRows.push({
+        gene: gene.display,
+        words: q?.wordCount ?? 0,
+        warnings: q?.warnings.length ?? 0,
+        warningCodes: (q?.warnings ?? []).map((w) => w.code),
+        sources: result.sourceCount ?? 0,
+        trialsIn: result.trialsIncluded ?? 0,
+        trialsOut: result.trialsExcluded ?? 0,
+        preprints: result.preprintsCollapsed ?? 0,
+        cost: result.estimatedCostUsd,
+        flags: result.reviewFlagCount,
+      });
     } else if (result.outcome === "rejected") {
       rejected++;
       // A post-generation rejection was still billed — count the real spend
@@ -257,6 +331,54 @@ async function main() {
   console.log(`  failed: ${failed}`);
   console.log(`  skipped (already drafted): ${skipped}`);
   console.log(`  this run cost:   ~$${cumulativeCost.toFixed(3)}`);
+
+  if (batchRows.length) {
+    console.log("\n" + "=".repeat(104));
+    console.log("BATCH REPORT — every draft is UNREVIEWED; warnings flag pages for a human, nothing was deleted");
+    console.log("=".repeat(104));
+    console.log(
+      "gene".padEnd(10) +
+        "words".padStart(7) +
+        "warn".padStart(6) +
+        "srcs".padStart(6) +
+        "trials+".padStart(9) +
+        "trials-".padStart(9) +
+        "preprnt".padStart(9) +
+        "flags".padStart(7) +
+        "cost".padStart(9)
+    );
+    console.log("-".repeat(104));
+    for (const r of batchRows) {
+      console.log(
+        r.gene.padEnd(10) +
+          String(r.words).padStart(7) +
+          String(r.warnings).padStart(6) +
+          String(r.sources).padStart(6) +
+          String(r.trialsIn).padStart(9) +
+          String(r.trialsOut).padStart(9) +
+          String(r.preprints).padStart(9) +
+          String(r.flags).padStart(7) +
+          `$${r.cost.toFixed(3)}`.padStart(9)
+      );
+    }
+    console.log("-".repeat(104));
+    const totalWords = batchRows.reduce((n, r) => n + r.words, 0);
+    console.log(
+      `${batchRows.length} gene(s) | avg ${Math.round(totalWords / batchRows.length)} words | ` +
+        `${batchRows.reduce((n, r) => n + r.warnings, 0)} warning(s) | ` +
+        `${batchRows.reduce((n, r) => n + r.trialsOut, 0)} other-gene trial(s) excluded | ` +
+        `${batchRows.reduce((n, r) => n + r.preprints, 0)} preprint(s) collapsed | ` +
+        `~$${cumulativeCost.toFixed(2)} total`
+    );
+    const flagged = batchRows.filter((r) => r.warnings > 0);
+    if (flagged.length) {
+      console.log("\nPages flagged for review:");
+      for (const r of flagged) {
+        console.log(`  - ${r.gene}: ${Array.from(new Set(r.warningCodes)).join(", ")}`);
+      }
+    }
+    console.log("\nNothing was published. Review at /review before any page goes live.");
+  }
 
   // Running total across every batch so far, not just this one.
   // Genes in the full library still without a draft. Only genes touched this

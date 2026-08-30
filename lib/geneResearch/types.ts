@@ -225,6 +225,12 @@ export type GeneSourceBundle = {
    *  ClinicalTrials.gov — the draft may note this, but must not state a
    *  recruitment status for them. Empty in the common case. */
   unverifiedTrialReferences: UnverifiedTrialReference[];
+  /** Studies dropped because the registry record targets a DIFFERENT gene
+   *  (internal audit only — never passed to the model). Reported so a run
+   *  shows what was filtered, not just what was kept. */
+  excludedTrialCount?: number;
+  /** Preprints collapsed into their peer-reviewed version during dedup. */
+  preprintsCollapsed?: number;
 };
 
 /** All valid source IDs a draft may cite — used by validate.ts to reject a
