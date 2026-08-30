@@ -2,15 +2,11 @@ import Link from "next/link";
 import Image from "next/image";
 import AboutMenu from "./AboutMenu";
 import LearnMoreMenu from "./LearnMoreMenu";
+import MobileNav from "./MobileNav";
+import { PRIMARY_NAV } from "@/lib/nav";
 
-// "About" and "Learn More" are rendered separately as dropdowns.
-const nav = [
-  { href: "/genetic-insights", label: "Genetic Insights" },
-  { href: "/my-pathway", label: "My RP Pathway" },
-  { href: "/clinical-trials", label: "Clinical Trials" },
-  { href: "/events", label: "Events" },
-  { href: "/stories", label: "Stories" },
-];
+// "About" and "Learn More" are rendered separately as dropdowns. The link list
+// lives in lib/nav.ts so the mobile menu cannot drift out of sync with this.
 
 export default function Header() {
   return (
@@ -41,7 +37,7 @@ export default function Header() {
           <li>
             <LearnMoreMenu />
           </li>
-          {nav.map((n) => (
+          {PRIMARY_NAV.map((n) => (
             <li key={n.href}>
               <Link
                 href={n.href}
@@ -54,6 +50,8 @@ export default function Header() {
         </ul>
 
         <div className="flex items-center gap-3">
+          <MobileNav />
+
           <Link
             href="/share-your-story"
             className="hidden rounded-md border border-forest/30 px-5 py-2.5 font-semibold text-forest transition-colors hover:border-forest hover:bg-forest/5 sm:inline-flex"

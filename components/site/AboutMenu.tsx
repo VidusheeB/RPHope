@@ -2,15 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { ABOUT_ITEMS as items } from "@/lib/nav";
 
 // "About" nav item with its sub-pages. Deliberately click-to-toggle rather than
 // hover: hover menus are unusable on touch and hostile to keyboard and
 // screen-reader users, which is the opposite of what this site needs.
 // Escape closes and returns focus to the trigger; a click outside closes.
-const items = [
-  { href: "/who-we-are", label: "Who We Are" },
-  { href: "/contact", label: "Contact Us" },
-];
 
 export default function AboutMenu() {
   const [open, setOpen] = useState(false);

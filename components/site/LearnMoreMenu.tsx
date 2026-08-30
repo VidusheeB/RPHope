@@ -2,16 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { LEARN_MORE_ITEMS as items } from "@/lib/nav";
 
 // "Learn More" nav item — deliberately not a clickable link itself, only a
 // dropdown trigger. Mirrors AboutMenu's click-to-toggle behavior (not hover:
 // hover menus are unusable on touch and hostile to keyboard/screen-reader
 // users).
-const items = [
-  { href: "/what-is-rp", label: "Understanding RP" },
-  { href: "/future-therapies", label: "Future Therapies" },
-  { href: "/what-is-a-clinical-trial", label: "What is a Clinical Trial" },
-];
 
 export default function LearnMoreMenu() {
   const [open, setOpen] = useState(false);
