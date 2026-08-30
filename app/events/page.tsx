@@ -23,11 +23,14 @@ export default async function EventsPage() {
     <div className="bg-cream">
       {/* Awareness hero */}
       <div className="relative isolate overflow-hidden">
+        {/* Cropped to the collage's top row: the source is nearly square, and
+            in this wide, short band object-cover would slice straight through
+            the seam between the two rows and cut faces in half. */}
         <Image
-          src="/events/low-vision-campaign.jpg"
-          alt="A group of people of different ages standing together in a park, several wearing low-vision awareness badges."
-          width={1100}
-          height={613}
+          src="/events/spring-fundraiser-collage.jpg"
+          alt="Spring Fundraiser participants around the world — families with their dogs, a runner by the sea, and a couple on a Dutch street, all wearing RP Hope race bibs."
+          width={2200}
+          height={976}
           priority
           className="absolute inset-0 h-full w-full object-cover"
         />
