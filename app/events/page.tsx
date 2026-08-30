@@ -22,10 +22,16 @@ export default async function EventsPage() {
   return (
     <div className="bg-cream">
       {/* Awareness hero */}
-      <div className="relative isolate overflow-hidden">
+      {/* The band is tall enough to show a whole row of the collage rather than
+          a sliced strip of it. 44vw tracks the image's own 2200x976 ratio, so
+          object-cover has almost nothing left to crop; the cap stops it
+          becoming an enormous band on a wide monitor, and min-height means the
+          heading always still fits on a phone, where a 2.25:1 image cannot be
+          shown large anyway. */}
+      <div className="relative isolate flex min-h-[min(44vw,600px)] items-center overflow-hidden">
         {/* Cropped to the collage's top row: the source is nearly square, and
-            in this wide, short band object-cover would slice straight through
-            the seam between the two rows and cut faces in half. */}
+            in a wide band object-cover would slice straight through the seam
+            between the two rows and cut faces in half. */}
         <Image
           src="/events/spring-fundraiser-collage.jpg"
           alt="Spring Fundraiser participants around the world — families with their dogs, a runner by the sea, and a couple on a Dutch street, all wearing RP Hope race bibs."
@@ -35,7 +41,7 @@ export default async function EventsPage() {
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-forest/80" aria-hidden="true" />
-        <div className="relative mx-auto max-w-4xl px-5 py-20 text-center">
+        <div className="relative mx-auto w-full max-w-4xl px-5 py-16 text-center">
           <p className="text-sm font-bold uppercase tracking-widest text-gold-soft">
             Get Involved
           </p>
