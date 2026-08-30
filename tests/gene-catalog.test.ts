@@ -201,9 +201,19 @@ describe("clinical trials intake — condition options", () => {
     expect(normalizeCondition("leber congenital amaurosis").confidence).not.toBe("low");
   });
 
-  it("keeps a free-text path available from the remaining options", () => {
+  it("no longer offers cone-rod dystrophy or a generic retinal-disease option", () => {
     const values = CONDITIONS.map((c) => c.value);
-    expect(values).toContain("inherited retinal disease");
-    expect(values).toContain("__not_sure__");
+    expect(values).not.toContain("cone-rod dystrophy");
+    expect(values).not.toContain("inherited retinal disease");
+  });
+
+  it("keeps a free-text path available via 'Not sure'", () => {
+    // With the list narrowed to RP and Usher, "Not sure" is the only remaining
+    // way in to the free-text box — so it must stay.
+    expect(CONDITIONS.map((c) => c.value)).toContain("__not_sure__");
+  });
+
+  it("still normalizes a removed condition typed as free text", () => {
+    expect(normalizeCondition("cone-rod dystrophy").ctgovCondition).toBe("cone-rod dystrophy");
   });
 });

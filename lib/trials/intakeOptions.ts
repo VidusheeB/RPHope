@@ -66,20 +66,19 @@ export const SEARCH_FOR: IntakeOption[] = [
   { value: "browsing", label: "I'm browsing or researching" },
 ];
 
-// Stargardt disease and Leber congenital amaurosis were deliberately REMOVED
-// from this list by owner request (2026-08-29). Don't re-add them on a tidy-up
-// pass assuming they were dropped by accident.
+// Deliberately narrowed by owner request (2026-08-29). Removed from the picker,
+// in two passes: Stargardt disease and Leber congenital amaurosis first, then
+// cone-rod dystrophy and "Other inherited retinal disease". Don't re-add any of
+// them on a tidy-up pass assuming they were dropped by accident.
 //
-// They are only gone from the picker, not from the tool. Choosing "Other
-// inherited retinal disease" or "Not sure" opens a free-text box, and
-// lib/trials/normalize.ts still recognises both by name — so someone who types
-// "Stargardt" or "LCA" is normalised and searched exactly as before. Deleting
-// those patterns too would have turned a working search into a dead end.
+// They are gone from the PICKER only, not from the tool. "Not sure" opens a
+// free-text box, and lib/trials/normalize.ts still recognises all of these by
+// name — so someone who types "Stargardt", "LCA", or "cone-rod dystrophy" is
+// normalised and searched exactly as before. Deleting those patterns too would
+// have turned a working search into a dead end.
 export const CONDITIONS: IntakeOption[] = [
   { value: "retinitis pigmentosa", label: "Retinitis pigmentosa" },
   { value: "usher syndrome", label: "Usher syndrome" },
-  { value: "cone-rod dystrophy", label: "Cone-rod dystrophy" },
-  { value: "inherited retinal disease", label: "Other inherited retinal disease" },
   { value: "__not_sure__", label: "Not sure" },
 ];
 

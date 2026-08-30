@@ -293,9 +293,10 @@ export default function TrialIntakeForm({
     });
   }
 
-  const showConditionOther =
-    form.conditionChoice === "__not_sure__" ||
-    form.conditionChoice === "inherited retinal disease";
+  // "Not sure" is now the only picker option that opens the free-text box —
+  // "Other inherited retinal disease" was removed from CONDITIONS, so testing
+  // for it here would be dead code.
+  const showConditionOther = form.conditionChoice === "__not_sure__";
 
   // Per-step "can continue" gate.
   function canContinue(): boolean {

@@ -15,6 +15,9 @@ const connect = [
   { href: "/stories", label: "Patient Stories" },
   { href: "/transparency", label: "Financial Transparency" },
   { href: "/who-we-are#contact", label: "Contact Us" },
+  // Moved out of the "About" nav dropdown — policy pages belong in the footer,
+  // where people look for them, rather than taking up a slot in primary nav.
+  { href: "/policies", label: "Policies & Disclaimers" },
 ];
 
 export default function Footer() {
