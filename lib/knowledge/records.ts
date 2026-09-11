@@ -117,7 +117,7 @@ const curated: KnowledgeRecord[] = [
   },
   {
     id: "org:contact",
-    url: "/who-we-are#contact",
+    url: "/contact",
     pageTitle: "Contact RP Hope",
     heading: "Contact",
     text: "You can reach RP Hope by email at information@rphope.org or by phone at 925.209.1440. Mailing address: P.O. Box 1163, Pleasanton, CA 94566.",

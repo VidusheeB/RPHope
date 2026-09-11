@@ -29,7 +29,7 @@ export default function DonatePage() {
 
             <a
               href={STRIPE_DONATE_URL}
-              className="mt-6 inline-flex items-center justify-center gap-2 rounded-md bg-forest px-6 py-3.5 text-base font-bold text-white transition hover:bg-forest-dark focus:outline-none focus:ring-2 focus:ring-gold focus:ring-offset-2"
+              className="mt-6 inline-flex items-center justify-center gap-2 rounded-md bg-maroon-brand px-6 py-3.5 text-base font-bold text-white transition hover:bg-maroon-brand-dark focus:outline-none focus:ring-2 focus:ring-gold focus:ring-offset-2"
             >
               Donate now
               <span aria-hidden="true">→</span>

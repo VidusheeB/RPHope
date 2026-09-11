@@ -30,7 +30,7 @@ export default function Hero() {
             <CTAButton href="/my-pathway" variant="white" arrow>
               Personalize my experience
             </CTAButton>
-            <CTAButton href="/explore" variant="outline-light" arrow>
+            <CTAButton href="/genetic-insights" variant="outline-light" arrow>
               I know what I&rsquo;m looking for
             </CTAButton>
           </div>

@@ -18,6 +18,7 @@ export const PRIMARY_NAV: NavItem[] = [
 /** "About" sub-pages. */
 export const ABOUT_ITEMS: NavItem[] = [
   { href: "/who-we-are", label: "Who We Are" },
+  { href: "/team", label: "Meet the Team" },
   { href: "/contact", label: "Contact Us" },
 ];
 

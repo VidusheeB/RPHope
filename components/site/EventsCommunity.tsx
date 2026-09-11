@@ -49,7 +49,7 @@ export default function EventsCommunity() {
               medical appointments, and find mentors who are years ahead on this
               path.
             </p>
-            <CTAButton href="/explore" variant="white" arrow className="mt-6">
+            <CTAButton href="/contact" variant="white" arrow className="mt-6">
               Join the community
             </CTAButton>
           </article>

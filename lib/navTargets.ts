@@ -44,9 +44,9 @@ export const sections: NavTarget[] = [
     about: "a personalized 60-second guided tour of the site.",
   },
   {
-    label: "Explore RP Hope",
-    href: "/explore",
-    about: "quick links to every part of the site.",
+    label: "Meet the Team",
+    href: "/team",
+    about: "the board and volunteers behind RP Hope.",
   },
   {
     label: "Donate / Fundraise",

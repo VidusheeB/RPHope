@@ -1,9 +1,17 @@
 import Link from "next/link";
 
-type Variant = "primary" | "secondary" | "white" | "outline-light" | "dark";
+type Variant =
+  | "primary"
+  | "donate"
+  | "secondary"
+  | "white"
+  | "outline-light"
+  | "dark";
 
 const styles: Record<Variant, string> = {
   primary: "bg-forest text-white hover:bg-forest-dark",
+  // Matches the maroon Donate button in the header so every donation CTA reads the same.
+  donate: "bg-maroon-brand text-white hover:bg-maroon-brand-dark",
   secondary:
     "bg-transparent text-ink border border-ink/30 hover:border-ink hover:bg-ink/5",
   white: "bg-white text-forest hover:bg-cream",

@@ -34,17 +34,17 @@ export default function ChoosePath() {
             </Link>
           </article>
 
-          {/* Explore RP Hope */}
+          {/* Genetic Insights */}
           <article className="flex flex-col rounded-lg border border-ink/12 bg-cream-header p-8">
             <h3 className="font-display text-2xl font-medium text-ink">
-              Explore RP Hope
+              Genetic Insights
             </h3>
             <p className="mt-3 flex-1 leading-relaxed text-ink/75">
-              Already know what you need? Jump directly to genes, trials, events,
-              stories, donations, or contact.
+              Already know what you need? Look up any RP-linked gene for a clear
+              summary, where research stands, and related trials.
             </p>
             <Link
-              href="/explore"
+              href="/genetic-insights"
               className="mt-6 inline-flex items-center gap-1.5 self-start text-sm font-bold uppercase tracking-[0.06em] text-forest hover:text-forest-dark"
             >
               Browse <span aria-hidden="true">→</span>

@@ -144,14 +144,6 @@ export type PathwayResult = {
 type StopSeed = Omit<PathwayStop, "order">;
 
 const STOP = {
-  explore: {
-    id: "explore",
-    href: "/explore",
-    title: "Explore RP Hope",
-    cta: "Open Explore",
-    description:
-      "A quick map of everything on the site, so you can see where to begin.",
-  },
   basics: {
     id: "basics",
     href: "/newly-diagnosed",
@@ -284,7 +276,7 @@ export function buildPathway(answers: PathwayAnswers): PathwayResult {
   } else if (wantsResearch(answers)) {
     addStopOnce(primaryPath, STOP.geneticInsights);
   } else if (answers.role === "unsure" || answers.startingPoint === "help_begin") {
-    addStopOnce(primaryPath, STOP.explore);
+    addStopOnce(primaryPath, STOP.basics);
   } else if (
     answers.startingPoint === "gene" ||
     answers.role === "gene_info" ||
@@ -294,7 +286,7 @@ export function buildPathway(answers: PathwayAnswers): PathwayResult {
   } else if (answers.startingPoint === "community") {
     addStopOnce(primaryPath, STOP.stories);
   } else {
-    addStopOnce(primaryPath, STOP.explore);
+    addStopOnce(primaryPath, STOP.basics);
   }
   if (primaryPath[0]) primaryPath[0].label = "Start here";
 
@@ -349,7 +341,7 @@ export function buildPathway(answers: PathwayAnswers): PathwayResult {
 
   // Ensure it always feels like a journey (never a single stop).
   if (primaryPath.length < 2) addStopOnce(primaryPath, STOP.stories);
-  if (primaryPath.length < 2) addStopOnce(primaryPath, STOP.explore);
+  if (primaryPath.length < 2) addStopOnce(primaryPath, STOP.geneticInsights);
 
   // Keep the tour digestible.
   const trimmedPrimary = primaryPath.slice(0, 5).map((s, i) => ({ ...s, order: i + 1 }));

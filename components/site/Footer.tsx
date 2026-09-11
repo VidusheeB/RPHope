@@ -11,10 +11,11 @@ const learn = [
 
 const connect = [
   { href: "/who-we-are", label: "Who We Are" },
+  { href: "/team", label: "Meet the Team" },
   { href: "/events", label: "Events" },
   { href: "/stories", label: "Patient Stories" },
   { href: "/transparency", label: "Financial Transparency" },
-  { href: "/who-we-are#contact", label: "Contact Us" },
+  { href: "/contact", label: "Contact Us" },
   // Moved out of the "About" nav dropdown — policy pages belong in the footer,
   // where people look for them, rather than taking up a slot in primary nav.
   { href: "/policies", label: "Policies & Disclaimers" },
@@ -150,9 +151,6 @@ export default function Footer() {
             </Link>
             <Link href="/policies#terms" className="hover:text-white">
               Terms of Use
-            </Link>
-            <Link href="/explore" className="hover:text-white">
-              Accessibility
             </Link>
           </div>
         </div>

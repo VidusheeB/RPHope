@@ -33,11 +33,11 @@ export default function DonationSupport() {
             programs.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
-            <CTAButton href="/donate" variant="primary">
+            <CTAButton href="/donate" variant="donate">
               Support RP Hope
             </CTAButton>
-            <CTAButton href="/explore" variant="secondary">
-              Learn how we work
+            <CTAButton href="/team" variant="secondary">
+              Meet the team
             </CTAButton>
           </div>
         </div>
