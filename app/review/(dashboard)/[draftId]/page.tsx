@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getReviewerSession } from "@/lib/reviewer/session";
+import { can } from "@/lib/reviewer/permissions";
 import { getDraftForReview, getTicketsForDraft } from "@/lib/reviewer/data";
 import { reviewHref } from "@/lib/reviewer/paths";
 import ReviewEditor from "@/components/review/ReviewEditor";
@@ -56,8 +57,8 @@ export default async function ReviewDraftPage({ params }: { params: { draftId: s
           reviewFlags={draft.reviewFlags}
           initialResolutions={draft.resolutions}
           initialTickets={tickets}
-          reviewerCanPublish={session.profile.can_publish}
-          isAdmin={session.profile.role === "admin"}
+          canPublish={can(session.profile, "genes.publish")}
+          canApprove={can(session.profile, "genes.approve")}
           reviewStatus={draft.reviewStatus}
         />
       </div>

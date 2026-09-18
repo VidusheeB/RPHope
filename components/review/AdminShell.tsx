@@ -1,30 +1,44 @@
 "use client";
 
-// RP Hope Admin's app shell — a dedicated left sidebar + top bar, replacing
-// the single-row nav every /review/* page used to render ad hoc. Sidebar
-// items are role-gated here (reviewer-only vs admin-only), not just hidden
-// by CSS — the underlying pages still call requireAdmin()/requireReviewer()
-// server-side, so this is a UI convenience, never the actual authorization.
+// The portal's app shell — one left sidebar + top bar for every signed-in
+// account, whatever their clearance. There is no separate reviewer site and no
+// separate admin site: everyone lands on the same routes, and what appears is
+// derived from CAPABILITIES (see lib/reviewer/permissions.ts).
+//
+// Each nav item declares the capability needed to reach it, and items the
+// viewer doesn't hold are not rendered at all — they don't see doors they
+// can't open. This is presentation only: every page behind these links calls
+// requireCapability() server-side, so hiding a link is a courtesy and the
+// server check is the actual boundary. Never add an item that relies on being
+// hidden for its protection.
 
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { reviewHref, publicHref } from "@/lib/reviewer/paths";
+import type { Capability } from "@/lib/reviewer/permissions";
 import SignOutButton from "./SignOutButton";
 import NotificationBell from "./NotificationBell";
 import type { NotificationRow } from "@/lib/reviewer/notifications";
 
-type NavItem = { label: string; href: string; adminOnly?: boolean; disabled?: boolean };
+type NavItem = {
+  label: string;
+  href: string;
+  /** Shown only to a viewer holding at least ONE of these. Omitted means
+   *  every signed-in account sees it. */
+  requires?: readonly Capability[];
+  disabled?: boolean;
+};
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Overview", href: reviewHref("/admin"), adminOnly: true },
-  { label: "Gene Reviews", href: reviewHref("/admin/genes"), adminOnly: true },
-  { label: "My Reviews", href: reviewHref("") },
-  { label: "Reviewers", href: reviewHref("/admin/reviewers"), adminOnly: true },
-  { label: "Tickets", href: reviewHref("/admin/tickets"), adminOnly: true },
-  { label: "Stories", href: reviewHref("/stories") },
-  { label: "Activity", href: reviewHref("/admin/activity"), adminOnly: true },
-  { label: "Analytics", href: "", disabled: true },
+  { label: "Overview", href: reviewHref("/admin"), requires: ["genes.review.all"] },
+  { label: "Gene Reviews", href: reviewHref("/admin/genes"), requires: ["genes.review.all"] },
+  { label: "My Reviews", href: reviewHref(""), requires: ["genes.review.assigned"] },
+  { label: "Reviewers", href: reviewHref("/admin/reviewers"), requires: ["reviewers.manage"] },
+  { label: "Tickets", href: reviewHref("/admin/tickets"), requires: ["tickets.manage"] },
+  { label: "Stories", href: reviewHref("/stories"), requires: ["stories.review"] },
+  { label: "Activity", href: reviewHref("/admin/activity"), requires: ["activity.view"] },
+  { label: "Analytics", href: "", disabled: true, requires: ["activity.view"] },
 ];
 
 function isCurrent(pathname: string, href: string): boolean {
@@ -34,7 +48,7 @@ function isCurrent(pathname: string, href: string): boolean {
 }
 
 export default function AdminShell({
-  isAdmin,
+  capabilities,
   email,
   role,
   pageTitle,
@@ -42,7 +56,11 @@ export default function AdminShell({
   initialUnreadCount,
   children,
 }: {
-  isAdmin: boolean;
+  /** The viewer's effective capabilities, resolved server-side in the
+   *  dashboard layout. Passing the resolved set (rather than the role) keeps
+   *  the clearance table in one place and stops this component from ever
+   *  re-deriving permissions from a role name. */
+  capabilities: readonly Capability[];
   email: string | null;
   role: string;
   /** Optional override — falls back to the matched sidebar item's label,
@@ -55,7 +73,8 @@ export default function AdminShell({
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const items = NAV_ITEMS.filter((i) => isAdmin || !i.adminOnly);
+  const held = new Set(capabilities);
+  const items = NAV_ITEMS.filter((i) => !i.requires || i.requires.some((c) => held.has(c)));
   const currentItem = items.find((i) => isCurrent(pathname ?? "", i.href));
   const resolvedTitle = pageTitle ?? currentItem?.label ?? "RP Hope Admin";
 
@@ -63,7 +82,10 @@ export default function AdminShell({
     <nav aria-label="Admin" className="flex h-full flex-col justify-between">
       <div>
         <Link
-          href={isAdmin ? reviewHref("/admin") : reviewHref("")}
+          // The wordmark goes to whatever "home" means for this clearance —
+          // the first nav item they can actually reach, so it's never a link
+          // into a page that would bounce them.
+          href={items[0]?.href || reviewHref("")}
           className="block px-5 py-6 font-display text-xl font-bold text-forest"
         >
           RP Hope <span className="font-normal text-ink/60">Admin</span>

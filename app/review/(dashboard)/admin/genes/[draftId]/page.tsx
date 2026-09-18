@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireAdmin } from "@/lib/reviewer/session";
+import { requireCapability } from "@/lib/reviewer/session";
+import { can } from "@/lib/reviewer/permissions";
 import { getGeneAdminDetail } from "@/lib/reviewer/geneDetail";
 import { getAdminOverview, getAuditLogForDraft } from "@/lib/reviewer/data";
 import { getResearchItems } from "@/lib/researchRepo";
@@ -13,7 +14,7 @@ export const metadata: Metadata = { title: "Gene review | RP Hope Admin", robots
 export const dynamic = "force-dynamic";
 
 export default async function GeneAdminDetailPage({ params }: { params: { draftId: string } }) {
-  const session = await requireAdmin();
+  const session = await requireCapability("genes.review.all");
   const detail = await getGeneAdminDetail(params.draftId);
   if (!detail) notFound();
 
@@ -55,7 +56,8 @@ export default async function GeneAdminDetailPage({ params }: { params: { draftI
         reviewers={reviewers.filter((r) => r.active)}
         activity={activity}
         articles={articles}
-        adminCanPublish={session.profile.can_publish}
+        canPublish={can(session.profile, "genes.publish")}
+        canApprove={can(session.profile, "genes.approve")}
       />
     </div>
   );

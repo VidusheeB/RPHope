@@ -174,7 +174,7 @@ describe("publishAction — atomic publish via RPC", () => {
     serviceMock.mockReturnValue(service);
     const res = await publishAction({ draftId: "d1", content: completeDraft(), confirmationChecked: true });
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/admin/i);
+    if (!res.ok) expect(res.error).toMatch(/permission/i);
     expect(serviceMock).not.toHaveBeenCalled();
   });
 });

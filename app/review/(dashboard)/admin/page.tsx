@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireAdmin } from "@/lib/reviewer/session";
+import { requireCapability } from "@/lib/reviewer/session";
 import { getAdminDraftQueue, getAllTicketsForAdmin, getRecentAuditLog } from "@/lib/reviewer/data";
 import { reviewHref } from "@/lib/reviewer/paths";
 
@@ -25,7 +25,7 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 export default async function AdminOverviewPage() {
-  await requireAdmin();
+  await requireCapability("genes.review.all");
   const [genes, tickets, audit] = await Promise.all([
     getAdminDraftQueue(),
     getAllTicketsForAdmin(),

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireAdmin } from "@/lib/reviewer/session";
+import { requireCapability } from "@/lib/reviewer/session";
 import { getAdminOverview, getAllTicketsForAdmin } from "@/lib/reviewer/data";
 import TicketInbox from "@/components/review/TicketInbox";
 
@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Tickets | RP Hope Admin", robots: { 
 export const dynamic = "force-dynamic";
 
 export default async function AdminTicketsPage() {
-  await requireAdmin();
+  await requireCapability("tickets.manage");
   const [{ reviewers }, tickets] = await Promise.all([getAdminOverview(), getAllTicketsForAdmin()]);
 
   return (

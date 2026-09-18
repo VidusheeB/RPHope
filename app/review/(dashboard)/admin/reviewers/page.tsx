@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireAdmin } from "@/lib/reviewer/session";
+import { requireCapability } from "@/lib/reviewer/session";
 import { getAdminOverview } from "@/lib/reviewer/data";
 import AdminPanel from "@/components/review/AdminPanel";
 
@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Reviewers | RP Hope Admin", robots: 
 export const dynamic = "force-dynamic";
 
 export default async function ReviewersPage() {
-  await requireAdmin();
+  await requireCapability("reviewers.manage");
   const { reviewers, drafts } = await getAdminOverview();
 
   const active = reviewers.filter((r) => r.active).length;

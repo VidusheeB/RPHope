@@ -8,7 +8,8 @@
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
 import { getServiceSupabase } from "@/lib/supabaseAdmin";
-import { requireReviewer } from "@/lib/reviewer/session";
+import { requireCapability } from "@/lib/reviewer/session";
+import { can } from "@/lib/reviewer/permissions";
 import {
   sendApprovalRequestEmail,
   sendStoryPublishedEmail,
@@ -25,7 +26,7 @@ export type SendForApprovalResult =
 
 /** Save reviewer edits to the story text. Any active reviewer. */
 export async function saveStoryEdits(id: string, storyText: string): Promise<ActionResult> {
-  await requireReviewer(); // redirects if not signed in / not active
+  await requireCapability("stories.review"); // redirects if not cleared for story PII
   const service = getServiceSupabase();
   if (!service) return { ok: false, error: "Not configured." };
 
@@ -41,7 +42,7 @@ export async function saveStoryEdits(id: string, storyText: string): Promise<Act
 /** Send the edited draft to the submitter for their approval. Only valid
  *  when edit_permission = 'review_first'. */
 export async function sendForApproval(id: string): Promise<SendForApprovalResult> {
-  const session = await requireReviewer();
+  const session = await requireCapability("stories.review");
   const service = getServiceSupabase();
   if (!service) return { ok: false, error: "Not configured." };
 
@@ -76,8 +77,8 @@ export async function sendForApproval(id: string): Promise<SendForApprovalResult
  *  privilege check the gene-draft flow uses — publishing is the one
  *  irreversible-in-effect step, so it's gated more tightly than viewing/editing. */
 export async function publishStory(id: string): Promise<ActionResult> {
-  const session = await requireReviewer();
-  if (!session.profile.can_publish) {
+  const session = await requireCapability("stories.review");
+  if (!can(session.profile, "stories.publish")) {
     return { ok: false, error: "You don't have publish permission." };
   }
   const service = getServiceSupabase();
@@ -114,8 +115,8 @@ export async function publishStory(id: string): Promise<ActionResult> {
  *  publishing — taking a live page down is just as consequential as
  *  putting one up. */
 export async function unpublishStoryAction(id: string): Promise<ActionResult> {
-  const session = await requireReviewer();
-  if (!session.profile.can_publish) {
+  const session = await requireCapability("stories.review");
+  if (!can(session.profile, "stories.publish")) {
     return { ok: false, error: "You don't have publish permission." };
   }
   const service = getServiceSupabase();
@@ -139,7 +140,7 @@ export async function unpublishStoryAction(id: string): Promise<ActionResult> {
 
 /** Decline a submission. Any active reviewer. */
 export async function rejectStory(id: string, note?: string): Promise<ActionResult> {
-  const session = await requireReviewer();
+  const session = await requireCapability("stories.review");
   const service = getServiceSupabase();
   if (!service) return { ok: false, error: "Not configured." };
 

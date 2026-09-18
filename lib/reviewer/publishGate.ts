@@ -120,10 +120,10 @@ export type SubmissionReadinessInput = {
 };
 
 /**
- * Reviewer-facing gate for "Submit review." Deliberately does NOT check
- * can_publish — reviewers never publish, regardless of that flag; only
- * evaluateAdminPublishReadiness does. Same shared-content-checks pattern as
- * the admin gate below, so both stay in sync automatically.
+ * Reviewer-facing gate for "Submit review." Deliberately does NOT consider any
+ * publish permission — submitting is the reviewer's whole path forward, and it
+ * hands the draft to the publish queue rather than making anything live. Same
+ * shared-content-checks pattern as the gates below, so all three stay in sync.
  */
 export function evaluateSubmissionReadiness(input: SubmissionReadinessInput): Readiness {
   const blockers = baseContentBlockers(input);
@@ -142,7 +142,8 @@ export type ApprovalReadinessInput = {
   draft: GenePageDraft;
   flagCount: number;
   resolutions: { flagIndex: number; status: FlagResolutionStatus }[];
-  isAdmin: boolean;
+  /** Resolved `genes.approve` capability. */
+  canApprove: boolean;
   /** Approval only ever applies to a draft the reviewer has actually
    *  submitted — never unassigned/in-progress/changes-requested work. */
   reviewStatus: DraftReviewStatus;
@@ -150,7 +151,7 @@ export type ApprovalReadinessInput = {
 };
 
 /**
- * Admin-only gate for "Approve" — a separate action from Publish. Requires
+ * Gate for "Approve" — a separate action from Publish. Requires
  * the SAME content-completeness checks Submit/Publish already require
  * (verification/flags/schema/sources/no open blocking tickets), plus the
  * submitted state itself. An earlier version of this action only checked
@@ -158,8 +159,8 @@ export type ApprovalReadinessInput = {
  */
 export function evaluateApprovalReadiness(input: ApprovalReadinessInput): Readiness {
   const blockers = baseContentBlockers(input);
-  if (!input.isAdmin) {
-    blockers.push("Only an admin can approve a review.");
+  if (!input.canApprove) {
+    blockers.push("You don't have permission to approve a review.");
   }
   if (input.reviewStatus !== "submitted_for_approval") {
     blockers.push("This draft hasn't been submitted for approval yet.");
@@ -171,8 +172,11 @@ export type AdminPublishReadinessInput = {
   draft: GenePageDraft;
   flagCount: number;
   resolutions: { flagIndex: number; status: FlagResolutionStatus }[];
-  isAdmin: boolean;
-  adminCanPublish: boolean;
+  /** Resolved `genes.publish` capability. It already folds in the per-user
+   *  can_publish restriction (see lib/reviewer/permissions.ts), so there is
+   *  no second flag to check and no way to satisfy one half of the old
+   *  "admin AND can_publish" pair without the other. */
+  canPublish: boolean;
   /** Publishing requires the draft to already be 'approved' — approval is a
    *  separate, prior admin action (see approveReviewAction), never a side
    *  effect of publishing itself. */
@@ -185,18 +189,17 @@ export type AdminPublishReadinessInput = {
 };
 
 /**
- * Admin-only gate for "Publish." Reviewers can never reach this — enforced
- * here (isAdmin) AND re-checked server-side in the publish action, never
- * trusted from the client. Requires a PRIOR, separate approval (see
- * approveReviewAction) — approving never auto-publishes.
+ * Gate for "Publish." Reviewers can never reach this: the reviewer role does
+ * not hold `genes.publish` at all, so the capability is false for them no
+ * matter what their can_publish flag says. Checked here for the UI AND
+ * re-checked server-side in the publish action — never trusted from the
+ * client. Requires a PRIOR, separate approval (see approveReviewAction);
+ * approving never auto-publishes.
  */
 export function evaluateAdminPublishReadiness(input: AdminPublishReadinessInput): Readiness {
   const blockers = baseContentBlockers(input);
-  if (!input.isAdmin) {
-    blockers.push("Only an admin can publish.");
-  }
-  if (!input.adminCanPublish) {
-    blockers.push("Your account does not have publishing permission.");
+  if (!input.canPublish) {
+    blockers.push("You don't have permission to publish this page.");
   }
   if (input.reviewStatus !== "approved" && !input.adminOverride) {
     blockers.push("This draft hasn't been approved yet.");

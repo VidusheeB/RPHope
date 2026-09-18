@@ -47,7 +47,7 @@ describe("evaluateApprovalReadiness — approval requires the SAME content check
     draft: completeDraft(),
     flagCount: 2,
     resolutions: resolvedAll(2),
-    isAdmin: true,
+    canApprove: true,
     reviewStatus: "submitted_for_approval" as const,
   };
 
@@ -55,10 +55,10 @@ describe("evaluateApprovalReadiness — approval requires the SAME content check
     expect(evaluateApprovalReadiness(base).canProceed).toBe(true);
   });
 
-  it("a non-admin cannot approve", () => {
-    const r = evaluateApprovalReadiness({ ...base, isAdmin: false });
+  it("without the approve capability, approval is blocked", () => {
+    const r = evaluateApprovalReadiness({ ...base, canApprove: false });
     expect(r.canProceed).toBe(false);
-    expect(r.blockers.join(" ")).toMatch(/admin/i);
+    expect(r.blockers.join(" ")).toMatch(/permission/i);
   });
 
   it("requires submitted state — cannot approve an untouched or in-progress draft", () => {

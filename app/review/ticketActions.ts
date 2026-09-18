@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 import { getServerSupabase } from "@/lib/supabaseServer";
 import { getServiceSupabase } from "@/lib/supabaseAdmin";
 import { getReviewerSession } from "@/lib/reviewer/session";
+import { can } from "@/lib/reviewer/permissions";
 import { notify, notifyAdmins } from "@/lib/reviewer/notifications";
 import { logAudit } from "@/lib/reviewer/audit";
 import { reviewHref } from "@/lib/reviewer/paths";
@@ -38,6 +39,10 @@ export async function createTicketAction(input: {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
+  const session = await getReviewerSession();
+  if (!session || !can(session.profile, "tickets.create")) {
+    return { ok: false, error: "You don't have permission to file a ticket." };
+  }
   if (!input.subject.trim() || !input.description.trim()) {
     return { ok: false, error: "Subject and description are required." };
   }
@@ -100,6 +105,13 @@ export async function replyTicketAction(input: {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
+  const session = await getReviewerSession();
+  if (!session || !can(session.profile, "tickets.view.own")) {
+    return { ok: false, error: "You don't have permission to reply." };
+  }
+  if (input.internalNote && !can(session.profile, "tickets.manage")) {
+    return { ok: false, error: "You don't have permission to add an internal note." };
+  }
   if (!input.body.trim()) return { ok: false, error: "Reply cannot be empty." };
 
   const { error } = await supabase.from("ticket_replies").insert({
@@ -163,7 +175,9 @@ export async function updateTicketAction(input: {
   assignedAdmin?: string | null;
 }): Promise<ActionResult> {
   const session = await getReviewerSession();
-  if (!session || session.profile.role !== "admin") return { ok: false, error: "Admin only." };
+  if (!session || !can(session.profile, "tickets.manage")) {
+    return { ok: false, error: "You don't have permission to update a ticket." };
+  }
 
   const service = getServiceSupabase();
   if (!service) return { ok: false, error: "Server not configured." };

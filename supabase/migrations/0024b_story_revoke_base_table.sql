@@ -1,0 +1,51 @@
+-- RP Hope — close the story_submissions PII exposure
+-- PART 2 of 2 — THE CUTOVER. This is the statement that actually closes the
+-- hole. Read the ordering note before running it.
+--
+-- ORDER OF OPERATIONS (this is load-bearing)
+-- ------------------------------------------
+-- Running this before the new code is deployed WILL break the public stories
+-- page, because the old lib/storySubmissionsRepo.ts queries story_submissions
+-- directly with the anon key and would start getting "permission denied".
+-- Running the new code before 0024 exists breaks it the other way (the view
+-- wouldn't exist yet). So:
+--
+--   1. Run 0024_story_public_view.sql            (additive — nothing breaks)
+--   2. Deploy the code that reads `public_stories` (both surfaces work now:
+--      the view exists AND the base table is still readable)
+--   3. Run THIS file                              (removes the old path)
+--   4. Verify (below)
+--
+-- Step 2 is the overlap window that makes this a zero-downtime change. There
+-- is deliberately no combined single-file version of this migration, because
+-- pasting the whole thing in one go is exactly how the stories page would go
+-- down for however long the deploy takes.
+--
+-- WHAT THIS DOES
+-- --------------
+-- Supabase's bootstrap grants ALL on every table in `public` to anon and
+-- authenticated — that blanket grant is where the exposure came from. This
+-- revokes it for this one table. Afterwards the only story surface reachable
+-- with the anon key is the public_stories view from 0024.
+--
+-- The reviewer portal is unaffected: every privileged story read goes through
+-- the service-role client, and service_role bypasses both grants and RLS.
+
+revoke all on public.story_submissions from anon, authenticated;
+
+-- Belt and braces: keep RLS on and keep the published-only policy from 0004.
+-- It is now redundant for anon (no privilege to reach the table at all), but
+-- it stays correct, and it means a future accidental
+-- `grant select on story_submissions to anon` degrades to the old
+-- row-filtered behaviour instead of re-exposing every column.
+alter table public.story_submissions enable row level security;
+
+-- VERIFY (run both, with the ANON key — not the service-role key):
+--
+--   curl "$URL/rest/v1/story_submissions?select=full_name,email" -H "apikey: $ANON"
+--     -> expect: permission denied for table story_submissions  (was: real PII)
+--
+--   curl "$URL/rest/v1/public_stories?select=*" -H "apikey: $ANON"
+--     -> expect: published rows, contact_value only, no private columns
+--
+-- And load /stories on the site to confirm the page still renders.

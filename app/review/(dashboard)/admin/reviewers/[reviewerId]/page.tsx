@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireAdmin } from "@/lib/reviewer/session";
+import { requireCapability } from "@/lib/reviewer/session";
 import { getReviewerDetail } from "@/lib/reviewer/reviewerDetail";
 import { getAdminOverview } from "@/lib/reviewer/data";
 import { reviewHref } from "@/lib/reviewer/paths";
@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Reviewer | RP Hope Admin", robots: {
 export const dynamic = "force-dynamic";
 
 export default async function ReviewerDetailPage({ params }: { params: { reviewerId: string } }) {
-  await requireAdmin();
+  await requireCapability("reviewers.manage");
   const detail = await getReviewerDetail(params.reviewerId);
   if (!detail) notFound();
   const { reviewers } = await getAdminOverview();

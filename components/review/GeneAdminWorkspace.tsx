@@ -27,13 +27,15 @@ export default function GeneAdminWorkspace({
   reviewers,
   activity,
   articles,
-  adminCanPublish,
+  canPublish,
+  canApprove,
 }: {
   detail: GeneAdminDetail;
   reviewers: { user_id: string; display_name: string }[];
   activity: (AuditLogRow & { actorName: string | null })[];
   articles: Article[];
-  adminCanPublish: boolean;
+  canPublish: boolean;
+  canApprove: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("Review");
 
@@ -72,8 +74,8 @@ export default function GeneAdminWorkspace({
               reviewFlags={detail.reviewFlags}
               initialResolutions={detail.resolutions}
               initialTickets={detail.tickets}
-              reviewerCanPublish={adminCanPublish}
-              isAdmin
+              canPublish={canPublish}
+              canApprove={canApprove}
               reviewStatus={detail.reviewStatus}
             />
           </div>

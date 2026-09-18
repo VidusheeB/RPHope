@@ -75,8 +75,12 @@ export default function ReviewEditor(props: {
   reviewFlags: string[];
   initialResolutions: FlagResolutionRow[];
   initialTickets: TicketRow[];
-  reviewerCanPublish: boolean;
-  isAdmin: boolean;
+  /** Resolved `genes.publish` — gates the Publish control. */
+  canPublish: boolean;
+  /** Resolved `genes.approve` — gates Approve / Request changes, and is what
+   *  distinguishes someone reviewing their own assignment (who submits) from
+   *  someone dispositioning another person's submission. */
+  canApprove: boolean;
   reviewStatus: DraftReviewStatus;
 }) {
   const router = useRouter();
@@ -123,7 +127,7 @@ export default function ReviewEditor(props: {
   const openTicketCount = tickets.filter((t) => isOpenTicketStatus(t.status)).length;
 
   const reviewerLocked =
-    !props.isAdmin &&
+    !props.canApprove &&
     (props.reviewStatus === "submitted_for_approval" || props.reviewStatus === "approved");
 
   const flagResolutionInput = {
@@ -139,13 +143,12 @@ export default function ReviewEditor(props: {
   });
   const publishReadiness = evaluateAdminPublishReadiness({
     ...flagResolutionInput,
-    isAdmin: props.isAdmin,
-    adminCanPublish: props.reviewerCanPublish,
+    canPublish: props.canPublish,
     reviewStatus: props.reviewStatus,
   });
   const approvalReadiness = evaluateApprovalReadiness({
     ...flagResolutionInput,
-    isAdmin: props.isAdmin,
+    canApprove: props.canApprove,
     reviewStatus: props.reviewStatus,
   });
 
@@ -432,7 +435,7 @@ export default function ReviewEditor(props: {
       </section>
 
       {/* Reviewer status banner */}
-      {reviewerLocked && !props.isAdmin && (
+      {reviewerLocked && !props.canApprove && (
         <p className="rounded-lg border border-mint bg-mint/40 p-4 text-sm text-forest">
           {props.reviewStatus === "submitted_for_approval"
             ? "Submitted for admin approval — read-only until an admin publishes it or requests changes."
@@ -451,7 +454,7 @@ export default function ReviewEditor(props: {
         </label>
 
         <div className="mt-4 flex flex-wrap gap-3">
-          {!props.isAdmin && (
+          {!props.canApprove && (
             <button
               onClick={submit}
               disabled={!submissionReadiness.canProceed || reviewerLocked}
@@ -460,7 +463,7 @@ export default function ReviewEditor(props: {
               Submit review
             </button>
           )}
-          {props.isAdmin && props.reviewStatus === "submitted_for_approval" && (
+          {props.canApprove && props.reviewStatus === "submitted_for_approval" && (
             <button
               onClick={approve}
               disabled={!approvalReadiness.canProceed}
@@ -469,7 +472,7 @@ export default function ReviewEditor(props: {
               Approve
             </button>
           )}
-          {props.isAdmin && (props.reviewStatus === "submitted_for_approval" || props.reviewStatus === "changes_requested") && (
+          {props.canApprove && (props.reviewStatus === "submitted_for_approval" || props.reviewStatus === "changes_requested") && (
             <button
               onClick={() => setRequestChangesOpen(true)}
               className="rounded border border-ink/25 px-5 py-2 font-semibold text-ink"
@@ -477,7 +480,7 @@ export default function ReviewEditor(props: {
               Request changes
             </button>
           )}
-          {props.isAdmin && (
+          {props.canPublish && (
             <button
               onClick={publish}
               disabled={!publishReadiness.canProceed}
@@ -489,7 +492,7 @@ export default function ReviewEditor(props: {
           )}
         </div>
 
-        {!props.isAdmin && !reviewerLocked && submissionReadiness.blockers.length > 0 && (
+        {!props.canApprove && !reviewerLocked && submissionReadiness.blockers.length > 0 && (
           <div className="mt-3 text-sm text-ink/70">
             <p className="font-semibold">Remaining before you can submit:</p>
             <ul className="mt-1 list-disc pl-5">
@@ -499,7 +502,7 @@ export default function ReviewEditor(props: {
             </ul>
           </div>
         )}
-        {props.isAdmin && props.reviewStatus === "submitted_for_approval" && approvalReadiness.blockers.length > 0 && (
+        {props.canApprove && props.reviewStatus === "submitted_for_approval" && approvalReadiness.blockers.length > 0 && (
           <div className="mt-3 text-sm text-ink/70">
             <p className="font-semibold">Remaining before you can approve:</p>
             <ul className="mt-1 list-disc pl-5">
@@ -509,7 +512,7 @@ export default function ReviewEditor(props: {
             </ul>
           </div>
         )}
-        {props.isAdmin && publishReadiness.blockers.length > 0 && (
+        {props.canPublish && publishReadiness.blockers.length > 0 && (
           <div className="mt-3 text-sm text-ink/70">
             <p className="font-semibold">Remaining before publishing:</p>
             <ul className="mt-1 list-disc pl-5">

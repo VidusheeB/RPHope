@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireAdmin } from "@/lib/reviewer/session";
+import { requireCapability } from "@/lib/reviewer/session";
 import { getAdminOverview, getAdminDraftQueue } from "@/lib/reviewer/data";
 import AdminDraftQueue from "@/components/review/AdminDraftQueue";
 
@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Gene Reviews | RP Hope Admin", robot
 export const dynamic = "force-dynamic";
 
 export default async function GeneReviewsPage() {
-  await requireAdmin();
+  await requireCapability("genes.review.all");
   const [{ reviewers }, draftQueue] = await Promise.all([getAdminOverview(), getAdminDraftQueue()]);
 
   return (

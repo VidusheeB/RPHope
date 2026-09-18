@@ -1,4 +1,4 @@
-import { requireReviewer } from "@/lib/reviewer/session";
+import { requireReviewer, sessionCapabilities } from "@/lib/reviewer/session";
 import { getMyNotifications, getMyUnreadCount } from "@/lib/reviewer/notifications";
 import AdminShell from "@/components/review/AdminShell";
 
@@ -13,13 +13,15 @@ export default async function ReviewDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Identity only — this grants nothing. Each page below re-checks the
+  // capability it needs; the resolved set here just drives what the nav shows.
   const session = await requireReviewer();
-  const isAdmin = session.profile.role === "admin";
+  const capabilities = sessionCapabilities(session);
   const [notifications, unreadCount] = await Promise.all([getMyNotifications(), getMyUnreadCount()]);
 
   return (
     <AdminShell
-      isAdmin={isAdmin}
+      capabilities={capabilities}
       email={session.email}
       role={session.profile.role}
       initialNotifications={notifications}

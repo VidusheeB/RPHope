@@ -13,6 +13,7 @@ import { revalidatePath } from "next/cache";
 import { getServerSupabase } from "@/lib/supabaseServer";
 import { getServiceSupabase } from "@/lib/supabaseAdmin";
 import { getReviewerSession } from "@/lib/reviewer/session";
+import { can, type Capability } from "@/lib/reviewer/permissions";
 import {
   contentEditStamp,
   approvalStamp,
@@ -202,7 +203,7 @@ export async function submitReviewAction(input: {
     .eq("reviewer_id", session.userId)
     .maybeSingle();
   const isAssignedReviewer =
-    session.profile.role === "admin" ||
+    can(session.profile, "genes.review.all") ||
     (Boolean(assignment) && assignment!.status !== "completed");
 
   const { data: resolutions } = await service
@@ -273,7 +274,9 @@ export async function requestChangesAction(input: {
   note: string;
 }): Promise<ActionResult> {
   const session = await getReviewerSession();
-  if (!session || session.profile.role !== "admin") return { ok: false, error: "Admin only." };
+  if (!session || !can(session.profile, "genes.approve")) {
+    return { ok: false, error: "You don't have permission to request changes." };
+  }
   if (!input.note.trim()) return { ok: false, error: "An explanation is required." };
 
   const service = getServiceSupabase();
@@ -339,8 +342,15 @@ export async function publishAction(input: {
 }): Promise<ActionResult<{ publishedUrl: string; versionId: string }>> {
   const session = await getReviewerSession();
   if (!session) return { ok: false, error: "Not signed in." };
-  if (session.profile.role !== "admin") {
-    return { ok: false, error: "Only an admin can publish.", blockers: ["Only an admin can publish."] };
+  // genes.publish already folds in the can_publish restriction (see
+  // lib/reviewer/permissions.ts), so this one check covers both halves of the
+  // old "admin AND can_publish" bar.
+  if (!can(session.profile, "genes.publish")) {
+    return {
+      ok: false,
+      error: "You don't have permission to publish.",
+      blockers: ["You don't have permission to publish."],
+    };
   }
 
   const service = getServiceSupabase();
@@ -382,8 +392,8 @@ export async function publishAction(input: {
       flagIndex: r.flag_index,
       status: r.status as FlagResolutionStatus,
     })),
-    isAdmin: true, // checked above from the DB-backed session
-    adminCanPublish: session.profile.can_publish,
+    // Re-derived from the DB-backed session, never from client input.
+    canPublish: can(session.profile, "genes.publish"),
     reviewStatus: (draft.review_status ?? "unreviewed") as DraftReviewStatus,
     confirmationChecked: input.confirmationChecked,
     adminOverride: input.adminOverride,
@@ -474,7 +484,7 @@ function serializeDraft(d: GenePageDraft): Record<string, unknown> {
  * site, or automatically publish."
  */
 export async function restoreVersionAction(versionId: string): Promise<ActionResult<{ draftId: string }>> {
-  const ctx = await requireAdminService();
+  const ctx = await requireCapabilityService("genes.publish");
   if (!ctx.ok) return { ok: false, error: ctx.error };
 
   const { data: version } = await ctx.service
@@ -513,7 +523,7 @@ export async function restoreVersionAction(versionId: string): Promise<ActionRes
 /** Admin-only private note about a gene's review, distinct from a
  *  reviewer's flag notes or ticket text. Never rendered publicly. */
 export async function saveAdminNoteAction(draftId: string, note: string): Promise<ActionResult> {
-  const ctx = await requireAdminService();
+  const ctx = await requireCapabilityService("genes.note");
   if (!ctx.ok) return { ok: false, error: ctx.error };
   const { error } = await ctx.service
     .from("gene_page_drafts")
@@ -523,16 +533,25 @@ export async function saveAdminNoteAction(draftId: string, note: string): Promis
   return { ok: true };
 }
 
-// ---- Admin actions (service-role, admin-only) -----------------------------
+// ---- Privileged actions (service-role, capability-gated) ------------------
 
 type AdminCtx =
   | { ok: false; error: string }
   | { ok: true; session: NonNullable<Awaited<ReturnType<typeof getReviewerSession>>>; service: NonNullable<ReturnType<typeof getServiceSupabase>> };
 
-async function requireAdminService(): Promise<AdminCtx> {
+/**
+ * Gate a service-role action on a capability.
+ *
+ * The service-role client bypasses RLS completely, so for any action that uses
+ * it the database enforces NOTHING — this check is the entire authorization
+ * boundary. That is why the capability is a required argument with no default:
+ * a new privileged action cannot be written without stating what clearance it
+ * needs, and there is no "admin-only" catch-all to fall into by habit.
+ */
+async function requireCapabilityService(capability: Capability): Promise<AdminCtx> {
   const session = await getReviewerSession();
-  if (!session || session.profile.role !== "admin") {
-    return { ok: false, error: "Admin only." };
+  if (!session || !can(session.profile, capability)) {
+    return { ok: false, error: "You don't have permission to do that." };
   }
   const service = getServiceSupabase();
   if (!service) return { ok: false, error: "Server not configured." };
@@ -562,7 +581,7 @@ export async function inviteReviewerAction(input: {
   specialty?: string;
   adminNotes?: string;
 }): Promise<ActionResult> {
-  const ctx = await requireAdminService();
+  const ctx = await requireCapabilityService("reviewers.manage");
   if (!ctx.ok) return { ok: false, error: ctx.error };
   if (!EMAIL_RE.test(input.email)) return { ok: false, error: "Enter a valid email address." };
 
@@ -617,7 +636,7 @@ export async function inviteReviewerAction(input: {
 /** Resend an invitation email to someone who hasn't accepted yet (Supabase
  *  re-sends/refreshes the invite link for an unconfirmed user). */
 export async function resendInvitationAction(userId: string): Promise<ActionResult> {
-  const ctx = await requireAdminService();
+  const ctx = await requireCapabilityService("reviewers.manage");
   if (!ctx.ok) return { ok: false, error: ctx.error };
 
   const { data: authUser } = await ctx.service.auth.admin.getUserById(userId);
@@ -653,7 +672,7 @@ export async function assignDraftAction(input: {
   reviewerId: string;
   confirmed?: boolean;
 }): Promise<ActionResult<{ requiresConfirmation?: true; warning?: string }>> {
-  const ctx = await requireAdminService();
+  const ctx = await requireCapabilityService("genes.assign");
   if (!ctx.ok) return { ok: false, error: ctx.error };
 
   const { data: draft } = await ctx.service
@@ -740,7 +759,7 @@ export async function assignDraftAction(input: {
  *  'reassigned' — the same "no longer active, never deleted" history
  *  status reassignment uses) rather than deleting it. */
 export async function unassignDraftAction(draftId: string): Promise<ActionResult> {
-  const ctx = await requireAdminService();
+  const ctx = await requireCapabilityService("genes.assign");
   if (!ctx.ok) return { ok: false, error: ctx.error };
 
   const { data: current } = await ctx.service
@@ -778,7 +797,9 @@ export async function approveReviewAction(input: {
   const draftId = input.draftId;
   const session = await getReviewerSession();
   if (!session) return { ok: false, error: "Not signed in." };
-  if (session.profile.role !== "admin") return { ok: false, error: "Only an admin can approve a review." };
+  if (!can(session.profile, "genes.approve")) {
+    return { ok: false, error: "You don't have permission to approve a review." };
+  }
 
   const service = getServiceSupabase();
   if (!service) return { ok: false, error: "Server not configured." };
@@ -803,7 +824,7 @@ export async function approveReviewAction(input: {
     draft: input.content,
     flagCount: Array.isArray(draft.review_flags) ? draft.review_flags.length : 0,
     resolutions: (resolutions ?? []).map((r) => ({ flagIndex: r.flag_index, status: r.status as FlagResolutionStatus })),
-    isAdmin: true,
+    canApprove: can(session.profile, "genes.approve"),
     reviewStatus: (draft.review_status ?? "unreviewed") as DraftReviewStatus,
     openBlockingTicketCount,
   });
@@ -841,7 +862,7 @@ export async function updateReviewerAction(input: {
   specialty?: string;
   adminNotes?: string;
 }): Promise<ActionResult> {
-  const ctx = await requireAdminService();
+  const ctx = await requireCapabilityService("reviewers.manage");
   if (!ctx.ok) return { ok: false, error: ctx.error };
   const patch: Record<string, unknown> = {};
   if (typeof input.active === "boolean") patch.active = input.active;
@@ -880,8 +901,8 @@ export async function updateReviewerAction(input: {
 export async function unpublishGeneAction(geneSlug: string): Promise<ActionResult> {
   const session = await getReviewerSession();
   if (!session) return { ok: false, error: "Not signed in." };
-  if (session.profile.role !== "admin" || !session.profile.can_publish) {
-    return { ok: false, error: "Only an admin with publish permission can take a page down." };
+  if (!can(session.profile, "genes.publish")) {
+    return { ok: false, error: "You don't have permission to take a page down." };
   }
   const service = getServiceSupabase();
   if (!service) return { ok: false, error: "Server not configured." };

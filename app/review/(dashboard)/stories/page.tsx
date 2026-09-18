@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireReviewer } from "@/lib/reviewer/session";
+import { requireCapability } from "@/lib/reviewer/session";
 import { getServiceSupabase } from "@/lib/supabaseAdmin";
 import { reviewHref } from "@/lib/reviewer/paths";
 
@@ -17,7 +17,7 @@ type Row = {
 };
 
 export default async function ReviewStoriesPage() {
-  await requireReviewer();
+  await requireCapability("stories.review");
   const service = getServiceSupabase();
   const rows: Row[] = service
     ? ((

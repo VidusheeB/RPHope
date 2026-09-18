@@ -85,8 +85,7 @@ describe("a blocking open ticket gates both submission and publication", () => {
   it("blocks admin publication the same way", () => {
     const r = evaluateAdminPublishReadiness({
       ...base,
-      isAdmin: true,
-      adminCanPublish: true,
+      canPublish: true,
       reviewStatus: "submitted_for_approval",
       openBlockingTicketCount: 2,
     });

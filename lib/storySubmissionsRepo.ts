@@ -1,7 +1,17 @@
-// Read access for published, first-party stories. Mirrors lib/researchRepo.ts:
-// reads PUBLISHED story_submissions from Supabase (RLS already restricts the
-// anon client to published rows) and only ever selects the PUBLIC columns —
-// full_name/email/phone/consent/edit_permission are never requested here.
+// Read access for published, first-party stories.
+//
+// Reads the `public_stories` VIEW, never the story_submissions table. The anon
+// key has no privilege on that table at all (see 0024_story_public_view.sql) —
+// which is the point: this file selecting a narrow column list used to be the
+// ONLY thing keeping submitter PII off the public REST API, and a caller-side
+// convention is not an access control. The view does the narrowing in the
+// database, so a direct REST call gets the same safe projection this does.
+//
+// The view also resolves display_contact into a single `contact_value`, so the
+// contact method the submitter did NOT choose to publish is not fetched here
+// at all (previously both email and phone were pulled back and one discarded
+// in application code).
+//
 // Falls back to an empty list when Supabase isn't configured, so the curated
 // external-link stories in app/stories/page.tsx still render on localhost
 // before Supabase is set up.
@@ -10,15 +20,15 @@ import { getSupabase } from "./supabase";
 import { getServiceSupabase } from "./supabaseAdmin";
 import type { DisplayContact, PublishedStory } from "./stories/types";
 
+const PUBLIC_VIEW = "public_stories";
 const PUBLIC_COLUMNS =
-  "id, display_name, display_contact, email, phone, gene_slug, story_text, video_path, audio_path, published_at";
+  "id, display_name, display_contact, contact_value, gene_slug, story_text, video_path, audio_path, published_at";
 
 type Row = {
   id: string;
   display_name: string;
   display_contact: DisplayContact;
-  email: string | null;
-  phone: string | null;
+  contact_value: string | null;
   gene_slug: string | null;
   story_text: string;
   video_path: string | null;
@@ -50,12 +60,8 @@ async function toPublishedStory(r: Row): Promise<PublishedStory> {
     id: r.id,
     displayName: r.display_name,
     displayContact,
-    contactValue:
-      displayContact === "email"
-        ? r.email ?? undefined
-        : displayContact === "phone"
-          ? r.phone ?? undefined
-          : undefined,
+    // Already resolved by the view according to display_contact.
+    contactValue: r.contact_value ?? undefined,
     geneSlug: r.gene_slug ?? undefined,
     storyText: r.story_text,
     videoUrl,
@@ -69,9 +75,8 @@ export async function getPublishedStories(): Promise<PublishedStory[]> {
   if (!supabase) return [];
 
   const { data, error } = await supabase
-    .from("story_submissions")
+    .from(PUBLIC_VIEW)
     .select(PUBLIC_COLUMNS)
-    .eq("status", "published")
     .order("published_at", { ascending: false });
 
   if (error || !data) return [];
@@ -83,10 +88,9 @@ export async function getPublishedStoryById(id: string): Promise<PublishedStory 
   if (!supabase) return null;
 
   const { data, error } = await supabase
-    .from("story_submissions")
+    .from(PUBLIC_VIEW)
     .select(PUBLIC_COLUMNS)
     .eq("id", id)
-    .eq("status", "published")
     .maybeSingle();
 
   if (error || !data) return null;

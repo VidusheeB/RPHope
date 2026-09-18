@@ -125,3 +125,90 @@ describe("original AI review flags are preserved (resolutions stored separately)
     expect(read("components/review/ReviewEditor.tsx")).not.toMatch(/review_flags:/);
   });
 });
+
+describe("capability checks are the boundary, not role literals", () => {
+  const portalFiles = [...walk("app/review"), ...walk("lib/reviewer"), ...walk("components/review")];
+
+  it("nothing outside permissions.ts/session.ts branches on a role name", () => {
+    // The whole point of the capability model: adding a role must not require
+    // auditing scattered `role === "admin"` comparisons. Those two files are
+    // the only places allowed to know role names exist.
+    const allowed = new Set(["lib/reviewer/permissions.ts", "lib/reviewer/session.ts"]);
+    const offenders = portalFiles.filter((f) => {
+      if (allowed.has(f)) return false;
+      return /\brole\s*[!=]==\s*["']admin["']/.test(read(f));
+    });
+    expect(offenders).toEqual([]);
+  });
+
+  it("no ENTRY POINT reads the service-role client behind an identity-only gate", () => {
+    // The regression guard for the story leak: requireReviewer() establishes
+    // WHO you are and grants nothing. A page or server action that opens the
+    // service-role client (which bypasses RLS entirely) must additionally
+    // prove a capability, or the DB is enforcing nothing and neither is
+    // the app.
+    //
+    // Scoped to app/review — the routable surface. The lib/reviewer/* data
+    // helpers also use the service client but are not reachable directly;
+    // by established convention (see their headers) their CALLER does the
+    // gating, and that caller is covered by this check.
+    const entryPoints = walk("app/review");
+    const offenders = entryPoints.filter((f) => {
+      const src = read(f);
+      const usesServiceRole = /getServiceSupabase/.test(src);
+      const checksCapability = /requireCapability\(|\bcan\(/.test(src);
+      return usesServiceRole && !checksCapability;
+    });
+    expect(offenders).toEqual([]);
+  });
+
+  it("story submissions are gated on stories.review wherever they are read", () => {
+    // These rows carry submitter PII (full_name / email / phone / consent).
+    for (const f of [
+      "app/review/(dashboard)/stories/page.tsx",
+      "app/review/(dashboard)/stories/[id]/page.tsx",
+      "app/review/(dashboard)/stories/actions.ts",
+    ]) {
+      expect(read(f)).toMatch(/requireCapability\("stories\.review"\)/);
+    }
+  });
+});
+
+describe("the public story surface cannot reach private columns", () => {
+  it("the public repo reads the view, never the base table", () => {
+    // RLS filters rows, not columns, so `status = 'published'` on the base
+    // table still exposed full_name/email/phone/approval_token to the anon
+    // key. The view is what narrows the columns in the database rather than
+    // relying on this file's SELECT list.
+    const src = read("lib/storySubmissionsRepo.ts");
+    expect(src).toMatch(/public_stories/);
+    expect(src).not.toMatch(/\.from\(\s*["']story_submissions["']\s*\)/);
+  });
+
+  it("the public repo never requests a private column", () => {
+    // Strip comments first — the file legitimately DISCUSSES these column
+    // names when explaining what it deliberately no longer fetches.
+    const src = read("lib/storySubmissionsRepo.ts")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/^\s*\/\/.*$/gm, "");
+    for (const col of ["full_name", "phone", "consent_to_publish", "edit_permission", "approval_token", "contact_method"]) {
+      expect(src).not.toMatch(new RegExp(`\\b${col}\\b`));
+    }
+  });
+
+  it("the migration revokes the blanket anon/authenticated grant", () => {
+    const sql = read("supabase/migrations/0024b_story_revoke_base_table.sql");
+    expect(sql).toMatch(/revoke all on public\.story_submissions from anon, authenticated/);
+  });
+
+  it("the view resolves display_contact instead of exposing both columns", () => {
+    const sql = read("supabase/migrations/0024_story_public_view.sql");
+    expect(sql).toMatch(/case display_contact/);
+    expect(sql).toMatch(/as contact_value/);
+    // The view must NOT be created with security_invoker: that would require
+    // the caller to hold SELECT on email/phone, defeating the mechanism. The
+    // file mentions the option in prose to explain why it's rejected, so
+    // assert on the actual clause rather than the word.
+    expect(sql).not.toMatch(/with\s*\(\s*security_invoker/i);
+  });
+});

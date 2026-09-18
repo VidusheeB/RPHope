@@ -119,8 +119,7 @@ describe("evaluateAdminPublishReadiness — admin-only \"Approve & Publish\" gat
     draft: completeDraft(),
     flagCount: 2,
     resolutions: resolvedAll(2),
-    isAdmin: true,
-    adminCanPublish: true,
+    canPublish: true,
     reviewStatus: "approved" as const,
     confirmationChecked: true,
   };
@@ -129,16 +128,14 @@ describe("evaluateAdminPublishReadiness — admin-only \"Approve & Publish\" gat
     expect(evaluateAdminPublishReadiness(base).canProceed).toBe(true);
   });
 
-  it("a non-admin is always blocked, regardless of anything else", () => {
-    const r = evaluateAdminPublishReadiness({ ...base, isAdmin: false });
+  // Whether someone HOLDS genes.publish (role grant + the can_publish
+  // restriction) is the permissions module's job and is tested there, in
+  // reviewer-capabilities.test.ts. The gate's only job is to refuse when the
+  // resolved capability is false — regardless of why it's false.
+  it("without the publish capability, publication is blocked regardless of anything else", () => {
+    const r = evaluateAdminPublishReadiness({ ...base, canPublish: false });
     expect(r.canProceed).toBe(false);
-    expect(r.blockers.join(" ")).toMatch(/admin/i);
-  });
-
-  it("adminCanPublish=false blocks publication", () => {
-    const r = evaluateAdminPublishReadiness({ ...base, adminCanPublish: false });
-    expect(r.canProceed).toBe(false);
-    expect(r.blockers.join(" ")).toMatch(/publishing permission/i);
+    expect(r.blockers.join(" ")).toMatch(/permission/i);
   });
 
   it("a draft that was never approved blocks publication unless overridden", () => {

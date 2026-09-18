@@ -102,7 +102,7 @@ describe("requestChangesAction — admin-only, note required", () => {
     });
     const res = await requestChangesAction({ draftId: "d1", note: "fix the citation" });
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toMatch(/admin/i);
+    if (!res.ok) expect(res.error).toMatch(/permission/i);
   });
 
   it("rejects a missing/empty explanation even from an admin", async () => {

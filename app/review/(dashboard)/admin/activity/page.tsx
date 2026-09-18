@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { requireAdmin } from "@/lib/reviewer/session";
+import { requireCapability } from "@/lib/reviewer/session";
 import { getRecentAuditLog } from "@/lib/reviewer/data";
 import AuditLogView from "@/components/review/AuditLogView";
 
@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Activity | RP Hope Admin", robots: {
 export const dynamic = "force-dynamic";
 
 export default async function AdminActivityPage() {
-  await requireAdmin();
+  await requireCapability("activity.view");
   const entries = await getRecentAuditLog();
 
   return (

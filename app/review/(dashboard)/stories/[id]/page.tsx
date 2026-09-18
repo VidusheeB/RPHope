@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { requireReviewer } from "@/lib/reviewer/session";
+import { requireCapability } from "@/lib/reviewer/session";
+import { can } from "@/lib/reviewer/permissions";
 import { getServiceSupabase } from "@/lib/supabaseAdmin";
 import StoryReviewEditor from "./StoryReviewEditor";
 
@@ -12,7 +13,10 @@ export default async function ReviewStoryDetailPage({
 }: {
   params: { id: string };
 }) {
-  const session = await requireReviewer();
+  // This row is read with the SERVICE-ROLE client below (select "*"), which
+  // bypasses RLS entirely — so this capability check is the only thing standing
+  // between an account and the submitter's name, email, phone and consent record.
+  const session = await requireCapability("stories.review");
   const service = getServiceSupabase();
   if (!service) notFound();
 
@@ -44,7 +48,7 @@ export default async function ReviewStoryDetailPage({
       story={story}
       videoUrl={videoUrl}
       audioUrl={audioUrl}
-      canPublish={session.profile.can_publish}
+      canPublish={can(session.profile, "stories.publish")}
     />
   );
 }
