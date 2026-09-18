@@ -42,6 +42,8 @@ export type ReviewerRole = "reviewer" | "admin";
  *  Named `<area>.<action>` so nav/dashboard filtering can group by area. */
 export type Capability =
   // --- Gene review -----------------------------------------------------
+  /** Run the Opus generation pipeline (real Anthropic spend). */
+  | "genes.generate"
   /** See and open the gene drafts assigned to you. */
   | "genes.review.assigned"
   /** See every gene draft, assigned or not (the full review queue). */
@@ -117,6 +119,7 @@ export const ROLE_CAPABILITIES: Record<ReviewerRole, readonly Capability[]> = {
   // capability is a deliberate edit rather than something admin picks up for
   // free the moment it's defined.
   admin: [
+    "genes.generate",
     "genes.review.assigned",
     "genes.review.all",
     "genes.edit",

@@ -31,9 +31,11 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Overview", href: reviewHref("/admin"), requires: ["genes.review.all"] },
-  { label: "Gene Reviews", href: reviewHref("/admin/genes"), requires: ["genes.review.all"] },
-  { label: "My Reviews", href: reviewHref(""), requires: ["genes.review.assigned"] },
+  { label: "Home", href: reviewHref("/admin"), requires: ["genes.review.all"] },
+  // The gene operations console — catalogue + generation + assignment +
+  // publication queue. Supersedes the old draft-only "Gene Reviews" list.
+  { label: "Genes", href: reviewHref("/genes"), requires: ["genes.review.all"] },
+  { label: "My Genes", href: reviewHref(""), requires: ["genes.review.assigned"] },
   { label: "Reviewers", href: reviewHref("/admin/reviewers"), requires: ["reviewers.manage"] },
   { label: "Tickets", href: reviewHref("/admin/tickets"), requires: ["tickets.manage"] },
   { label: "Stories", href: reviewHref("/stories"), requires: ["stories.review"] },

@@ -26,6 +26,10 @@ export type AuditAction =
   | "draft_published"
   | "gene_unpublished"
   | "gene_version_restored"
+  // Opus generation. Only the batch START is audited — per-gene queued /
+  // running / complete transitions live in gene_generation_jobs, and logging
+  // each one would bury the human decisions this log exists to record.
+  | "gene_generation_started"
   | "ticket_created"
   | "ticket_reply_added"
   | "ticket_updated";
