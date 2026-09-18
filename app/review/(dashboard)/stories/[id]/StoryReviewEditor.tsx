@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { saveStoryEdits, sendForApproval, publishStory, rejectStory, unpublishStoryAction } from "../actions";
 
 type StoryRow = {
@@ -36,6 +37,14 @@ export default function StoryReviewEditor({
   audioUrl: string | null;
   canPublish: boolean;
 }) {
+  // `story` is a server prop, and which buttons render is derived from
+  // `story.status`. The server actions write to the DB and revalidatePath, but a
+  // Server Action awaited in a plain event handler (no transition) does not
+  // re-render this component — so without an explicit refresh the badge, the
+  // status line and the button set all stayed frozen on the pre-click state.
+  // That read as "Publish and Take down do nothing" even though the write had
+  // already succeeded. Every mutating handler below refreshes on success.
+  const router = useRouter();
   const [text, setText] = useState(story.story_text);
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -51,6 +60,7 @@ export default function StoryReviewEditor({
     const res = await saveStoryEdits(story.id, text);
     setSaving(false);
     setMessage(res.ok ? "Saved." : res.error);
+    if (res.ok) router.refresh();
   }
 
   async function handleSendForApproval() {
@@ -63,6 +73,7 @@ export default function StoryReviewEditor({
       setMessage(res.error);
       return;
     }
+    router.refresh();
     if (res.emailSent) {
       setMessage("Sent to the submitter for approval.");
     } else {
@@ -77,6 +88,7 @@ export default function StoryReviewEditor({
     const res = await publishStory(story.id);
     setBusy(null);
     setMessage(res.ok ? "Published." : res.error);
+    if (res.ok) router.refresh();
   }
 
   async function handleReject() {
@@ -85,6 +97,7 @@ export default function StoryReviewEditor({
     const res = await rejectStory(story.id, rejectNote || undefined);
     setBusy(null);
     setMessage(res.ok ? "Declined." : res.error);
+    if (res.ok) router.refresh();
   }
 
   async function handleUnpublish() {
@@ -94,6 +107,7 @@ export default function StoryReviewEditor({
     const res = await unpublishStoryAction(story.id);
     setBusy(null);
     setMessage(res.ok ? "Taken down." : res.error);
+    if (res.ok) router.refresh();
   }
 
   return (
