@@ -26,11 +26,20 @@ export function workerSecret(): string | null {
   return createHash("sha256").update(`rp-hope-generation-worker:${serviceKey}`).digest("hex");
 }
 
-/** Absolute origin for a server-to-server call back into this app. */
+/** Absolute origin for a server-to-server call back into this app.
+ *
+ *  Development is resolved FIRST and locally, never from NEXT_PUBLIC_SITE_URL:
+ *  that variable legitimately points at the production site, and using it here
+ *  would make a local run fire its worker at production — where the job it is
+ *  trying to drain does not exist. The symptom would be a queue that fills and
+ *  never moves, with nothing in the local logs to explain it. */
 function selfOrigin(): string | null {
+  if (process.env.NODE_ENV !== "production") {
+    return `http://localhost:${process.env.PORT ?? 3000}`;
+  }
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
-  return "http://localhost:3000";
+  return null;
 }
 
 /**
