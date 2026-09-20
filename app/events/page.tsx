@@ -40,7 +40,17 @@ export default async function EventsPage() {
           priority
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-forest/80" aria-hidden="true" />
+        {/* Two-part scrim instead of one flat wash, so the collage actually
+            reads as a photograph. A light overall tint keeps the band cohesive,
+            and a soft centred vignette does the contrast work only where the
+            words sit. Behind the heading the pair composites to ~73% ink, which
+            holds white text above 4.5:1 even over the brightest part of the
+            photo (the sky); the edges stay at 15% and the faces stay visible. */}
+        <div className="absolute inset-0 bg-ink/15" aria-hidden="true" />
+        <div
+          className="absolute inset-0 bg-[radial-gradient(ellipse_65%_62%_at_50%_50%,rgba(30,28,25,0.68)_0%,rgba(30,28,25,0.45)_55%,transparent_78%)]"
+          aria-hidden="true"
+        />
         <div className="relative mx-auto w-full max-w-4xl px-5 py-16 text-center">
           <p className="text-sm font-bold uppercase tracking-widest text-gold-soft">
             Get Involved
@@ -48,7 +58,7 @@ export default async function EventsPage() {
           <h1 className="mt-3 font-display text-4xl font-medium tracking-tight text-white sm:text-5xl">
             Our events
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-white/85">
+          <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-white/90">
             RP Hope hosts global events to raise awareness about retinitis
             pigmentosa and fund the research working toward treatments.
           </p>

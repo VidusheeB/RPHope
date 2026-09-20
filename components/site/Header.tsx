@@ -20,10 +20,10 @@ export default function Header() {
             src="/home/logo.png"
             alt=""
             aria-hidden="true"
-            width={40}
-            height={40}
+            width={56}
+            height={56}
             priority
-            className="h-10 w-10 rounded-full"
+            className="h-12 w-12 rounded-full sm:h-14 sm:w-14"
           />
           <span className="font-display text-2xl font-medium tracking-tight text-forest">
             RP Hope
