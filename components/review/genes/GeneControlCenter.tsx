@@ -89,9 +89,29 @@ export default function GeneControlCenter({
   const [assigning, setAssigning] = useState<GeneControlRow | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [expandedError, setExpandedError] = useState<string | null>(null);
+  // null = not yet checked. False means generation will fail on every gene,
+  // so say so up front rather than after a queue full of failures.
+  const [generationConfigured, setGenerationConfigured] = useState<boolean | null>(null);
 
   // Keep server-rendered data in sync after a router.refresh().
   useEffect(() => setRows(initialRows), [initialRows]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/genes/generation/status", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data?.config) setGenerationConfigured(Boolean(data.config.anthropicKey));
+      } catch {
+        // Leave it unknown rather than claiming a misconfiguration.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const toast = useCallback((message: string) => {
     const id = Date.now() + Math.random();
@@ -120,6 +140,7 @@ export default function GeneControlCenter({
           if (cancelled || !data.ok) continue;
 
           setQueue(data.summary as QueueSummary);
+          if (data.config) setGenerationConfigured(Boolean(data.config.anthropicKey));
           setRows((prev) => {
             const live = new Map(
               (data.genes as { geneSlug: string; status: GenerationStatus | null; error: string | null; hasDraft: boolean; eligible: boolean }[]).map(
@@ -270,6 +291,18 @@ export default function GeneControlCenter({
           </div>
         )}
       </div>
+
+      {canGenerate && generationConfigured === false && (
+        <p
+          role="alert"
+          className="mt-5 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900"
+        >
+          <strong>Generation isn&apos;t configured on this deployment.</strong> ANTHROPIC_API_KEY is
+          missing, so every gene will fail. Add it to this Vercel project&apos;s environment
+          variables and redeploy — a renamed or newly added variable only takes effect on a new
+          deployment.
+        </p>
+      )}
 
       {/* ---- Batch progress ---- */}
       {(queue.active || queue.failed > 0) && (

@@ -35,6 +35,16 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
+    // Config health. Reports PRESENCE ONLY — never a value, never a prefix,
+    // never a length. Generation silently failed for a whole afternoon because
+    // the key was set under a different name on this project and nothing
+    // surfaced that except a job error after the queue had already run; an
+    // admin should be able to see "generation isn't configured here" before
+    // spending time on it.
+    config: {
+      anthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
+      supabaseServiceKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    },
     summary,
     genes: state.map((g) => ({
       geneSlug: g.geneSlug,
