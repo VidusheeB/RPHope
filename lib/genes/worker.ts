@@ -6,7 +6,7 @@
 // adding a queue service or a new dependency.
 
 import { createHash } from "crypto";
-import { headers } from "next/headers";
+import { portalOrigin } from "@/lib/portalOrigin";
 
 /**
  * Shared secret for the worker route.
@@ -52,15 +52,8 @@ function selfOrigin(): string | null {
   if (process.env.NODE_ENV !== "production") {
     return `http://localhost:${process.env.PORT ?? 3000}`;
   }
-  try {
-    // Available in server actions and route handlers, which is every caller.
-    const h = headers();
-    const host = h.get("x-forwarded-host") ?? h.get("host");
-    if (host) return `${h.get("x-forwarded-proto") ?? "https"}://${host}`;
-  } catch {
-    // Called outside a request scope — fall through.
-  }
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  const fromRequest = portalOrigin();
+  if (fromRequest) return fromRequest;
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return null;
 }

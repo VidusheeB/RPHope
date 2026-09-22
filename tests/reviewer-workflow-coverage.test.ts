@@ -91,6 +91,12 @@ vi.mock("@/lib/reviewer/session", () => ({ getReviewerSession: () => sessionMock
 const serviceMock = vi.fn();
 vi.mock("@/lib/supabaseAdmin", () => ({ getServiceSupabase: () => serviceMock() }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+// Invitation links are built from the INCOMING REQUEST's host (see
+// lib/portalOrigin) so they point at the deployment that sent them. A server
+// action always has a request; these unit tests don't, so simulate one.
+vi.mock("next/headers", () => ({
+  headers: () => new Map([["x-forwarded-host", "rphopereview.vercel.app"], ["x-forwarded-proto", "https"]]),
+}));
 
 import { restoreVersionAction, inviteReviewerAction } from "@/app/review/actions";
 
@@ -177,7 +183,9 @@ describe("inviteReviewerAction — duplicate invitations are prevented", () => {
         admin: {
           listUsers: () =>
             Promise.resolve({ data: { users: opts.existingUser ? [opts.existingUser] : [] } }),
-          inviteUserByEmail: () => Promise.resolve({ data: { user: { id: "new-user-1" } }, error: null }),
+          inviteUserByEmail: vi.fn(() =>
+            Promise.resolve({ data: { user: { id: "new-user-1" } }, error: null })
+          ),
         },
       },
       from: (table: string) => {
@@ -216,6 +224,22 @@ describe("inviteReviewerAction — duplicate invitations are prevented", () => {
     serviceMock.mockReturnValue(makeService({}));
     const res = await inviteReviewerAction({ email: "new@x.org", displayName: "X", role: "reviewer", canPublish: false });
     expect(res.ok).toBe(true);
+  });
+
+  it("sends an activation link pointing at the portal that issued it", async () => {
+    // The bug this guards: the link was built from NEXT_PUBLIC_SITE_URL and
+    // went out as http://localhost:3000/set-password — unreachable for the
+    // recipient.
+    const service = makeService({});
+    serviceMock.mockReturnValue(service);
+    await inviteReviewerAction({ email: "new2@x.org", displayName: "Y", role: "reviewer", canPublish: false });
+    const [, options] = service.auth.admin.inviteUserByEmail.mock.calls[0] as unknown as [
+      string,
+      { redirectTo: string },
+    ];
+    expect(options.redirectTo).toContain("https://rphopereview.vercel.app");
+    expect(options.redirectTo).toContain("set-password");
+    expect(options.redirectTo).not.toContain("localhost");
   });
 
   it("rejects an invalid email before any Supabase call", async () => {

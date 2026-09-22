@@ -31,6 +31,7 @@ import { countBlockingOpenTickets, type TicketStatus } from "@/lib/reviewer/tick
 import { notify, notifyAdmins, notifyDraftAssignee } from "@/lib/reviewer/notifications";
 import { logAudit } from "@/lib/reviewer/audit";
 import { reviewHref } from "@/lib/reviewer/paths";
+import { portalOrigin } from "@/lib/portalOrigin";
 import type { GenePageDraft } from "@/lib/geneResearch/types";
 
 export type ActionResult<T = undefined> =
@@ -618,7 +619,14 @@ export async function inviteReviewerAction(input: {
     return { ok: false, error: "An invitation is already pending for this email. Use Resend instead." };
   }
 
-  const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}${reviewHref("/set-password")}`;
+  // Derived from the request, not from NEXT_PUBLIC_SITE_URL — that variable
+  // points at the public website (and locally at localhost:3000), which is how
+  // invitations were going out with unreachable links. See lib/portalOrigin.
+  const origin = portalOrigin();
+  if (!origin) {
+    return { ok: false, error: "Could not work out this portal's address, so no invitation was sent." };
+  }
+  const redirectTo = `${origin}${reviewHref("/set-password")}`;
   const { data, error } = await ctx.service.auth.admin.inviteUserByEmail(input.email, { redirectTo });
   if (error) return { ok: false, error: error.message };
 
@@ -660,7 +668,11 @@ export async function resendInvitationAction(userId: string): Promise<ActionResu
     return { ok: false, error: "This person has already accepted their invitation." };
   }
 
-  const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}${reviewHref("/set-password")}`;
+  const origin = portalOrigin();
+  if (!origin) {
+    return { ok: false, error: "Could not work out this portal's address, so no invitation was sent." };
+  }
+  const redirectTo = `${origin}${reviewHref("/set-password")}`;
   const { error } = await ctx.service.auth.admin.inviteUserByEmail(authUser.user.email, { redirectTo });
   if (error) return { ok: false, error: error.message };
 
