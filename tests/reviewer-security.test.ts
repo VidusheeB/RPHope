@@ -152,7 +152,17 @@ describe("capability checks are the boundary, not role literals", () => {
     // helpers also use the service client but are not reachable directly;
     // by established convention (see their headers) their CALLER does the
     // gating, and that caller is covered by this check.
-    const entryPoints = walk("app/review");
+    //
+    // SELF-SCOPED EXEMPTIONS. Managing your OWN account is not a privilege, so
+    // these are gated on identity alone. They qualify only because every write
+    // is constrained to the caller's own row via session.userId and touches a
+    // fixed, non-privilege column set — reviewer_profiles has no self-update
+    // RLS policy precisely so role/can_publish cannot be self-edited, which is
+    // why these go through the service client at all. Adding a file here is a
+    // deliberate act: re-read it and confirm it cannot be aimed at another
+    // user's record.
+    const selfScoped = new Set(["app/review/(dashboard)/settings/actions.ts"]);
+    const entryPoints = walk("app/review").filter((f) => !selfScoped.has(f));
     const offenders = entryPoints.filter((f) => {
       const src = read(f);
       const usesServiceRole = /getServiceSupabase/.test(src);
@@ -210,5 +220,37 @@ describe("the public story surface cannot reach private columns", () => {
     // file mentions the option in prose to explain why it's rejected, so
     // assert on the actual clause rather than the word.
     expect(sql).not.toMatch(/with\s*\(\s*security_invoker/i);
+  });
+});
+
+describe("self-scoped account actions cannot be aimed at someone else", () => {
+  const src = read("app/review/(dashboard)/settings/actions.ts");
+
+  it("derives the target user from the session, never from an argument", () => {
+    // The exemption in the service-role check above is only defensible while
+    // this holds. If a userId ever becomes a parameter here, one admin could
+    // rewrite another person's account.
+    expect(src).toMatch(/\.eq\("user_id",\s*session\.userId\)/);
+    expect(src).not.toMatch(/userId:\s*string/);
+  });
+
+  it("never writes a privilege column", () => {
+    // reviewer_profiles.role / can_publish are granted by an admin from My
+    // Team. A self-service page must not be able to touch them.
+    for (const col of ["role:", "can_publish:", "active:"]) {
+      expect(src).not.toContain(col);
+    }
+  });
+
+  it("requires the current password before changing it", () => {
+    // Supabase's updateUser() does not verify the old password, so an
+    // unattended session would otherwise be enough to lock out the real owner
+    // of an account that can publish medical content.
+    expect(src).toMatch(/signInWithPassword/);
+    expect(src).toMatch(/currentPassword/);
+  });
+
+  it("verifies with a throwaway client so a failed check can't sign you out", () => {
+    expect(src).toMatch(/persistSession:\s*false/);
   });
 });

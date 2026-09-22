@@ -27,21 +27,57 @@ type NavItem = {
   /** Shown only to a viewer holding at least ONE of these. Omitted means
    *  every signed-in account sees it. */
   requires?: readonly Capability[];
+  /** Suppressed when the viewer holds any of these — lets one concept have a
+   *  role-appropriate label ("Genes" for an admin, "My Genes" for a reviewer)
+   *  without either audience seeing both. */
+  hideIf?: readonly Capability[];
   disabled?: boolean;
 };
 
-const NAV_ITEMS: NavItem[] = [
-  { label: "Home", href: reviewHref("/admin"), requires: ["genes.review.all"] },
-  // The gene operations console — catalogue + generation + assignment +
-  // publication queue. Supersedes the old draft-only "Gene Reviews" list.
-  { label: "Genes", href: reviewHref("/genes"), requires: ["genes.review.all"] },
-  { label: "My Genes", href: reviewHref(""), requires: ["genes.review.assigned"] },
-  { label: "Reviewers", href: reviewHref("/admin/reviewers"), requires: ["reviewers.manage"] },
-  { label: "Tickets", href: reviewHref("/admin/tickets"), requires: ["tickets.manage"] },
-  { label: "Stories", href: reviewHref("/stories"), requires: ["stories.review"] },
-  { label: "Activity", href: reviewHref("/admin/activity"), requires: ["activity.view"] },
-  { label: "Analytics", href: "", disabled: true, requires: ["activity.view"] },
+type NavSection = { heading?: string; items: NavItem[] };
+
+// Grouped per the portal spec: HOME, then CONTENT / COMMUNICATION /
+// ORGANIZATION, then the account. A section whose items are all out of reach
+// renders nothing at all — including its heading — so a reviewer sees a short
+//, coherent sidebar rather than a scaffold with holes in it.
+const NAV_SECTIONS: NavSection[] = [
+  {
+    items: [
+      { label: "Home", href: reviewHref("/admin"), requires: ["genes.review.all"] },
+      { label: "Home", href: reviewHref(""), requires: ["genes.review.assigned"], hideIf: ["genes.review.all"] },
+    ],
+  },
+  {
+    heading: "Content",
+    items: [
+      { label: "Genes", href: reviewHref("/genes"), requires: ["genes.review.all"] },
+      { label: "My Genes", href: reviewHref(""), requires: ["genes.review.assigned"], hideIf: ["genes.review.all"] },
+      { label: "Stories", href: reviewHref("/stories"), requires: ["stories.review"] },
+      { label: "Website", href: "", disabled: true, requires: ["website.edit"] },
+    ],
+  },
+  {
+    heading: "Communication",
+    items: [
+      { label: "Tickets", href: reviewHref("/admin/tickets"), requires: ["tickets.manage"] },
+      { label: "Donations", href: "", disabled: true, requires: ["donations.view"] },
+    ],
+  },
+  {
+    heading: "Organization",
+    items: [
+      { label: "My Team", href: reviewHref("/admin/reviewers"), requires: ["team.manage"] },
+      { label: "Analytics", href: "", disabled: true, requires: ["analytics.view"] },
+      { label: "Activity", href: reviewHref("/admin/activity"), requires: ["activity.view"] },
+    ],
+  },
+  {
+    heading: "Account",
+    // No `requires` — everyone manages their own account.
+    items: [{ label: "Settings", href: reviewHref("/settings") }],
+  },
 ];
+
 
 function isCurrent(pathname: string, href: string): boolean {
   if (!href) return false;
@@ -76,54 +112,80 @@ export default function AdminShell({
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const held = new Set(capabilities);
-  const items = NAV_ITEMS.filter((i) => !i.requires || i.requires.some((c) => held.has(c)));
-  const currentItem = items.find((i) => isCurrent(pathname ?? "", i.href));
-  const resolvedTitle = pageTitle ?? currentItem?.label ?? "RP Hope Admin";
+
+  const visible = (i: NavItem) =>
+    (!i.requires || i.requires.some((c) => held.has(c))) &&
+    !(i.hideIf && i.hideIf.some((c) => held.has(c)));
+
+  // Drop empty sections entirely — a heading with nothing under it reads as a
+  // broken page rather than as a feature this account lacks.
+  const sections = NAV_SECTIONS.map((sec) => ({
+    ...sec,
+    items: sec.items.filter(visible),
+  })).filter((sec) => sec.items.length > 0);
+
+  const allItems = sections.flatMap((sec) => sec.items);
+  const currentItem = allItems.find((i) => isCurrent(pathname ?? "", i.href));
+  const resolvedTitle = pageTitle ?? currentItem?.label ?? "RP Hope Team Portal";
 
   const sidebarContent = (
-    <nav aria-label="Admin" className="flex h-full flex-col justify-between">
+    <nav aria-label="Portal" className="flex h-full flex-col justify-between">
       <div>
         <Link
-          // The wordmark goes to whatever "home" means for this clearance —
-          // the first nav item they can actually reach, so it's never a link
-          // into a page that would bounce them.
-          href={items[0]?.href || reviewHref("")}
+          // Goes to whatever "home" means for this clearance — the first item
+          // they can actually reach, so it never lands on a page that bounces.
+          href={allItems[0]?.href || reviewHref("")}
           className="block px-5 py-6 font-display text-xl font-bold text-forest"
         >
-          RP Hope <span className="font-normal text-ink/60">Admin</span>
+          RP Hope <span className="font-normal text-ink/60">Team Portal</span>
         </Link>
-        <ul className="space-y-1 px-3">
-          {items.map((item) => {
-            if (item.disabled) {
-              return (
-                <li key={item.label}>
-                  <span className="flex cursor-not-allowed items-center rounded-md px-3 py-2 text-sm text-ink/30">
-                    {item.label}
-                    <span className="ml-auto rounded-full bg-ink/10 px-2 py-0.5 text-[10px] font-semibold uppercase">
-                      Soon
-                    </span>
-                  </span>
-                </li>
-              );
-            }
-            const current = isCurrent(pathname ?? "", item.href);
-            return (
-              <li key={item.label}>
-                <Link
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  aria-current={current ? "page" : undefined}
-                  className={`block rounded-md px-3 py-2 text-sm font-semibold transition ${
-                    current ? "bg-forest text-white" : "text-ink/70 hover:bg-mint/40 hover:text-forest"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+
+        <div className="space-y-5 px-3 pb-6">
+          {sections.map((section, idx) => (
+            <div key={section.heading ?? `section-${idx}`}>
+              {section.heading && (
+                <h2 className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/40">
+                  {section.heading}
+                </h2>
+              )}
+              <ul className="space-y-0.5">
+                {section.items.map((item) => {
+                  if (item.disabled) {
+                    return (
+                      <li key={item.label}>
+                        <span className="flex cursor-not-allowed items-center rounded-md px-3 py-2 text-sm text-ink/30">
+                          {item.label}
+                          <span className="ml-auto rounded-full bg-ink/10 px-2 py-0.5 text-[10px] font-semibold uppercase">
+                            Soon
+                          </span>
+                        </span>
+                      </li>
+                    );
+                  }
+                  const current = isCurrent(pathname ?? "", item.href);
+                  return (
+                    <li key={item.label}>
+                      <Link
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        aria-current={current ? "page" : undefined}
+                        className={`block rounded-md px-3 py-2 text-sm font-semibold transition ${
+                          current
+                            ? "bg-forest text-white"
+                            : "text-ink/70 hover:bg-mint/40 hover:text-forest"
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
       </div>
+
       <div className="border-t border-ink/10 p-4 text-xs text-ink/50">
         <p className="truncate">{email}</p>
         <p className="mt-0.5 font-semibold uppercase tracking-wide text-ink/40">{role}</p>

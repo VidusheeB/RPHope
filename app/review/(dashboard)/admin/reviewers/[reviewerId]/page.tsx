@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Reviewer | RP Hope Admin", robots: {
 export const dynamic = "force-dynamic";
 
 export default async function ReviewerDetailPage({ params }: { params: { reviewerId: string } }) {
-  await requireCapability("reviewers.manage");
+  await requireCapability("team.manage");
   const detail = await getReviewerDetail(params.reviewerId);
   if (!detail) notFound();
   const { reviewers } = await getAdminOverview();

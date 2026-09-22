@@ -581,7 +581,7 @@ export async function inviteReviewerAction(input: {
   specialty?: string;
   adminNotes?: string;
 }): Promise<ActionResult> {
-  const ctx = await requireCapabilityService("reviewers.manage");
+  const ctx = await requireCapabilityService("team.manage");
   if (!ctx.ok) return { ok: false, error: ctx.error };
   if (!EMAIL_RE.test(input.email)) return { ok: false, error: "Enter a valid email address." };
 
@@ -636,7 +636,7 @@ export async function inviteReviewerAction(input: {
 /** Resend an invitation email to someone who hasn't accepted yet (Supabase
  *  re-sends/refreshes the invite link for an unconfirmed user). */
 export async function resendInvitationAction(userId: string): Promise<ActionResult> {
-  const ctx = await requireCapabilityService("reviewers.manage");
+  const ctx = await requireCapabilityService("team.manage");
   if (!ctx.ok) return { ok: false, error: ctx.error };
 
   const { data: authUser } = await ctx.service.auth.admin.getUserById(userId);
@@ -862,7 +862,7 @@ export async function updateReviewerAction(input: {
   specialty?: string;
   adminNotes?: string;
 }): Promise<ActionResult> {
-  const ctx = await requireCapabilityService("reviewers.manage");
+  const ctx = await requireCapabilityService("team.manage");
   if (!ctx.ok) return { ok: false, error: ctx.error };
   const patch: Record<string, unknown> = {};
   if (typeof input.active === "boolean") patch.active = input.active;

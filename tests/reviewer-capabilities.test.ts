@@ -38,12 +38,25 @@ describe("clearance — what a reviewer may do", () => {
     );
   });
 
-  it("cannot reach anyone else's work, the audit log, or reviewer management", () => {
+  it("cannot reach anyone else's work, the audit log, or team management", () => {
     const r = reviewer();
     expect(can(r, "genes.review.all")).toBe(false);
     expect(can(r, "tickets.manage")).toBe(false);
     expect(can(r, "activity.view")).toBe(false);
-    expect(can(r, "reviewers.manage")).toBe(false);
+    expect(can(r, "team.manage")).toBe(false);
+    expect(can(r, "team.view")).toBe(false);
+  });
+
+  it("cannot reach the organisation surfaces", () => {
+    // Donations and analytics are explicitly out of scope for a reviewer
+    // (spec: reviewer must NOT see donor information or analytics).
+    const r = reviewer();
+    expect(can(r, "donations.view")).toBe(false);
+    expect(can(r, "analytics.view")).toBe(false);
+    expect(can(r, "website.edit")).toBe(false);
+    expect(can(r, "website.publish")).toBe(false);
+    expect(can(r, "genes.generate")).toBe(false);
+    expect(can(r, "genes.assign")).toBe(false);
   });
 
   it("cannot approve its own review — approval is a separate authority", () => {
@@ -79,7 +92,7 @@ describe("clearance — publishing", () => {
     expect(can(restricted, "genes.approve")).toBe(true);
     expect(can(restricted, "genes.review.all")).toBe(true);
     expect(can(restricted, "stories.review")).toBe(true);
-    expect(can(restricted, "reviewers.manage")).toBe(true);
+    expect(can(restricted, "team.manage")).toBe(true);
   });
 
   it("an admin with can_publish on may publish", () => {
@@ -134,7 +147,7 @@ describe("canAll / canAny", () => {
     // Tickets is reachable by a reviewer (own) or an admin (manage).
     expect(canAny(reviewer(), ["tickets.view.own", "tickets.manage"])).toBe(true);
     expect(canAny(admin(), ["tickets.view.own", "tickets.manage"])).toBe(true);
-    expect(canAny(reviewer(), ["activity.view", "reviewers.manage"])).toBe(false);
+    expect(canAny(reviewer(), ["activity.view", "team.manage"])).toBe(false);
   });
 
   it("empty lists behave sensibly", () => {

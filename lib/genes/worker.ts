@@ -6,6 +6,7 @@
 // adding a queue service or a new dependency.
 
 import { createHash } from "crypto";
+import { headers } from "next/headers";
 
 /**
  * Shared secret for the worker route.
@@ -26,19 +27,41 @@ export function workerSecret(): string | null {
   return createHash("sha256").update(`rp-hope-generation-worker:${serviceKey}`).digest("hex");
 }
 
-/** Absolute origin for a server-to-server call back into this app.
+/**
+ * Absolute origin for a server-to-server call back into this app.
  *
- *  Development is resolved FIRST and locally, never from NEXT_PUBLIC_SITE_URL:
- *  that variable legitimately points at the production site, and using it here
- *  would make a local run fire its worker at production — where the job it is
- *  trying to drain does not exist. The symptom would be a queue that fills and
- *  never moves, with nothing in the local logs to explain it. */
+ * Resolution order matters, and each step exists because of a real failure:
+ *
+ * 1. DEVELOPMENT resolves locally, never from NEXT_PUBLIC_SITE_URL: that
+ *    variable legitimately points at the production site, so using it would
+ *    make a local run fire its worker at production, where the job it is
+ *    trying to drain does not exist.
+ *
+ * 2. The INCOMING REQUEST'S OWN HOST is preferred in production. This is the
+ *    alias the admin actually loaded (rphopereview.vercel.app) and is
+ *    therefore publicly reachable.
+ *
+ * 3. VERCEL_URL is a LAST RESORT, not a first choice. It is the
+ *    deployment-specific hostname, which carries Vercel's Deployment
+ *    Protection — a self-call to it lands on an SSO login wall rather than the
+ *    worker route. That silently broke generation in production: jobs sat
+ *    `queued` with attempts=0 forever, because the trigger fetch appeared to
+ *    succeed while never reaching the route.
+ */
 function selfOrigin(): string | null {
   if (process.env.NODE_ENV !== "production") {
     return `http://localhost:${process.env.PORT ?? 3000}`;
   }
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  try {
+    // Available in server actions and route handlers, which is every caller.
+    const h = headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host");
+    if (host) return `${h.get("x-forwarded-proto") ?? "https"}://${host}`;
+  } catch {
+    // Called outside a request scope — fall through.
+  }
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return null;
 }
 
@@ -61,8 +84,10 @@ export async function triggerGenerationWorker(): Promise<void> {
 
   const controller = new AbortController();
   // Long enough to be certain the request was accepted and the worker
-  // invocation began; short enough that we never block the caller on the run.
-  const timer = setTimeout(() => controller.abort(), 1500);
+  // invocation actually began — aborting too early can cancel it before the
+  // platform starts the function — but short enough that we never block the
+  // caller on a run that takes minutes.
+  const timer = setTimeout(() => controller.abort(), 4000);
   try {
     await fetch(`${origin}/api/genes/generation/drain`, {
       method: "POST",

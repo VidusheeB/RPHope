@@ -77,9 +77,23 @@ export type Capability =
   /** Publish or take down a story (also needs can_publish). */
   | "stories.publish"
 
-  // --- Administration --------------------------------------------------
-  /** Invite reviewers, toggle active, change role/permissions. */
-  | "reviewers.manage"
+  // --- Website -----------------------------------------------------------
+  /** Edit structured website content (copy, images, section visibility). */
+  | "website.edit"
+  /** Make website content edits live. */
+  | "website.publish"
+
+  // --- Team ----------------------------------------------------------------
+  /** See the team roster. */
+  | "team.view"
+  /** Invite people, toggle active, change role/permissions. */
+  | "team.manage"
+
+  // --- Organization --------------------------------------------------------
+  /** Read website/product analytics. */
+  | "analytics.view"
+  /** See donation records. */
+  | "donations.view"
   /** Read the cross-portal audit log. */
   | "activity.view";
 
@@ -133,7 +147,12 @@ export const ROLE_CAPABILITIES: Record<ReviewerRole, readonly Capability[]> = {
     "tickets.manage",
     "stories.review",
     "stories.publish",
-    "reviewers.manage",
+    "website.edit",
+    "website.publish",
+    "team.view",
+    "team.manage",
+    "analytics.view",
+    "donations.view",
     "activity.view",
   ],
 };
