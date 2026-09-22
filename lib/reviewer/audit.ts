@@ -32,7 +32,8 @@ export type AuditAction =
   | "gene_generation_started"
   | "ticket_created"
   | "ticket_reply_added"
-  | "ticket_updated";
+  | "ticket_updated"
+  | "ticket_resolved";
 
 export async function logAudit(input: {
   actor: string | null;

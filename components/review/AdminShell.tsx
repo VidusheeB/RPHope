@@ -59,7 +59,9 @@ const NAV_SECTIONS: NavSection[] = [
   {
     heading: "Communication",
     items: [
-      { label: "Tickets", href: reviewHref("/admin/tickets"), requires: ["tickets.manage"] },
+      // One route for both audiences — RLS decides whether you see your own
+      // conversations or the whole shared inbox.
+      { label: "Conversations", href: reviewHref("/tickets"), requires: ["tickets.view.own", "tickets.manage"] },
       { label: "Donations", href: "", disabled: true, requires: ["donations.view"] },
     ],
   },
