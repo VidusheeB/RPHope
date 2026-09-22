@@ -245,6 +245,9 @@ export async function submitReviewAction(input: {
       review_status: "submitted_for_approval",
       submitted_at: submittedAt,
       submitted_by: session.userId,
+      // The immutable record of what this reviewer actually approved.
+      // Publication reads THIS, never the live row — see 0026.
+      submitted_content: input.content,
     })
     .eq("id", input.draftId);
   if (saveErr) return { ok: false, error: saveErr.message };
@@ -359,10 +362,17 @@ export async function publishAction(input: {
   // Re-derive authorization from the DB — never trust the client.
   const { data: draft } = await service
     .from("gene_page_drafts")
-    .select("id, gene_slug, gene_symbol, review_flags, review_status")
+    .select("id, gene_slug, gene_symbol, review_flags, review_status, submitted_content")
     .eq("id", input.draftId)
     .maybeSingle();
   if (!draft) return { ok: false, error: "Draft not found." };
+
+  // WHAT GETS PUBLISHED. The snapshot taken when the reviewer submitted wins
+  // over anything the client posted: publishing content the reviewer never saw
+  // would break the one guarantee this whole review pipeline exists to make.
+  // Falling back to the posted content covers drafts submitted before 0026
+  // added the column, and admin-override publishes of never-submitted drafts.
+  const approvedContent = (draft.submitted_content as GenePageDraft | null) ?? input.content;
 
   const { data: assignment } = await service
     .from("draft_assignments")
@@ -386,7 +396,7 @@ export async function publishAction(input: {
   );
 
   const readiness = evaluateAdminPublishReadiness({
-    draft: input.content,
+    draft: approvedContent,
     flagCount: Array.isArray(draft.review_flags) ? draft.review_flags.length : 0,
     resolutions: (resolutions ?? []).map((r) => ({
       flagIndex: r.flag_index,
@@ -403,12 +413,15 @@ export async function publishAction(input: {
     return { ok: false, error: "Not ready to publish.", blockers: readiness.blockers };
   }
 
-  // 1. Persist the latest edits onto the draft (outside the publish txn; the
-  //    content published is passed to the RPC directly, so a save failure here
-  //    is non-fatal to the atomic publish, but we surface it).
+  // 1. Align the draft row with what is about to go live. This writes
+  //    `approvedContent` — NOT the posted content — so the draft cannot end up
+  //    describing something different from the published version. Publishing
+  //    is not an editing opportunity: an administrator who wants changes sends
+  //    it back to the reviewer, which starts a fresh review and a fresh
+  //    snapshot.
   const { error: saveErr } = await service
     .from("gene_page_drafts")
-    .update({ ...serializeDraft(input.content), ...contentEditStamp(session.userId) })
+    .update({ ...serializeDraft(approvedContent), ...contentEditStamp(session.userId) })
     .eq("id", input.draftId);
   if (saveErr) return { ok: false, error: `Could not save latest edits: ${saveErr.message}` };
 
@@ -421,7 +434,9 @@ export async function publishAction(input: {
     .rpc("publish_gene_version", {
       p_draft_id: input.draftId,
       p_gene_slug: draft.gene_slug,
-      p_content: input.content,
+      // The reviewer-approved snapshot. See `approvedContent` above — this is
+      // the single most important line in the publish path.
+      p_content: approvedContent,
       p_approver: session.userId,
       p_assignment_id: assignment?.id ?? null,
     })

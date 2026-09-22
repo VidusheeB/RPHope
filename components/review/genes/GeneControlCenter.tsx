@@ -451,7 +451,7 @@ export default function GeneControlCenter({
 
                 {r.bucket === "awaiting_publication" && r.draftId && (
                   <Link
-                    href={reviewHref(`/admin/genes/${r.draftId}`)}
+                    href={reviewHref(`/genes/${r.draftId}/publish`)}
                     className="h-8 rounded-md bg-forest px-2.5 text-xs font-semibold leading-8 text-white hover:bg-forest/90"
                   >
                     Review &amp; publish
