@@ -75,36 +75,28 @@ describe("clearance — what a reviewer may do", () => {
 
 describe("clearance — publishing", () => {
   it("a reviewer can NEVER publish, even with can_publish switched on", () => {
-    // The ordering rule: can_publish is a restriction on a capability the role
-    // already holds, never a grant of one. Flipping the flag on a reviewer
-    // must be inert — otherwise the flag becomes a back door to publish
-    // authority without a role change.
+    // The reviewer role holds no publish capability at all, so the legacy
+    // column cannot become a back door to publish authority without a role
+    // change. This is the assertion that must never be relaxed.
     const trusted = reviewer({ can_publish: true });
     expect(can(trusted, "genes.publish")).toBe(false);
     expect(can(trusted, "stories.publish")).toBe(false);
   });
 
-  it("an admin with can_publish off keeps everything except publishing", () => {
-    const restricted = admin({ can_publish: false });
-    expect(can(restricted, "genes.publish")).toBe(false);
-    expect(can(restricted, "stories.publish")).toBe(false);
-    // ...but is still fully an admin otherwise.
-    expect(can(restricted, "genes.approve")).toBe(true);
-    expect(can(restricted, "genes.review.all")).toBe(true);
-    expect(can(restricted, "stories.review")).toBe(true);
-    expect(can(restricted, "team.manage")).toBe(true);
+  it("EVERY admin can publish, regardless of the legacy can_publish column", () => {
+    // Owner decision, 2026-09-22: publishing follows the role. There is no
+    // per-person publish override, so the stale column must not silently
+    // withhold a capability an admin is supposed to have.
+    expect(can(admin({ can_publish: false }), "genes.publish")).toBe(true);
+    expect(can(admin({ can_publish: false }), "stories.publish")).toBe(true);
+    expect(can(admin({ can_publish: true }), "genes.publish")).toBe(true);
   });
 
-  it("an admin with can_publish on may publish", () => {
-    expect(can(admin(), "genes.publish")).toBe(true);
-    expect(can(admin(), "stories.publish")).toBe(true);
-  });
-
-  it("capabilitiesFor() reflects the can_publish restriction, not just the role table", () => {
-    // Nav and dashboards render from this list, so it has to be the effective
-    // set — a Publish link must not appear for an admin whose flag is off.
-    expect(capabilitiesFor(admin({ can_publish: false }))).not.toContain("genes.publish");
-    expect(capabilitiesFor(admin())).toContain("genes.publish");
+  it("capabilitiesFor() gives an admin the publish capabilities either way", () => {
+    // Nav and dashboards render from this list, so a Publish control must
+    // appear for any admin.
+    expect(capabilitiesFor(admin({ can_publish: false }))).toContain("genes.publish");
+    expect(capabilitiesFor(admin({ can_publish: true }))).toContain("genes.publish");
   });
 });
 

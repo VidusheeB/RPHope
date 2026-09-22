@@ -14,6 +14,7 @@ export type AuditAction =
   | "reviewer_activated"
   | "reviewer_deactivated"
   | "reviewer_publish_permission_changed"
+  | "reviewer_removed"
   | "draft_assigned"
   | "draft_reassigned"
   | "draft_unassigned"

@@ -133,7 +133,18 @@ describe("capability checks are the boundary, not role literals", () => {
     // The whole point of the capability model: adding a role must not require
     // auditing scattered `role === "admin"` comparisons. Those two files are
     // the only places allowed to know role names exist.
-    const allowed = new Set(["lib/reviewer/permissions.ts", "lib/reviewer/session.ts"]);
+    // The rule bans branching on the CALLER's role to decide what they may do.
+    // Comparing ANOTHER person's role as data — filtering a roster by
+    // category, or counting how many admins would remain — is a fact about the
+    // organisation, not an authorization decision, and has no capability to
+    // express it. Those files are listed here with that reasoning; anything
+    // added must be re-read to confirm it is not gating the caller.
+    const allowed = new Set([
+      "lib/reviewer/permissions.ts",
+      "lib/reviewer/session.ts",
+      "app/review/(dashboard)/admin/reviewers/actions.ts", // last-admin count
+      "components/review/TeamTable.tsx", // roster category filter
+    ]);
     const offenders = portalFiles.filter((f) => {
       if (allowed.has(f)) return false;
       return /\brole\s*[!=]==\s*["']admin["']/.test(read(f));

@@ -19,7 +19,6 @@ export default function InviteReviewerDialog() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState<"reviewer" | "admin">("reviewer");
-  const [canPublish, setCanPublish] = useState(false);
   const [title, setTitle] = useState("");
   const [organization, setOrganization] = useState("");
   const [specialty, setSpecialty] = useState("");
@@ -29,7 +28,6 @@ export default function InviteReviewerDialog() {
     setEmail("");
     setName("");
     setRole("reviewer");
-    setCanPublish(false);
     setTitle("");
     setOrganization("");
     setSpecialty("");
@@ -45,7 +43,9 @@ export default function InviteReviewerDialog() {
       email,
       displayName: name,
       role,
-      canPublish,
+      // Retained in the action's signature for the existing column; publishing
+      // is decided by role, so this is always false here.
+      canPublish: false,
       title,
       organization,
       specialty,
@@ -132,10 +132,10 @@ export default function InviteReviewerDialog() {
                   <option value="admin">Admin</option>
                 </select>
               </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={canPublish} onChange={(e) => setCanPublish(e.target.checked)} />
-                Can publish
-              </label>
+              {/* No publish checkbox. Publishing follows the ROLE — every
+                  admin can publish, a reviewer never can — so a per-person
+                  toggle here would either do nothing (on a reviewer) or
+                  duplicate the role (on an admin). */}
 
               {error && <p className="text-sm text-maroon">{error}</p>}
 

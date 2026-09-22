@@ -27,14 +27,20 @@
 //    every page and every server action re-checks server-side against the
 //    DB-backed profile. See requireCapability() in ./session.
 //
-// PUBLISHING
-// ----------
-// `reviewer_profiles.can_publish` is kept, but it is a RESTRICTION, never a
-// grant: a role must first hold the publish capability, and can_publish can
-// then withhold it from an individual. A reviewer with can_publish = true
-// still cannot publish anything, because the reviewer role does not list a
-// publish capability at all. That ordering is what makes "reviewers cannot
-// publish" true by construction rather than by remembering to check twice.
+// PUBLISHING (owner decision, 2026-09-22)
+// ---------------------------------------
+// Publishing is a ROLE, not a per-person permission: every admin can publish,
+// and a reviewer never can. There is deliberately no per-user override.
+//
+// The `reviewer_profiles.can_publish` column still exists and is still read
+// into the session, but it no longer gates anything — see REQUIRES_CAN_PUBLISH
+// below. The column is left in place because dropping it would be a migration
+// with no upside, and because historical rows still carry it.
+//
+// Do not reintroduce a per-user publish flag without deciding what it means
+// for a reviewer: the previous model had a `can_publish = true` reviewer who
+// still could not publish, which was correct but confusing enough that the
+// control was removed from the UI entirely.
 
 export type ReviewerRole = "reviewer" | "admin";
 
@@ -97,14 +103,14 @@ export type Capability =
   /** Read the cross-portal audit log. */
   | "activity.view";
 
-/** Capabilities that a role grant alone is NOT sufficient for — the person's
- *  `can_publish` flag must ALSO be true. Publishing is the one action with
- *  per-person sign-off in the content-governance model, so it stays separately
- *  revocable without demoting someone's whole role. */
-const REQUIRES_CAN_PUBLISH: ReadonlySet<Capability> = new Set<Capability>([
-  "genes.publish",
-  "stories.publish",
-]);
+/** Capabilities a role grant alone is NOT sufficient for.
+ *
+ *  EMPTY BY DECISION. Publishing used to additionally require the per-user
+ *  `can_publish` flag; it no longer does (see PUBLISHING above). The mechanism
+ *  is kept rather than deleted because "this capability needs a second
+ *  condition" is a shape this model will want again — an org-wide freeze, say —
+ *  and re-deriving it later is worse than leaving one empty set behind. */
+const REQUIRES_CAN_PUBLISH: ReadonlySet<Capability> = new Set<Capability>([]);
 
 /**
  * The clearance table. Written out in full per role — deliberately NOT
