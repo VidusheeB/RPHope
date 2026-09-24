@@ -21,7 +21,11 @@ export type NotificationType =
   | "draft_assigned"
   | "ticket_created"
   | "ticket_reply"
-  | "ticket_resolved";
+  | "ticket_resolved"
+  // Someone whose invitation link expired asked for a new one. Raised from an
+  // UNAUTHENTICATED page, so it carries no detail beyond the email that was
+  // entered.
+  | "invitation_requested";
 
 export type NotificationRow = {
   id: string;

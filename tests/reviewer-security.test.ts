@@ -172,7 +172,18 @@ describe("capability checks are the boundary, not role literals", () => {
     // why these go through the service client at all. Adding a file here is a
     // deliberate act: re-read it and confirm it cannot be aimed at another
     // user's record.
-    const selfScoped = new Set(["app/review/(dashboard)/settings/actions.ts"]);
+    const selfScoped = new Set([
+      "app/review/(dashboard)/settings/actions.ts",
+      // PUBLIC BY NECESSITY. The caller could not sign in — an expired
+      // invitation is why they are here — so there is no session to gate on.
+      // What makes it safe is not a capability but its shape, pinned by
+      // tests/invitation-request.test.ts: it only ever sends a notification,
+      // never creates or changes an account, returns an identical response
+      // whether or not the email exists, and collapses repeats so it cannot
+      // flood an admin. Do not add an endpoint here without equivalent
+      // constraints and equivalent tests.
+      "app/review/set-password/actions.ts",
+    ]);
     const entryPoints = walk("app/review").filter((f) => !selfScoped.has(f));
     const offenders = entryPoints.filter((f) => {
       const src = read(f);

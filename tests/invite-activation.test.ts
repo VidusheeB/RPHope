@@ -25,9 +25,10 @@ describe("activating an invitation", () => {
   });
 
   it("explains an expired or reused link instead of showing an auth error", () => {
-    expect(src).toMatch(/expired or has already been used/);
-    // ...and offers the two real ways forward.
-    expect(src).toMatch(/send you a new invitation/);
+    expect(src).toMatch(/This link has expired/);
+    // ...and offers the two real ways forward: request a new link, or sign in
+    // if a password already exists.
+    expect(src).toMatch(/Request a new link/);
     expect(src).toMatch(/sign in/);
   });
 

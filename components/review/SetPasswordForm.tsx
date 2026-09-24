@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getBrowserSupabase } from "@/lib/supabaseBrowser";
 import { reviewHref } from "@/lib/reviewer/paths";
+import { requestNewInvitationAction } from "@/app/review/set-password/actions";
 
 // Used for BOTH the invite flow ("set your password") and the reset flow
 // ("choose a new password").
@@ -37,6 +38,12 @@ export default function SetPasswordForm({ heading }: { heading: string }) {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Requesting a fresh link from the expired state. The email is asked for
+  // because this page has no session — that is precisely what expired.
+  const [requestEmail, setRequestEmail] = useState("");
+  const [requesting, setRequesting] = useState(false);
+  const [requestResult, setRequestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,17 +93,30 @@ export default function SetPasswordForm({ heading }: { heading: string }) {
     const { error: updateError } = await supabase.auth.updateUser({ password });
     setBusy(false);
     if (updateError) {
-      setError(
-        /session|jwt|token/i.test(updateError.message)
-          ? "This link has expired or has already been used. Ask an RP Hope administrator to send you a new invitation."
-          : updateError.message
-      );
+      // A session-shaped failure means the link died between loading the page
+      // and submitting it. Drop into the expired state so they get the
+      // request-a-new-link form rather than a dead end telling them to go
+      // find an admin themselves.
+      if (/session|jwt|token/i.test(updateError.message)) {
+        setSessionState("missing");
+        return;
+      }
+      setError(updateError.message);
       return;
     }
     // Already signed in from the magic link, so go straight into the portal
     // rather than bouncing to a login form to retype what was just chosen.
     router.replace(reviewHref(""));
     router.refresh();
+  }
+
+  async function requestNew(e: React.FormEvent) {
+    e.preventDefault();
+    setRequesting(true);
+    setRequestResult(null);
+    const res = await requestNewInvitationAction(requestEmail);
+    setRequesting(false);
+    setRequestResult(res);
   }
 
   if (sessionState === "checking") {
@@ -112,14 +132,53 @@ export default function SetPasswordForm({ heading }: { heading: string }) {
   if (sessionState === "missing") {
     return (
       <div className="mx-auto max-w-sm">
-        <h1 className="font-display text-2xl font-medium text-forest">{heading}</h1>
-        <p role="alert" className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          This link has expired or has already been used. Invitation links work once, and only for a
-          limited time.
+        <h1 className="font-display text-2xl font-medium text-forest">This link has expired</h1>
+        <p className="mt-3 text-sm text-ink/75">
+          Invitation links work once, and only for a limited time. Request a new one and the
+          administrator who invited you will be notified.
         </p>
-        <p className="mt-3 text-sm text-ink/70">
-          Ask an RP Hope administrator to send you a new invitation. If you already have a password,
-          you can{" "}
+
+        {requestResult ? (
+          <p
+            role="status"
+            className={`mt-4 rounded-md px-3 py-2 text-sm ${
+              requestResult.ok
+                ? "border border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border border-red-200 bg-red-50 text-red-800"
+            }`}
+          >
+            {requestResult.message}
+          </p>
+        ) : null}
+
+        {!requestResult?.ok && (
+          <form onSubmit={requestNew} className="mt-4 space-y-3">
+            <label className="block text-sm">
+              <span className="font-semibold text-ink">Your email</span>
+              <input
+                type="email"
+                required
+                value={requestEmail}
+                onChange={(e) => setRequestEmail(e.target.value)}
+                autoComplete="email"
+                className="mt-1 h-10 w-full rounded-md border border-ink/15 px-3 outline-none focus-visible:ring-2 focus-visible:ring-forest"
+              />
+              <span className="mt-1 block text-xs text-ink/55">
+                The address your invitation was sent to.
+              </span>
+            </label>
+            <button
+              type="submit"
+              disabled={requesting || !requestEmail.trim()}
+              className="h-10 w-full rounded-md bg-forest px-4 font-semibold text-white hover:bg-forest/90 disabled:opacity-50"
+            >
+              {requesting ? "Sending…" : "Request a new link"}
+            </button>
+          </form>
+        )}
+
+        <p className="mt-4 text-sm text-ink/70">
+          If you already have a password, you can{" "}
           <Link href={reviewHref("/login")} className="font-semibold text-forest underline">
             sign in
           </Link>{" "}
