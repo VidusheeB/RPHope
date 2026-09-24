@@ -75,6 +75,16 @@ export type Capability =
   /** See everyone's tickets, change status/assignment, write internal notes. */
   | "tickets.manage"
 
+  // --- Messages ----------------------------------------------------------
+  /** Send and read direct messages with other team members.
+   *
+   *  Held by EVERY role. Messaging is not a privilege — it is how the team
+   *  talks to itself — and a role that cannot be messaged is a person
+   *  colleagues cannot reach. There is deliberately no "read anyone's
+   *  messages" capability: privacy here is enforced by RLS participation, and
+   *  an admin has no override. */
+  | "messages.send"
+
   // --- Stories ---------------------------------------------------------
   /** Read story submissions. NOTE: these rows carry submitter PII
    *  (full_name / email / phone / consent), so this is a real privacy
@@ -132,6 +142,7 @@ export const ROLE_CAPABILITIES: Record<ReviewerRole, readonly Capability[]> = {
     "genes.submit",
     "tickets.create",
     "tickets.view.own",
+    "messages.send",
   ],
 
   // Admins hold everything. Listed explicitly so this array is the complete,
@@ -151,6 +162,7 @@ export const ROLE_CAPABILITIES: Record<ReviewerRole, readonly Capability[]> = {
     "tickets.create",
     "tickets.view.own",
     "tickets.manage",
+    "messages.send",
     "stories.review",
     "stories.publish",
     "website.edit",

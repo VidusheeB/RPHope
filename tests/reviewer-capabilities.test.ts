@@ -34,6 +34,10 @@ describe("clearance — what a reviewer may do", () => {
         "genes.submit",
         "tickets.create",
         "tickets.view.own",
+        // Messaging is not a privilege — it is how the team talks to itself,
+        // and a member nobody can message is a member nobody can reach.
+        // Privacy comes from RLS participation, not from withholding this.
+        "messages.send",
       ])
     );
   });
@@ -63,6 +67,14 @@ describe("clearance — what a reviewer may do", () => {
     // The whole point of submit-then-approve: a reviewer hands work to the
     // publish queue but never dispositions it.
     expect(can(reviewer(), "genes.approve")).toBe(false);
+  });
+
+  it("can message teammates, but that grants no ability to read others' threads", () => {
+    // There is deliberately no "read anyone's messages" capability to check
+    // against — not for reviewers and not for admins. Participation in a
+    // thread is the only thing that grants access, enforced in RLS.
+    expect(can(reviewer(), "messages.send")).toBe(true);
+    expect(can(admin(), "messages.send")).toBe(true);
   });
 
   it("cannot read story submissions (they carry submitter PII)", () => {

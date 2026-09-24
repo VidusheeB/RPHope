@@ -62,6 +62,10 @@ const NAV_SECTIONS: NavSection[] = [
       // One route for both audiences — RLS decides whether you see your own
       // conversations or the whole shared inbox.
       { label: "Tickets", href: reviewHref("/tickets"), requires: ["tickets.view.own", "tickets.manage"] },
+      // Private person-to-person messaging — deliberately NOT the same thing
+      // as Tickets. A ticket is raised to the team and every admin sees it; a
+      // message is readable only by its participants.
+      { label: "Messages", href: reviewHref("/messages"), requires: ["messages.send"] },
       { label: "Donations", href: "", disabled: true, requires: ["donations.view"] },
     ],
   },
