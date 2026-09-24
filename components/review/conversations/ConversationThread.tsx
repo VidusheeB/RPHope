@@ -34,6 +34,12 @@ const STATUS_BADGE: Record<TicketStatus, string> = {
   closed: "Resolved",
 };
 
+// An admin takes RESPONSIBILITY for a ticket rather than being allocated it,
+// and "assign" already means something else here — assigning a gene draft to a
+// reviewer. Using one word for both made the admin inbox read like the gene
+// queue. "Delegate" keeps the two ideas distinct.
+
+
 function when(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
@@ -209,9 +215,11 @@ export default function ConversationThread({
               <dd className="text-ink">{conversation.createdByName ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-xs text-ink/55">Assigned to</dt>
+              <dt className="text-xs text-ink/55">Handled by</dt>
               <dd className="text-ink">
-                {conversation.assignedAdminName ?? <span className="text-ink/60">Unassigned</span>}
+                {conversation.assignedAdminName ?? (
+                  <span className="text-ink/70">Nobody yet</span>
+                )}
               </dd>
             </div>
           </dl>
@@ -228,13 +236,13 @@ export default function ConversationThread({
                   disabled={busy}
                   className="h-9 w-full rounded-md border border-forest px-3 text-sm font-semibold text-forest hover:bg-mint/40 disabled:opacity-50"
                 >
-                  Assign to me
+                  Take this on
                 </button>
               )}
 
               <div>
                 <label htmlFor="assign-to" className="block text-xs text-ink/55">
-                  Assign to
+                  Delegate to
                 </label>
                 <select
                   id="assign-to"
@@ -243,7 +251,7 @@ export default function ConversationThread({
                   disabled={busy}
                   className="mt-1 h-9 w-full rounded-md border border-ink/15 bg-white px-2 text-sm"
                 >
-                  <option value="">Unassigned</option>
+                  <option value="">Nobody yet</option>
                   {admins.map((a) => (
                     <option key={a.userId} value={a.userId}>
                       {a.displayName}

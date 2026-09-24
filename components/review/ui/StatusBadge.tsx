@@ -52,7 +52,12 @@ export const STATUS_TONES = {
 export type StatusLabel = keyof typeof STATUS_TONES;
 
 const TONE_CLASSES: Record<StatusTone, string> = {
-  neutral: "bg-ink/[0.06] text-ink/70 ring-ink/10",
+  // Full-strength ink, not a tint. At 12px a status chip is small, bold and
+  // load-bearing, and ink/70 measured only 5.55:1 — passing AA on paper while
+  // reading as washed out next to the darker chips beside it. Full ink is
+  // 14.25:1. Our audience has vision loss; a status should never be the
+  // faintest thing on the row.
+  neutral: "bg-ink/[0.09] text-ink ring-ink/15",
   info: "bg-sky-50 text-sky-800 ring-sky-200",
   progress: "bg-blue-50 text-blue-800 ring-blue-200",
   success: "bg-emerald-50 text-emerald-800 ring-emerald-200",

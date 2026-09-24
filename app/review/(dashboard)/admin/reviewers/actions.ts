@@ -30,11 +30,15 @@ export async function deactivateMemberAction(userId: string): Promise<ActionResu
   const service = getServiceSupabase();
   if (!service) return { ok: false, error: "Server not configured." };
 
-  const { data: target } = await service
+  // Check `error` separately from `data`. Conflating them is what made a
+  // missing DATABASE COLUMN surface to the admin as "that team member no
+  // longer exists" — a confident, wrong answer about the wrong thing.
+  const { data: target, error: lookupError } = await service
     .from("reviewer_profiles")
     .select("role, display_name")
     .eq("user_id", userId)
     .maybeSingle();
+  if (lookupError) return { ok: false, error: `Could not look up that team member: ${lookupError.message}` };
   if (!target) return { ok: false, error: "That team member no longer exists." };
 
   if (target.role === "admin" && (await activeAdminsExcluding(userId)) === 0) {
@@ -68,22 +72,6 @@ export async function reactivateMemberAction(userId: string): Promise<ActionResu
   const service = getServiceSupabase();
   if (!service) return { ok: false, error: "Server not configured." };
 
-  const { data: target } = await service
-    .from("reviewer_profiles")
-    .select("removed_at")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (!target) return { ok: false, error: "That team member no longer exists." };
-
-  // Removal is deliberately one-way from the UI — a "reactivate" that silently
-  // undid a permanent removal would make the warning on that button a lie.
-  if (target.removed_at) {
-    return {
-      ok: false,
-      error: "This person was permanently removed. Invite them again to restore access.",
-    };
-  }
-
   const { error } = await service
     .from("reviewer_profiles")
     .update({ active: true })
@@ -91,74 +79,6 @@ export async function reactivateMemberAction(userId: string): Promise<ActionResu
   if (error) return { ok: false, error: error.message };
 
   await logAudit({ actor: session.userId, action: "reviewer_activated", reviewerId: userId });
-  revalidatePath(reviewHref("/admin/reviewers"));
-  return { ok: true };
-}
-
-/**
- * Permanently remove a team member.
- *
- * NOT a row delete. reviewer_profiles cascades from auth.users, so deleting
- * the account would erase the profile — and with it the name that every
- * historical approval, publication and ticket resolves through. audit_log.actor
- * has no cascade either, so the delete would simply be refused for anyone who
- * has done work. See 0028.
- *
- * Instead: ban the auth account (they can never sign in again), mark the
- * profile removed, and deactivate it. Access is gone permanently; attribution
- * survives.
- */
-export async function removeMemberAction(userId: string): Promise<ActionResult> {
-  const session = await requireTeamManage();
-  if (!session) return { ok: false, error: "You don't have permission to manage the team." };
-
-  if (userId === session.userId) {
-    return { ok: false, error: "You can't remove your own account." };
-  }
-
-  const service = getServiceSupabase();
-  if (!service) return { ok: false, error: "Server not configured." };
-
-  const { data: target } = await service
-    .from("reviewer_profiles")
-    .select("role, display_name")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (!target) return { ok: false, error: "That team member no longer exists." };
-
-  if (target.role === "admin" && (await activeAdminsExcluding(userId)) === 0) {
-    return {
-      ok: false,
-      error:
-        "This is the last active administrator. Removing them would leave RP Hope with nobody able to manage the portal — make someone else an admin first.",
-    };
-  }
-
-  // Provider-level ban first. If the profile update below were to fail, the
-  // worst outcome is an account that cannot sign in but still shows on the
-  // roster — visible and fixable. Doing it the other way round could leave
-  // someone marked removed who can still log in.
-  const { error: banError } = await service.auth.admin.updateUserById(userId, {
-    ban_duration: "876000h", // ~100 years; Supabase has no explicit "forever"
-  });
-  if (banError) return { ok: false, error: `Could not revoke access: ${banError.message}` };
-
-  const { error } = await service
-    .from("reviewer_profiles")
-    .update({
-      active: false,
-      removed_at: new Date().toISOString(),
-      removed_by: session.userId,
-    })
-    .eq("user_id", userId);
-  if (error) return { ok: false, error: error.message };
-
-  await logAudit({
-    actor: session.userId,
-    action: "reviewer_removed",
-    reviewerId: userId,
-    after: { displayName: target.display_name, role: target.role },
-  });
   revalidatePath(reviewHref("/admin/reviewers"));
   return { ok: true };
 }

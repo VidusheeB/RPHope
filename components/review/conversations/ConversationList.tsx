@@ -1,9 +1,15 @@
 "use client";
 
-// The conversations index. For a reviewer this is "my questions"; for an
-// admin it is the shared team inbox — every admin sees every conversation,
-// assigned or not, because ownership is a signal about who is handling
-// something, not a way to hide it from the rest of the team.
+// The tickets index — issues raised by the review team.
+//
+// For a reviewer this is "issues I raised"; for an admin it is the shared team
+// inbox. Every admin sees every ticket, delegated or not, because ownership is
+// a signal about who is handling something rather than a way to hide it from
+// the rest of the team.
+//
+// NOTE: this is tickets, not direct messaging. A ticket is raised TO the RP
+// Hope team and every admin can see it. Private person-to-person messaging is
+// a separate feature.
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -79,11 +85,11 @@ export default function ConversationList({
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-forest">Conversations</h1>
+          <h1 className="font-display text-2xl font-semibold text-forest">Tickets</h1>
           <p className="mt-1 text-sm text-ink/60">
             {canManage
-              ? "Questions from the review team. Every admin sees all of these."
-              : "Your questions to the RP Hope team."}
+              ? "Issues raised by the review team. Every admin sees all of these."
+              : "Issues you've raised with the RP Hope team."}
           </p>
         </div>
         <button
@@ -91,7 +97,7 @@ export default function ConversationList({
           onClick={() => setComposing((v) => !v)}
           className="h-9 rounded-md bg-forest px-3 text-sm font-semibold text-white hover:bg-forest/90"
         >
-          New conversation
+          New ticket
         </button>
       </div>
 
@@ -134,7 +140,7 @@ export default function ConversationList({
               disabled={busy || !subject.trim() || !body.trim()}
               className="h-9 rounded-md bg-forest px-3 text-sm font-semibold text-white hover:bg-forest/90 disabled:opacity-40"
             >
-              {busy ? "Starting…" : "Start conversation"}
+              {busy ? "Raising…" : "Raise ticket"}
             </button>
           </div>
           {error && (
@@ -161,8 +167,8 @@ export default function ConversationList({
         {visible.length === 0 && (
           <li className="px-4 py-12 text-center text-sm text-ink/60">
             {conversations.length === 0
-              ? "No conversations yet."
-              : "Nothing open. Tick “Show resolved” to see past conversations."}
+              ? "No tickets yet."
+              : "Nothing open. Tick “Show resolved” to see resolved tickets."}
           </li>
         )}
 
@@ -175,20 +181,31 @@ export default function ConversationList({
               <span className="font-semibold text-ink">{c.subject}</span>
               <StatusBadge status={STATUS_BADGE[c.status]} />
               {c.geneSymbol && (
-                <span className="rounded bg-ink/[0.06] px-1.5 py-0.5 text-xs font-semibold text-ink/70">
+                // Same contrast correction as StatusBadge's neutral tone: a
+                // tinted label at 12px reads as washed out beside the darker
+                // text on the row.
+                <span className="rounded bg-ink/[0.09] px-1.5 py-0.5 text-xs font-semibold text-ink">
                   {c.geneSymbol}
+                </span>
+              )}
+              {/* Who raised it. An admin triaging a shared inbox needs this
+                  before anything else — it was previously only visible after
+                  opening the ticket. */}
+              {canManage && c.createdByName && (
+                <span className="text-xs font-semibold text-ink/75">
+                  from {c.createdByName}
                 </span>
               )}
               <span className="w-full truncate text-sm text-ink/60 sm:w-auto sm:flex-1">
                 {c.lastMessage}
               </span>
               {canManage && (
-                <span className="text-xs text-ink/55">
+                <span className="text-xs text-ink/70">
                   {c.assignedAdminName
                     ? c.assignedAdmin === viewerId
                       ? "You're handling this"
                       : `${c.assignedAdminName} is handling this`
-                    : "Unassigned"}
+                    : "Not delegated"}
                 </span>
               )}
               <span className="text-xs text-ink/45">{relative(c.lastMessageAt)}</span>

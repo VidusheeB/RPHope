@@ -8,7 +8,7 @@ import { getServiceSupabase } from "@/lib/supabaseAdmin";
 import type { ReviewerRole } from "./permissions";
 
 /** What the roster shows for one person. */
-export type TeamMemberStatus = "invited" | "active" | "inactive" | "removed";
+export type TeamMemberStatus = "invited" | "active" | "inactive";
 
 export type TeamMember = {
   userId: string;
@@ -25,17 +25,18 @@ export type TeamMember = {
 };
 
 /**
- * Derive a single status from the several booleans/timestamps that describe an
- * account. Exported because the precedence is the part worth testing: removed
- * beats inactive, and "invited" only applies to someone who has never signed
- * in — otherwise a long-dormant active member would read as never-accepted.
+ * Derive a single status for an account. Exported because the precedence is
+ * the part worth testing: "invited" applies only to someone who has never
+ * signed in — otherwise a long-dormant active member would read as
+ * never-accepted.
+ *
+ * There is no "removed" state. Deactivation is the only way a member loses
+ * access, and it is always reversible.
  */
 export function deriveStatus(input: {
-  removedAt: string | null;
   active: boolean;
   hasSignedIn: boolean;
 }): TeamMemberStatus {
-  if (input.removedAt) return "removed";
   if (!input.active) return "inactive";
   if (!input.hasSignedIn) return "invited";
   return "active";
@@ -71,7 +72,6 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
         email: auth?.email ?? null,
         role: p.role as ReviewerRole,
         status: deriveStatus({
-          removedAt: p.removed_at ?? null,
           active: p.active,
           hasSignedIn: Boolean(auth?.lastSignIn),
         }),
@@ -82,8 +82,8 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
       };
     })
     .sort((a, b) => {
-      // Removed members sink to the bottom; otherwise alphabetical.
-      if ((a.status === "removed") !== (b.status === "removed")) return a.status === "removed" ? 1 : -1;
+      // Inactive members sink to the bottom; otherwise alphabetical.
+      if ((a.status === "inactive") !== (b.status === "inactive")) return a.status === "inactive" ? 1 : -1;
       return a.displayName.localeCompare(b.displayName);
     });
 }
@@ -101,8 +101,8 @@ export async function activeAdminsExcluding(userId: string): Promise<number> {
   if (!service) return 0;
   const { data } = await service
     .from("reviewer_profiles")
-    .select("user_id, role, active, removed_at")
+    .select("user_id, role, active")
     .eq("role", "admin")
     .eq("active", true);
-  return (data ?? []).filter((r) => r.user_id !== userId && !r.removed_at).length;
+  return (data ?? []).filter((r) => r.user_id !== userId).length;
 }

@@ -9,42 +9,95 @@ import { reviewHref } from "@/lib/reviewer/paths";
 // Invite-only login. Primary method is email + password (reviewers set their
 // own password from the invite link). Magic-link is offered only as an optional
 // fallback — never the sole method, and never a shared password.
+//
+// WHY THIS DOES MORE THAN CALL signInWithPassword
+// -----------------------------------------------
+// Supabase auth and portal access are two different gates. A deactivated
+// person still has valid credentials, so sign-in SUCCEEDS and then
+// requireReviewer() bounces them back here — with no explanation, and they
+// loop forever re-entering a password that was never the problem.
+//
+// So after authenticating we check the profile and, if they are not allowed
+// in, sign them straight back out and say exactly why. Someone locked out
+// should know whether to fix their password or call an admin.
 export default function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [status, setStatus] = useState<string | null>(null);
+  const [problem, setProblem] = useState<{ kind: "error" | "info"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function signInPassword(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    setStatus(null);
+    setProblem(null);
     const supabase = getBrowserSupabase();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
+
     if (error) {
-      setStatus(error.message);
+      setBusy(false);
+      // Deliberately NOT distinguishing "no such email" from "wrong password".
+      // Saying which would let anyone test whether a given person has an RP
+      // Hope account, and the fix is the same either way: check both.
+      const banned = /banned|blocked/i.test(error.message);
+      setProblem(
+        banned
+          ? { kind: "error", text: "This account has been removed and can no longer sign in. If you think that's wrong, contact an RP Hope administrator." }
+          : { kind: "error", text: "That email and password don't match. Check both and try again, or use \u201cForgot password\u201d below." }
+      );
       return;
     }
+
+    // Authenticated — but authentication is not access. Own-row reads are
+    // permitted by RLS (rp_select_own_or_admin), so we can ask directly.
+    const { data: profile } = await supabase
+      .from("reviewer_profiles")
+      .select("active")
+      .maybeSingle();
+    setBusy(false);
+
+    if (!profile) {
+      await supabase.auth.signOut();
+      setProblem({
+        kind: "error",
+        text: "This account isn't set up for the RP Hope Team Portal. Ask an administrator to invite you.",
+      });
+      return;
+    }
+    if (!profile.active) {
+      // Sign out rather than leaving a half-session behind: otherwise the
+      // cookie exists, every page redirects here, and it looks like the login
+      // button is broken.
+      await supabase.auth.signOut();
+      setProblem({
+        kind: "error",
+        text: "Your account has been deactivated. Please ask an RP Hope administrator to reactivate it, then sign in again.",
+      });
+      return;
+    }
+
     router.replace(reviewHref(""));
     router.refresh();
   }
 
   async function sendMagicLink() {
     if (!email) {
-      setStatus("Enter your email first.");
+      setProblem({ kind: "error", text: "Enter your email first." });
       return;
     }
     setBusy(true);
-    setStatus(null);
+    setProblem(null);
     const supabase = getBrowserSupabase();
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: `${window.location.origin}${reviewHref("")}` },
     });
     setBusy(false);
-    setStatus(error ? error.message : "Check your email for a sign-in link.");
+    setProblem(
+      error
+        ? { kind: "error", text: error.message }
+        : { kind: "info", text: "Check your email for a sign-in link." }
+    );
   }
 
   return (
@@ -91,9 +144,18 @@ export default function LoginForm() {
         </Link>
       </div>
 
-      {status ? (
-        <p className="mt-4 rounded bg-forest/5 p-3 text-sm text-ink/80" role="status">
-          {status}
+      {problem ? (
+        <p
+          // role=alert so a screen reader announces a failed sign-in
+          // immediately rather than only on the next focus move.
+          role={problem.kind === "error" ? "alert" : "status"}
+          className={`mt-4 rounded-md p-3 text-sm ${
+            problem.kind === "error"
+              ? "border border-red-200 bg-red-50 text-red-900"
+              : "border border-ink/10 bg-forest/5 text-ink/80"
+          }`}
+        >
+          {problem.text}
         </p>
       ) : null}
       <p className="mt-6 text-xs text-ink/60">

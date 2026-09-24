@@ -23,7 +23,6 @@ const STATUS_LABEL: Record<TeamMemberStatus, string> = {
   invited: "Invited",
   active: "Active",
   inactive: "Inactive",
-  removed: "Removed",
 };
 
 type Filter = "all" | "active" | "inactive" | "admins" | "reviewers";
@@ -46,7 +45,7 @@ export default function TeamTable({
     const q = query.trim().toLowerCase();
     return members.filter((m) => {
       if (filter === "active" && m.status !== "active" && m.status !== "invited") return false;
-      if (filter === "inactive" && m.status !== "inactive" && m.status !== "removed") return false;
+      if (filter === "inactive" && m.status !== "inactive") return false;
       if (filter === "admins" && m.role !== "admin") return false;
       if (filter === "reviewers" && m.role !== "reviewer") return false;
       if (!q) return true;
@@ -148,9 +147,8 @@ export default function TeamTable({
 
             {visible.map((m) => {
               const isSelf = m.userId === viewerId;
-              const removed = m.status === "removed";
               return (
-                <tr key={m.userId} className={removed ? "opacity-60" : undefined}>
+                <tr key={m.userId}>
                   <td className="px-4 py-3">
                     <Link
                       href={reviewHref(`/admin/reviewers/${m.userId}`)}
@@ -172,8 +170,7 @@ export default function TeamTable({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap justify-end gap-2">
-                      {!removed &&
-                        (m.status === "inactive" ? (
+                      {m.status === "inactive" ? (
                           <button
                             type="button"
                             disabled={busy === m.userId}
@@ -191,8 +188,7 @@ export default function TeamTable({
                           >
                             Deactivate
                           </button>
-                        ))}
-
+                      )}
                     </div>
                   </td>
                 </tr>
