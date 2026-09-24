@@ -26,19 +26,24 @@ export type TeamMember = {
 
 /**
  * Derive a single status for an account. Exported because the precedence is
- * the part worth testing: "invited" applies only to someone who has never
- * signed in — otherwise a long-dormant active member would read as
- * never-accepted.
+ * the part worth testing.
+ *
+ * "Invited" means no password has been set. It is deliberately NOT based on
+ * whether they have ever signed in: clicking an invitation link verifies the
+ * token and signs the person in, so that signal goes true the moment they open
+ * the email, and everyone appeared Active the instant they were invited.
  *
  * There is no "removed" state. Deactivation is the only way a member loses
  * access, and it is always reversible.
  */
 export function deriveStatus(input: {
   active: boolean;
-  hasSignedIn: boolean;
+  /** Has a password been set? NOT "have they signed in" — opening an
+   *  invitation link signs someone in without completing anything. */
+  hasActivated: boolean;
 }): TeamMemberStatus {
   if (!input.active) return "inactive";
-  if (!input.hasSignedIn) return "invited";
+  if (!input.hasActivated) return "invited";
   return "active";
 }
 
@@ -53,8 +58,11 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
   ]);
 
   // Email and sign-in history live in auth.users, not reviewer_profiles.
+  // Email lives in auth.users, not reviewer_profiles. Sign-in time is
+  // deliberately NOT read here — see deriveStatus for why it is the wrong
+  // signal for "set up".
   const authById = new Map(
-    (authList?.data?.users ?? []).map((u) => [u.id, { email: u.email ?? null, lastSignIn: u.last_sign_in_at }])
+    (authList?.data?.users ?? []).map((u) => [u.id, { email: u.email ?? null }])
   );
 
   const load = new Map<string, number>();
@@ -73,7 +81,7 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
         role: p.role as ReviewerRole,
         status: deriveStatus({
           active: p.active,
-          hasSignedIn: Boolean(auth?.lastSignIn),
+          hasActivated: Boolean(p.activated_at),
         }),
         canPublish: p.can_publish,
         activeGenes: load.get(p.user_id) ?? 0,

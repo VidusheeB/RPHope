@@ -29,7 +29,7 @@ describe("requesting a new invitation is safe to expose publicly", () => {
   });
 
   it("does nothing for an account that already works", () => {
-    expect(action).toMatch(/user\.last_sign_in_at/);
+    expect(action).toMatch(/profile\.activated_at/);
   });
 
   it("does nothing for a deactivated account", () => {
@@ -69,5 +69,41 @@ describe("the expired page offers the request, not a dead end", () => {
 
   it("hides the form once the request succeeds", () => {
     expect(form).toMatch(/!requestResult\?\.ok &&/);
+  });
+});
+
+describe("activation is recorded, not inferred", () => {
+  const action = read("app/review/set-password/actions.ts");
+
+  it("a request is judged on activation, not on sign-in time", () => {
+    // The bug this replaces: opening an invitation link stamps
+    // last_sign_in_at, so the request action treated everyone who clicked as
+    // already set up and silently did nothing — swallowing requests from
+    // exactly the people who needed one.
+    expect(action).toMatch(/profile\.activated_at/);
+    expect(action).not.toMatch(/user\.last_sign_in_at/);
+  });
+
+  it("activation is stamped from the session, never from an argument", () => {
+    const body = action.slice(action.indexOf("export async function markActivatedAction"));
+    expect(body).toMatch(/auth\.getUser\(\)/);
+    expect(body).toMatch(/\.eq\("user_id", user\.id\)/);
+  });
+
+  it("activation is set once, so a later reset can't rewrite the join date", () => {
+    const body = action.slice(action.indexOf("export async function markActivatedAction"));
+    expect(body).toMatch(/\.is\("activated_at", null\)/);
+  });
+
+  it("setting a password records activation", () => {
+    const form = read("components/review/SetPasswordForm.tsx");
+    expect(form).toMatch(/await markActivatedAction\(\)/);
+  });
+
+  it("re-inviting is judged on activation too", () => {
+    // Otherwise someone who opened a link but never set a password is refused
+    // as \"already an active reviewer\", with no way to re-invite them.
+    const actions = read("app/review/actions.ts");
+    expect(actions).toMatch(/existingProfile\?\.activated_at/);
   });
 });

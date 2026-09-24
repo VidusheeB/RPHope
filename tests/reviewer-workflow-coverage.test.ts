@@ -177,7 +177,14 @@ describe("restoreVersionAction — safe restoration, never auto-publishes", () =
 // ---- inviteReviewerAction duplicate detection ------------------------------
 
 describe("inviteReviewerAction — duplicate invitations are prevented", () => {
-  function makeService(opts: { existingUser?: { id: string; email: string; last_sign_in_at: string | null }; existingActive?: boolean }) {
+  function makeService(opts: {
+    existingUser?: { id: string; email: string; last_sign_in_at: string | null };
+    existingActive?: boolean;
+    /** Whether the existing account has finished setup (set a password).
+     *  Distinct from having signed in — opening an invitation link stamps a
+     *  sign-in without activating anything. */
+    existingActivated?: boolean;
+  }) {
     return {
       auth: {
         admin: {
@@ -192,7 +199,15 @@ describe("inviteReviewerAction — duplicate invitations are prevented", () => {
         if (table === "reviewer_profiles") {
           return {
             select: () => ({
-              eq: () => ({ maybeSingle: () => Promise.resolve({ data: { active: opts.existingActive ?? true } }) }),
+              eq: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({
+                    data: {
+                      active: opts.existingActive ?? true,
+                      activated_at: opts.existingActivated ? "2026-01-01T00:00:00Z" : null,
+                    },
+                  }),
+              }),
             }),
             upsert: () => Promise.resolve({ error: null }),
           };
@@ -204,7 +219,11 @@ describe("inviteReviewerAction — duplicate invitations are prevented", () => {
 
   it("blocks a brand-new invite for an email that's already an active, accepted reviewer", async () => {
     serviceMock.mockReturnValue(
-      makeService({ existingUser: { id: "u1", email: "taken@x.org", last_sign_in_at: "2026-01-01T00:00:00Z" }, existingActive: true })
+      makeService({
+        existingUser: { id: "u1", email: "taken@x.org", last_sign_in_at: "2026-01-01T00:00:00Z" },
+        existingActive: true,
+        existingActivated: true,
+      })
     );
     const res = await inviteReviewerAction({ email: "taken@x.org", displayName: "X", role: "reviewer", canPublish: false });
     expect(res.ok).toBe(false);

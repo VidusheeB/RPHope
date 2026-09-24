@@ -39,18 +39,28 @@ describe("deactivation is always reversible", () => {
 });
 
 describe("deriveStatus", () => {
-  it("an account that has never signed in reads as invited", () => {
-    expect(deriveStatus({ active: true, hasSignedIn: false })).toBe("invited");
+  it("an account with no password set reads as invited", () => {
+    expect(deriveStatus({ active: true, hasActivated: false })).toBe("invited");
   });
 
-  it("a signed-in active account reads as active", () => {
-    expect(deriveStatus({ active: true, hasSignedIn: true })).toBe("active");
+  it("an activated account reads as active", () => {
+    expect(deriveStatus({ active: true, hasActivated: true })).toBe("active");
   });
 
   it("inactive beats invited — access is what matters, not acceptance", () => {
-    // Someone deactivated before ever signing in is inactive, not "invited":
+    // Someone deactivated before ever activating is inactive, not "invited":
     // showing "invited" would suggest they just need to click their link.
-    expect(deriveStatus({ active: false, hasSignedIn: false })).toBe("inactive");
-    expect(deriveStatus({ active: false, hasSignedIn: true })).toBe("inactive");
+    expect(deriveStatus({ active: false, hasActivated: false })).toBe("inactive");
+    expect(deriveStatus({ active: false, hasActivated: true })).toBe("inactive");
+  });
+
+  it("status never derives from sign-in time", () => {
+    // Opening an invitation link verifies the token and signs the person in,
+    // so last_sign_in_at goes true the moment they open the email. Using it
+    // made everyone read as Active the instant they were invited, while they
+    // still had no password and could not sign in at all.
+    const team = read("lib/reviewer/team.ts");
+    expect(team).not.toMatch(/hasSignedIn/);
+    expect(team).toMatch(/activated_at/);
   });
 });

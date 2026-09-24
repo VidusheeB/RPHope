@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getBrowserSupabase } from "@/lib/supabaseBrowser";
 import { reviewHref } from "@/lib/reviewer/paths";
-import { requestNewInvitationAction } from "@/app/review/set-password/actions";
+import { requestNewInvitationAction, markActivatedAction } from "@/app/review/set-password/actions";
 
 // Used for BOTH the invite flow ("set your password") and the reset flow
 // ("choose a new password").
@@ -21,13 +21,24 @@ import { requestNewInvitationAction } from "@/app/review/set-password/actions";
 // Supabase consumes the token on verification, so the link is single-use by
 // construction — a second click cannot establish a session.
 //
-// WHY THE SESSION IS CHECKED UP FRONT
-// -----------------------------------
-// This form previously assumed a session existed. When one didn't — expired
-// link, already used, opened in a different browser — the only signal was a
-// raw "Auth session missing" after the person had already chosen and typed a
-// password twice. Invitations can be a week old by design, so that is a path
-// people will land on, and it needs to say what happened and what to do.
+// WHY THE TOKEN IS CONSUMED EXPLICITLY
+// ------------------------------------
+// Supabase's invite and recovery links deliver access_token + refresh_token in
+// the URL HASH (implicit flow). @supabase/ssr's browser client defaults to
+// PKCE and watches for `?code=`, so it never picked those up: a brand-new,
+// perfectly valid link landed here with no session, and this page confidently
+// announced that it had expired.
+//
+// So rather than trusting auto-detection, this reads the URL itself and
+// handles both shapes — hash tokens via setSession, `?code=` via
+// exchangeCodeForSession. That removes the dependency on which flow the
+// project happens to be configured for, which is not something a link
+// recipient should be exposed to.
+//
+// Only ONE case is allowed to report "expired" immediately: Supabase saying so
+// itself, via #error / #error_code. Everything else has to fail to produce a
+// session first. Telling someone their working link is dead is worse than a
+// moment of "checking".
 
 type SessionState = "checking" | "ready" | "missing";
 
@@ -47,31 +58,75 @@ export default function SetPasswordForm({ heading }: { heading: string }) {
 
   useEffect(() => {
     let cancelled = false;
+
     void (async () => {
       const supabase = getBrowserSupabase();
-      // The client parses the token out of the URL asynchronously on load, so
-      // a bare getSession() can race it. onAuthStateChange fires once that
-      // has happened; the getSession() below covers the already-settled case.
-      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (!cancelled && session) setSessionState("ready");
-      });
-      const { data } = await supabase.auth.getSession();
+
+      // 1. Already signed in? (Second visit, or the client resolved it for us.)
+      const existing = await supabase.auth.getSession();
       if (cancelled) return;
-      if (data.session) setSessionState("ready");
-      else {
-        // Give the URL-parsing a moment before declaring the link dead —
-        // calling it expired when it is merely slow would be worse than
-        // waiting.
-        setTimeout(() => {
-          if (!cancelled) {
-            void supabase.auth.getSession().then(({ data: d }) => {
-              if (!cancelled) setSessionState(d.session ? "ready" : "missing");
-            });
-          }
-        }, 1200);
+      if (existing.data.session) {
+        setSessionState("ready");
+        return;
       }
-      return () => sub.subscription.unsubscribe();
+
+      // 2. Did Supabase tell us the link itself is bad? Errors come back in
+      //    the hash, e.g. #error=access_denied&error_description=Email+link+is+
+      //    invalid+or+has+expired. This is the ONLY case that is genuinely
+      //    expired, so it is the only one allowed to say so immediately.
+      const hash = new URLSearchParams(
+        typeof window !== "undefined" ? window.location.hash.replace(/^#/, "") : ""
+      );
+      if (hash.get("error") || hash.get("error_code")) {
+        setSessionState("missing");
+        return;
+      }
+
+      // 3. Consume the token EXPLICITLY rather than trusting auto-detection.
+      //    Supabase's invite and recovery links deliver access_token +
+      //    refresh_token in the hash (implicit flow), but @supabase/ssr's
+      //    browser client defaults to PKCE and watches for ?code=. It
+      //    therefore never picked these up, and a perfectly valid link
+      //    reported itself as expired. Handling both shapes here removes the
+      //    dependency on which flow the project happens to be configured for.
+      const accessToken = hash.get("access_token");
+      const refreshToken = hash.get("refresh_token");
+      if (accessToken && refreshToken) {
+        const { error: setError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (cancelled) return;
+        if (!setError) {
+          // Strip the tokens from the address bar so they are not left in
+          // history, or copied out of it into a bug report.
+          window.history.replaceState({}, "", window.location.pathname);
+          setSessionState("ready");
+          return;
+        }
+        setSessionState("missing");
+        return;
+      }
+
+      // 4. PKCE shape (?code=...), for projects configured that way.
+      const code = new URLSearchParams(window.location.search).get("code");
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (cancelled) return;
+        if (!exchangeError) {
+          window.history.replaceState({}, "", window.location.pathname);
+          setSessionState("ready");
+          return;
+        }
+        setSessionState("missing");
+        return;
+      }
+
+      // 5. Nothing usable in the URL and no session — the link is spent, or
+      //    the page was opened directly.
+      setSessionState("missing");
     })();
+
     return () => {
       cancelled = true;
     };
@@ -104,6 +159,11 @@ export default function SetPasswordForm({ heading }: { heading: string }) {
       setError(updateError.message);
       return;
     }
+    // Record completion. This is the only moment we can know a password was
+    // actually set — Supabase's own last_sign_in_at was stamped when the link
+    // was opened, long before this point.
+    await markActivatedAction();
+
     // Already signed in from the magic link, so go straight into the portal
     // rather than bouncing to a login form to retype what was just chosen.
     router.replace(reviewHref(""));

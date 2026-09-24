@@ -16,12 +16,14 @@ describe("activating an invitation", () => {
     expect(src).toMatch(/sessionState/);
   });
 
-  it("waits before declaring a link dead", () => {
-    // The client parses the token out of the URL asynchronously, so a bare
-    // getSession() can lose the race. Calling a working link expired is worse
-    // than waiting a moment.
-    expect(src).toMatch(/onAuthStateChange/);
-    expect(src).toMatch(/setTimeout/);
+  it("does not race the client — it reads the URL itself", () => {
+    // An earlier version waited on onAuthStateChange and a timeout, hoping
+    // the client would resolve the token. It never would: the client was
+    // watching for a PKCE ?code= while the link carried hash tokens. Reading
+    // the URL directly removes the race rather than widening it.
+    expect(src).toMatch(/getSession\(\)/);
+    expect(src).toMatch(/window\.location\.hash/);
+    expect(src).not.toMatch(/onAuthStateChange/);
   });
 
   it("explains an expired or reused link instead of showing an auth error", () => {
@@ -54,5 +56,36 @@ describe("recovering a stalled invitation", () => {
     const actions = read("app/review/actions.ts");
     const body = actions.slice(actions.indexOf("export async function resendInvitationAction"));
     expect(body.slice(0, 400)).toMatch(/requireCapabilityService\("team\.manage"\)/);
+  });
+});
+
+describe("the invite token is consumed explicitly, not by auto-detection", () => {
+  const src = read("components/review/SetPasswordForm.tsx");
+
+  it("handles hash tokens, which is how invite links actually arrive", () => {
+    // Supabase delivers access_token + refresh_token in the hash (implicit
+    // flow), while @supabase/ssr defaults to PKCE and watches for ?code=. A
+    // brand-new link therefore produced no session, and the page announced it
+    // as expired.
+    expect(src).toMatch(/window\.location\.hash/);
+    expect(src).toMatch(/access_token/);
+    expect(src).toMatch(/refresh_token/);
+    expect(src).toMatch(/setSession\(/);
+  });
+
+  it("also handles the PKCE shape, so neither configuration breaks it", () => {
+    expect(src).toMatch(/exchangeCodeForSession/);
+  });
+
+  it("only Supabase's own error says 'expired' immediately", () => {
+    // Everything else must fail to produce a session first. Declaring a
+    // working link dead is worse than a moment of "checking".
+    expect(src).toMatch(/hash\.get\("error"\)/);
+  });
+
+  it("clears the tokens out of the address bar once used", () => {
+    // Otherwise a live session token sits in browser history, and in any
+    // screenshot or bug report taken from that page.
+    expect(src).toMatch(/history\.replaceState/);
   });
 });

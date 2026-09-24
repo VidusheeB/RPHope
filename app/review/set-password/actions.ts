@@ -17,6 +17,7 @@
 //     the dedupe key, so this cannot be used to flood an admin's bell.
 
 import { getServiceSupabase } from "@/lib/supabaseAdmin";
+import { getServerSupabase } from "@/lib/supabaseServer";
 import { notify, notifyAdmins } from "@/lib/reviewer/notifications";
 import { reviewHref } from "@/lib/reviewer/paths";
 
@@ -44,16 +45,20 @@ export async function requestNewInvitationAction(email: string): Promise<Request
     const { data } = await service.auth.admin.listUsers({ perPage: 1000 });
     const user = data?.users.find((u) => u.email?.toLowerCase() === address);
 
-    // No account, or they already have a working password — either way, say
-    // the same thing and do nothing.
-    if (!user || user.last_sign_in_at) return { ok: true, message: GENERIC };
+    if (!user) return { ok: true, message: GENERIC };
 
     const { data: profile } = await service
       .from("reviewer_profiles")
-      .select("display_name, invited_by, active")
+      .select("display_name, invited_by, active, activated_at")
       .eq("user_id", user.id)
       .maybeSingle();
     if (!profile || !profile.active) return { ok: true, message: GENERIC };
+
+    // Already finished setting up — they should sign in, not be re-invited.
+    // Checked against activated_at, NOT last_sign_in_at: opening an invitation
+    // link stamps a sign-in without setting a password, which made this branch
+    // swallow every request from exactly the people who needed it.
+    if (profile.activated_at) return { ok: true, message: GENERIC };
 
     const who = profile.display_name?.trim() || address;
     const title = `${who} asked for a new invitation link`;
@@ -82,4 +87,35 @@ export async function requestNewInvitationAction(email: string): Promise<Request
   }
 
   return { ok: true, message: GENERIC };
+}
+
+/**
+ * Record that this person finished setting up.
+ *
+ * Called after a password is successfully set. Identity comes from the
+ * session that the invitation link established, never from an argument, so
+ * this cannot be pointed at anyone else's account.
+ *
+ * Exists because there is no reliable way to ask Supabase "does this user
+ * have a password" over the API — auth.users.encrypted_password is not
+ * exposed — and the field that looks like an answer, last_sign_in_at, is
+ * stamped merely by opening the invitation link.
+ */
+export async function markActivatedAction(): Promise<void> {
+  const supabase = getServerSupabase();
+  if (!supabase) return;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const service = getServiceSupabase();
+  if (!service) return;
+  await service
+    .from("reviewer_profiles")
+    // Set once. Re-running a password reset later must not rewrite the date
+    // this person actually joined.
+    .update({ activated_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .is("activated_at", null);
 }

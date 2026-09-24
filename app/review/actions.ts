@@ -608,10 +608,13 @@ export async function inviteReviewerAction(input: {
   if (existing) {
     const { data: existingProfile } = await ctx.service
       .from("reviewer_profiles")
-      .select("active")
+      .select("active, activated_at")
       .eq("user_id", existing.id)
       .maybeSingle();
-    if (existing.last_sign_in_at) {
+    // activated_at, not last_sign_in_at: someone who opened an invitation but
+    // never set a password would otherwise be refused as "already active",
+    // with no way to re-invite them.
+    if (existingProfile?.activated_at) {
       return {
         ok: false,
         error: existingProfile?.active
