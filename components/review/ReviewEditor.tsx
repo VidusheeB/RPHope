@@ -346,32 +346,31 @@ export default function ReviewEditor(props: {
                     href={source.url}
                     target="_blank"
                     rel="noreferrer"
-                    className={`block rounded-lg border p-3 text-sm transition hover:border-forest ${
+                    title={source.title}
+                    // One compact row per source. The full citation — authors,
+                    // journal, abstract, PMID/DOI — used to render inline and
+                    // pushed the card far past its container; the abstract
+                    // alone could be several hundred characters, and raw <h4>
+                    // tags from PubMed/EuropePMC showed through as literal
+                    // text. All of that is one click away at the source
+                    // itself, so the list stays scannable.
+                    className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition hover:border-forest ${
                       highlightedSourceId === source.id
                         ? "border-forest bg-forest/5"
                         : "border-ink/12 bg-cream-header"
                     }`}
                   >
-                    <p className="font-display font-bold text-forest">[{number}] {source.title}</p>
-                    <p className="mt-1 text-xs text-ink/60">
-                      {[
-                        source.authors?.join(", "),
-                        source.journal,
-                        source.year,
-                        source.provenance,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                    {source.abstract && (
-                      <p className="mt-1.5 text-xs text-ink/70">{source.abstract.slice(0, 220)}{source.abstract.length > 220 ? "…" : ""}</p>
-                    )}
-                    <div className="mt-1.5 flex flex-wrap gap-3 text-xs text-ink/60">
-                      {source.pmid && <span>PMID {source.pmid}</span>}
-                      {source.doi && <span>DOI {source.doi}</span>}
-                      {source.trialId && <span>{source.trialId}</span>}
-                      <span className="font-semibold text-forest">Open source →</span>
-                    </div>
+                    {/* min-w-0 is what lets the title actually truncate — a
+                        flex child defaults to min-width:auto and would
+                        otherwise refuse to shrink below its content. */}
+                    <span className="min-w-0 flex-1 truncate font-display font-bold text-forest">
+                      [{number}] {source.title}
+                    </span>
+                    {/* Truncation is CSS, not a substring, so it adapts to the
+                        panel width instead of guessing a character count. The
+                        full title stays available on hover and to assistive
+                        tech via the title attribute. */}
+                    <span className="shrink-0 text-xs font-semibold text-forest">Open source →</span>
                   </a>
                 ))}
               </div>
