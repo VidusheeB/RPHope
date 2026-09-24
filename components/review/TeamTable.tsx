@@ -17,6 +17,7 @@ import {
   deactivateMemberAction,
   reactivateMemberAction,
 } from "@/app/review/(dashboard)/admin/reviewers/actions";
+import { resendInvitationAction } from "@/app/review/actions";
 import type { TeamMember, TeamMemberStatus } from "@/lib/reviewer/team";
 
 const STATUS_LABEL: Record<TeamMemberStatus, string> = {
@@ -170,6 +171,23 @@ export default function TeamTable({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap justify-end gap-2">
+                      {/* Someone still "Invited" hasn't set a password yet.
+                          Invitation links are single-use and time-limited, so
+                          the recovery action belongs on the row where that
+                          status is visible — it previously existed only on
+                          the individual member page. */}
+                      {m.status === "invited" && (
+                        <button
+                          type="button"
+                          disabled={busy === m.userId}
+                          onClick={() =>
+                            run("Invitation resent.", m.userId, () => resendInvitationAction(m.userId))
+                          }
+                          className="h-8 rounded-md border border-forest px-2.5 text-xs font-semibold text-forest hover:bg-mint/40 disabled:opacity-50"
+                        >
+                          Resend invitation
+                        </button>
+                      )}
                       {m.status === "inactive" ? (
                           <button
                             type="button"
