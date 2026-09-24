@@ -18,6 +18,22 @@ describe("a locked-out person is told why", () => {
     expect(src).toMatch(/reactivate/i);
   });
 
+  it("scopes the profile lookup to the signed-in user", () => {
+    // RLS narrows this to "my row" for a REVIEWER, but rp_select_own_or_admin
+    // lets an ADMIN read every profile — so an unfiltered maybeSingle()
+    // returns several rows for them and errors. That locked every admin out
+    // with "this account isn't set up" while reviewers signed in fine.
+    expect(src).toMatch(/\.eq\("user_id", userId\)/);
+  });
+
+  it("distinguishes a failed lookup from a missing profile", () => {
+    // Same class of bug as the reactivate regression: checking `data` without
+    // `error` turns any query failure into a confident, wrong statement about
+    // the account.
+    expect(src).toMatch(/error: profileError/);
+    expect(src).toMatch(/if \(profileError\)/);
+  });
+
   it("only selects columns that actually exist", () => {
     // A near-miss worth pinning: an earlier version selected `removed_at`, a
     // column no migration ever created. The query would have failed for EVERY

@@ -48,13 +48,32 @@ export default function LoginForm() {
       return;
     }
 
-    // Authenticated — but authentication is not access. Own-row reads are
-    // permitted by RLS (rp_select_own_or_admin), so we can ask directly.
-    const { data: profile } = await supabase
-      .from("reviewer_profiles")
-      .select("active")
-      .maybeSingle();
+    // Authenticated — but authentication is not access.
+    //
+    // FILTER BY user_id EXPLICITLY. Relying on RLS to narrow this to "my row"
+    // is wrong: rp_select_own_or_admin lets an ADMIN read every profile, so an
+    // unfiltered maybeSingle() returns several rows for them and errors —
+    // which read as "this account isn't set up" and locked every admin out
+    // while reviewers signed in fine.
+    const { data: signedIn } = await supabase.auth.getUser();
+    const userId = signedIn.user?.id;
+
+    const { data: profile, error: profileError } = userId
+      ? await supabase.from("reviewer_profiles").select("active").eq("user_id", userId).maybeSingle()
+      : { data: null, error: null };
     setBusy(false);
+
+    // A failed LOOKUP is not the same as a missing profile. Conflating them is
+    // what turned a query bug into a confident, wrong message about the
+    // account itself.
+    if (profileError) {
+      await supabase.auth.signOut();
+      setProblem({
+        kind: "error",
+        text: "We couldn't check your account just now. Please try again in a moment.",
+      });
+      return;
+    }
 
     if (!profile) {
       await supabase.auth.signOut();
