@@ -287,13 +287,39 @@ describe("content edits are attributed to whoever actually made them (static)", 
 
 // ---- Invitation modal saves professional fields ----------------------------
 
-describe("InviteReviewerDialog passes professional fields through (static)", () => {
+describe("InviteMemberDialog (static)", () => {
+  const src = read("components/review/InviteMemberDialog.tsx");
+
   it("wires title/organization/specialty/adminNotes into inviteReviewerAction", () => {
-    const src = read("components/review/InviteReviewerDialog.tsx");
     for (const field of ["title", "organization", "specialty", "adminNotes"]) {
       expect(src).toContain(field);
     }
-    expect(src).toMatch(/disabled=\{submitting\}/);
+  });
+
+  it("cannot send twice from one double-click", () => {
+    expect(src).toMatch(/if \(submitting\) return/);
+    expect(src).toMatch(/disabled=\{submitting/);
+  });
+
+  it("invites admins as well as reviewers, and says so", () => {
+    // It was titled "Invite reviewer" while already offering both, which made
+    // the admin case look unsupported.
+    expect(src).toMatch(/Add team member/);
+    expect(src).toMatch(/value="admin"/);
+    expect(src).toMatch(/value="reviewer"/);
+  });
+
+  it("requires a name, because the roster falls back to \"(no name)\"", () => {
+    expect(src).toMatch(/!name\.trim\(\)/);
+  });
+
+  it("does not imply an @rphope.org address is needed", () => {
+    // Reviewers are outside volunteers and use their own email.
+    expect(src).toMatch(/Any address works/);
+  });
+
+  it("promises a link, never a password", () => {
+    expect(src).toMatch(/No password is ever\s*\n?\s*sent by email/);
   });
 });
 

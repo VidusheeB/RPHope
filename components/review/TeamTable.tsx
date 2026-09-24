@@ -11,7 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { reviewHref } from "@/lib/reviewer/paths";
 import StatusBadge from "@/components/review/ui/StatusBadge";
-import InviteReviewerDialog from "./InviteReviewerDialog";
+import InviteMemberDialog from "./InviteMemberDialog";
 import ConfirmDialog from "./ui/ConfirmDialog";
 import {
   deactivateMemberAction,
@@ -83,7 +83,7 @@ export default function TeamTable({
             {members.length} total
           </p>
         </div>
-        <InviteReviewerDialog />
+        <InviteMemberDialog />
       </div>
 
       {message && (

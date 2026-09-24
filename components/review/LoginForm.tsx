@@ -121,7 +121,7 @@ export default function LoginForm() {
 
   return (
     <div className="mx-auto max-w-sm">
-      <h1 className="font-display text-2xl font-medium text-forest">Reviewer sign in</h1>
+      <h1 className="font-display text-2xl font-medium text-forest">Team member sign in</h1>
       <form onSubmit={signInPassword} className="mt-6 space-y-4">
         <label className="block text-sm">
           <span className="font-semibold text-ink">Email</span>
@@ -178,8 +178,8 @@ export default function LoginForm() {
         </p>
       ) : null}
       <p className="mt-6 text-xs text-ink/60">
-        Reviewer access is invite-only. If you were invited, use the link in your email to set a
-        password first.
+        Access is invite-only. If you were invited, use the link in your email to set a password
+        first.
       </p>
     </div>
   );

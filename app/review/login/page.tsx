@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import LoginForm from "@/components/review/LoginForm";
 
-export const metadata: Metadata = { title: "Reviewer sign in | RP Hope", robots: { index: false } };
+export const metadata: Metadata = { title: "Sign in | RP Hope Team Portal", robots: { index: false } };
 export const dynamic = "force-dynamic";
 
 export default function ReviewLoginPage() {

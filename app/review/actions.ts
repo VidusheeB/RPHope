@@ -600,6 +600,9 @@ export async function inviteReviewerAction(input: {
   const ctx = await requireCapabilityService("team.manage");
   if (!ctx.ok) return { ok: false, error: ctx.error };
   if (!EMAIL_RE.test(input.email)) return { ok: false, error: "Enter a valid email address." };
+  // Enforced here as well as in the form: a nameless profile shows as
+  // "(no name)" on the roster and beside every approval they make.
+  if (!input.displayName?.trim()) return { ok: false, error: "Enter the person's full name." };
 
   const existing = await findAuthUserByEmail(ctx.service, input.email);
   if (existing) {
