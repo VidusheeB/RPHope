@@ -10,6 +10,11 @@
 // credential would leave it in an inbox and in mail logs permanently, for an
 // account that can publish medical content.
 //
+// Any email domain is accepted. Reviewers are outside volunteers who sign in
+// with their own address; only RP Hope staff have @rphope.org. That is a
+// system rule, deliberately NOT explained in the UI — an admin typing an
+// address does not need to be told which domains are allowed.
+//
 // Accessibility: focus moves in on open, Escape closes, Tab is trapped, focus
 // returns to the trigger. Matches ConfirmDialog and AssignReviewerDialog.
 
@@ -208,8 +213,7 @@ export default function InviteMemberDialog() {
                   className={field}
                 />
                 <p className="mt-1 text-xs text-ink/55">
-                  Any address works — personal, university or work. Reviewers use their own; only
-                  RP&nbsp;Hope staff have an @rphope.org address.
+                  The invitation goes here, and this is the address they&apos;ll sign in with.
                 </p>
               </div>
 

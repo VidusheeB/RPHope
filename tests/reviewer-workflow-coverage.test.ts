@@ -313,9 +313,13 @@ describe("InviteMemberDialog (static)", () => {
     expect(src).toMatch(/!name\.trim\(\)/);
   });
 
-  it("does not imply an @rphope.org address is needed", () => {
-    // Reviewers are outside volunteers and use their own email.
-    expect(src).toMatch(/Any address works/);
+  it("does not restrict, or lecture about, the email domain", () => {
+    // Any domain is accepted — reviewers are outside volunteers who sign in
+    // with their own address. That is a system rule, not UI copy: the form
+    // must not gate on a domain, and must not explain domains either.
+    expect(src).not.toMatch(/rphope\.org["'`\s]*<\/p>|Any address works/);
+    const action = read("app/review/actions.ts");
+    expect(action).not.toMatch(/endsWith\(["'`]@rphope\.org/);
   });
 
   it("promises a link, never a password", () => {
