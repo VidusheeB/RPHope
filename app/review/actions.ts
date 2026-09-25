@@ -32,6 +32,7 @@ import { notify, notifyAdmins, notifyDraftAssignee } from "@/lib/reviewer/notifi
 import { logAudit } from "@/lib/reviewer/audit";
 import { reviewHref } from "@/lib/reviewer/paths";
 import { portalOrigin } from "@/lib/portalOrigin";
+import { checkDeactivationAllowed } from "@/lib/reviewer/team";
 import type { GenePageDraft } from "@/lib/geneResearch/types";
 
 export type ActionResult<T = undefined> =
@@ -897,6 +898,16 @@ export async function updateReviewerAction(input: {
 }): Promise<ActionResult> {
   const ctx = await requireCapabilityService("team.manage");
   if (!ctx.ok) return { ok: false, error: ctx.error };
+
+  // This action can set active = false, which makes it a second deactivation
+  // path alongside deactivateMemberAction. It previously bypassed BOTH the
+  // owner protection and the last-admin guard — a guard that only one route
+  // honours is not a guard.
+  if (input.active === false) {
+    const allowed = await checkDeactivationAllowed(input.userId);
+    if (allowed.blocked) return { ok: false, error: allowed.reason };
+  }
+
   const patch: Record<string, unknown> = {};
   if (typeof input.active === "boolean") patch.active = input.active;
   if (typeof input.canPublish === "boolean") patch.can_publish = input.canPublish;

@@ -143,6 +143,7 @@ describe("capability checks are the boundary, not role literals", () => {
       "lib/reviewer/permissions.ts",
       "lib/reviewer/session.ts",
       "app/review/(dashboard)/admin/reviewers/actions.ts", // last-admin count
+      "lib/reviewer/team.ts", // last-admin count + owner protection
       "components/review/TeamTable.tsx", // roster category filter
     ]);
     const offenders = portalFiles.filter((f) => {

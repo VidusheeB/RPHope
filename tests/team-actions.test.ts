@@ -19,6 +19,15 @@ describe("deactivation is always reversible", () => {
     }
   });
 
+  it("both deactivation paths share one guard", () => {
+    // updateReviewerAction can also set active=false. It previously bypassed
+    // the last-admin rule entirely, and would have bypassed owner protection.
+    const general = read("app/review/actions.ts");
+    const member = read("app/review/(dashboard)/admin/reviewers/actions.ts");
+    expect(general).toMatch(/checkDeactivationAllowed/);
+    expect(member).toMatch(/checkDeactivationAllowed/);
+  });
+
   it("reactivate does not depend on any column beyond `active`", () => {
     // The bug: reactivate selected removed_at, the query failed, and the admin
     // was told "that team member no longer exists" about someone plainly
@@ -31,10 +40,13 @@ describe("deactivation is always reversible", () => {
 
   it("a failed lookup is not reported as a missing person", () => {
     // Checking `data` without `error` turns any query failure into a
-    // confident, wrong statement about the wrong thing.
-    const actions = read("app/review/(dashboard)/admin/reviewers/actions.ts");
-    expect(actions).toMatch(/error: lookupError/);
-    expect(actions).toMatch(/if \(lookupError\) return/);
+    // confident, wrong statement about the wrong thing. The check now lives
+    // in the shared deactivation guard, which both deactivation paths use.
+    const team = read("lib/reviewer/team.ts");
+    const guard = team.slice(team.indexOf("export async function checkDeactivationAllowed"));
+    expect(guard).toMatch(/error\b/);
+    expect(guard).toMatch(/Could not look up that team member/);
+    expect(guard).toMatch(/no longer exists/);
   });
 });
 

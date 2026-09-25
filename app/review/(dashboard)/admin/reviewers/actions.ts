@@ -13,7 +13,7 @@ import { can } from "@/lib/reviewer/permissions";
 import { getServiceSupabase } from "@/lib/supabaseAdmin";
 import { reviewHref } from "@/lib/reviewer/paths";
 import { logAudit } from "@/lib/reviewer/audit";
-import { activeAdminsExcluding } from "@/lib/reviewer/team";
+import { checkDeactivationAllowed } from "@/lib/reviewer/team";
 import type { ActionResult } from "@/app/review/actions";
 
 async function requireTeamManage() {
@@ -30,24 +30,14 @@ export async function deactivateMemberAction(userId: string): Promise<ActionResu
   const service = getServiceSupabase();
   if (!service) return { ok: false, error: "Server not configured." };
 
-  // Check `error` separately from `data`. Conflating them is what made a
-  // missing DATABASE COLUMN surface to the admin as "that team member no
-  // longer exists" — a confident, wrong answer about the wrong thing.
-  const { data: target, error: lookupError } = await service
+  const allowed = await checkDeactivationAllowed(userId);
+  if (allowed.blocked) return { ok: false, error: allowed.reason };
+
+  const { data: target } = await service
     .from("reviewer_profiles")
-    .select("role, display_name")
+    .select("display_name")
     .eq("user_id", userId)
     .maybeSingle();
-  if (lookupError) return { ok: false, error: `Could not look up that team member: ${lookupError.message}` };
-  if (!target) return { ok: false, error: "That team member no longer exists." };
-
-  if (target.role === "admin" && (await activeAdminsExcluding(userId)) === 0) {
-    return {
-      ok: false,
-      error:
-        "This is the last active administrator. Deactivating them would leave RP Hope with nobody able to manage the portal — make someone else an admin first.",
-    };
-  }
 
   const { error } = await service
     .from("reviewer_profiles")
@@ -59,7 +49,7 @@ export async function deactivateMemberAction(userId: string): Promise<ActionResu
     actor: session.userId,
     action: "reviewer_deactivated",
     reviewerId: userId,
-    after: { displayName: target.display_name },
+    after: { displayName: target?.display_name ?? null },
   });
   revalidatePath(reviewHref("/admin/reviewers"));
   return { ok: true };

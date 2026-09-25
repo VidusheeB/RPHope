@@ -22,6 +22,8 @@ export type TeamMember = {
   activeGenes: number;
   lastActiveAt: string | null;
   invitedAt: string | null;
+  /** The founding/owner account. Protected from deactivation. */
+  isOwner: boolean;
 };
 
 /**
@@ -87,6 +89,7 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
         activeGenes: load.get(p.user_id) ?? 0,
         lastActiveAt: p.last_active_at ?? null,
         invitedAt: p.invited_at ?? null,
+        isOwner: Boolean(p.is_owner),
       };
     })
     .sort((a, b) => {
@@ -113,4 +116,47 @@ export async function activeAdminsExcluding(userId: string): Promise<number> {
     .eq("role", "admin")
     .eq("active", true);
   return (data ?? []).filter((r) => r.user_id !== userId).length;
+}
+
+export type DeactivationBlock = { blocked: true; reason: string } | { blocked: false };
+
+/**
+ * May this account be deactivated?
+ *
+ * Shared by every path that can set active = false, because there is more than
+ * one: the My Team buttons and the general-purpose updateReviewerAction. A
+ * guard living in only one of them is not a guard.
+ *
+ * The database enforces the owner rule too (trigger, 0031). This exists so the
+ * refusal is a sentence an admin can act on rather than a raw Postgres
+ * exception.
+ */
+export async function checkDeactivationAllowed(userId: string): Promise<DeactivationBlock> {
+  const service = getServiceSupabase();
+  if (!service) return { blocked: true, reason: "Server not configured." };
+
+  const { data: target, error } = await service
+    .from("reviewer_profiles")
+    .select("role, is_owner, display_name")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) return { blocked: true, reason: `Could not look up that team member: ${error.message}` };
+  if (!target) return { blocked: true, reason: "That team member no longer exists." };
+
+  if (target.is_owner) {
+    return {
+      blocked: true,
+      reason: `${target.display_name || "This account"} is the RP Hope owner account and can't be deactivated from the portal.`,
+    };
+  }
+
+  if (target.role === "admin" && (await activeAdminsExcluding(userId)) === 0) {
+    return {
+      blocked: true,
+      reason:
+        "This is the last active administrator. Deactivating them would leave RP Hope with nobody able to manage the portal — make someone else an admin first.",
+    };
+  }
+
+  return { blocked: false };
 }

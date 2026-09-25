@@ -158,6 +158,11 @@ export default function TeamTable({
                       {m.displayName}
                     </Link>
                     {isSelf && <span className="ml-2 text-xs text-ink/50">(you)</span>}
+                    {m.isOwner && (
+                      <span className="ml-2 rounded bg-ink/[0.09] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink">
+                        Owner
+                      </span>
+                    )}
                     {m.activeGenes > 0 && (
                       <span className="block text-xs text-ink/55">
                         {m.activeGenes} active {m.activeGenes === 1 ? "gene" : "genes"}
@@ -200,7 +205,17 @@ export default function TeamTable({
                         ) : (
                           <button
                             type="button"
-                            disabled={busy === m.userId || isSelf}
+                            // The owner is protected in the server action AND
+                            // by a database trigger; disabling here simply
+                            // avoids offering an action that is always refused.
+                            disabled={busy === m.userId || isSelf || m.isOwner}
+                            title={
+                              m.isOwner
+                                ? "The RP Hope owner account can't be deactivated from the portal."
+                                : isSelf
+                                  ? "You can't deactivate your own account."
+                                  : undefined
+                            }
                             onClick={() => setConfirming({ kind: "deactivate", member: m })}
                             className="h-8 rounded-md border border-ink/20 px-2.5 text-xs font-semibold text-ink/80 hover:bg-ink/[0.04] disabled:opacity-40"
                           >
