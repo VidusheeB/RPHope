@@ -159,3 +159,14 @@ describe("canAll / canAny", () => {
     expect(canAny(reviewer(), [])).toBe(false);
   });
 });
+
+describe("an admin can hold assignments like anyone else", () => {
+  it("admins keep genes.review.assigned, not only the full-queue view", () => {
+    // Self-assignment is a supported workflow: an admin assigns a gene to
+    // themselves and reviews it. Holding only genes.review.all would give
+    // them the console with no personal queue.
+    expect(can(admin(), "genes.review.assigned")).toBe(true);
+    expect(can(admin(), "genes.edit")).toBe(true);
+    expect(can(admin(), "genes.submit")).toBe(true);
+  });
+});

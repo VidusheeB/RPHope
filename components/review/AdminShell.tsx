@@ -51,7 +51,11 @@ const NAV_SECTIONS: NavSection[] = [
     heading: "Content",
     items: [
       { label: "Genes", href: reviewHref("/genes"), requires: ["genes.review.all"] },
-      { label: "My Genes", href: reviewHref(""), requires: ["genes.review.assigned"], hideIf: ["genes.review.all"] },
+      // Shown to EVERYONE who can hold an assignment, admins included. An
+      // admin can assign a gene to themselves, and previously had no way to
+      // reach it: this was hidden behind hideIf on genes.review.all, so the
+      // page existed and was unreachable by the only people affected.
+      { label: "Assigned to me", href: reviewHref(""), requires: ["genes.review.assigned"] },
       { label: "Stories", href: reviewHref("/stories"), requires: ["stories.review"] },
       { label: "Website", href: "", disabled: true, requires: ["website.edit"] },
     ],

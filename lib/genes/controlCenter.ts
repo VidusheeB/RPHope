@@ -108,6 +108,9 @@ export function countBuckets(rows: GeneControlRow[]): BucketCounts {
 export type AssignableReviewer = {
   userId: string;
   displayName: string;
+  /** Shown in the picker. Admins can hold assignments too, and labelling one
+   *  "Reviewer" misrepresents who you are handing work to. */
+  role: string;
   /** How many drafts they currently hold — enough for an admin to make an
    *  informed choice, deliberately not a workload-optimisation system. */
   activeGenes: number;
@@ -138,6 +141,7 @@ export async function getAssignableReviewers(): Promise<AssignableReviewer[]> {
     .map((p) => ({
       userId: p.user_id,
       displayName: p.display_name,
+      role: p.role,
       activeGenes: load.get(p.user_id) ?? 0,
     }))
     .sort((a, b) => a.displayName.localeCompare(b.displayName));

@@ -45,7 +45,7 @@ describe("buildPublishPlan", () => {
 
 describe("pickPublicGeneContent — public route source selection", () => {
   it("PREFERS the published Supabase version when present", () => {
-    const published = { versionNumber: 2, content: draft };
+    const published = { versionNumber: 2, content: draft, publishedAt: null, reviewerName: null };
     const picked = pickPublicGeneContent(published, { legacy: true });
     expect(picked?.source).toBe("published");
     if (picked?.source === "published") expect(picked.content).toBe(draft);

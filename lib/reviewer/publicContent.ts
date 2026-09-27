@@ -10,6 +10,14 @@ import type { GenePageDraft } from "../geneResearch/types";
 export type PublishedGeneVersion = {
   versionNumber: number;
   content: GenePageDraft;
+  /** When this version went live. Shown publicly as "Last reviewed" — the
+   *  footer previously hardcoded a phrase, so every gene claimed the same
+   *  thing regardless of when it was actually reviewed. */
+  publishedAt: string | null;
+  /** The human reviewer who verified this version, captured onto the row at
+   *  publish time (0032). Denormalised because the public page reads with the
+   *  anon key and cannot see reviewer_profiles. */
+  reviewerName: string | null;
 };
 
 /** Pure selection rule — unit-tested. Returns which source to render. */
@@ -29,12 +37,23 @@ export function pickPublicGeneContent<F>(
  * version_number or newer timestamp than the published one. Pure + unit-tested.
  */
 export function pickNewestPublished(
-  rows: { version_number: number; status: string; content: unknown }[]
+  rows: {
+    version_number: number;
+    status: string;
+    content: unknown;
+    published_at?: string | null;
+    reviewer_name?: string | null;
+  }[]
 ): PublishedGeneVersion | null {
   const published = rows.filter((r) => r.status === "published");
   if (!published.length) return null;
   const newest = published.reduce((a, b) => (b.version_number > a.version_number ? b : a));
-  return { versionNumber: newest.version_number, content: newest.content as GenePageDraft };
+  return {
+    versionNumber: newest.version_number,
+    content: newest.content as GenePageDraft,
+    publishedAt: newest.published_at ?? null,
+    reviewerName: newest.reviewer_name ?? null,
+  };
 }
 
 /**
@@ -54,13 +73,21 @@ export async function getPublishedGeneVersion(
     // archived row can never reach the public page even if the query changed.
     const { data, error } = await supabase
       .from("gene_page_versions")
-      .select("version_number, status, content")
+      .select("version_number, status, content, published_at, reviewer_name")
       .eq("gene_slug", slug)
       .eq("status", "published")
       .order("version_number", { ascending: false })
       .limit(1);
     if (error || !data) return null;
-    return pickNewestPublished(data as { version_number: number; status: string; content: unknown }[]);
+    return pickNewestPublished(
+      data as {
+        version_number: number;
+        status: string;
+        content: unknown;
+        published_at: string | null;
+        reviewer_name: string | null;
+      }[]
+    );
   } catch {
     return null;
   }

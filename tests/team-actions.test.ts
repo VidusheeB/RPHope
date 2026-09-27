@@ -76,3 +76,30 @@ describe("deriveStatus", () => {
     expect(team).toMatch(/activated_at/);
   });
 });
+
+describe("assignment is not restricted to reviewers", () => {
+  it("the picker is filtered on active, never on role", () => {
+    // An admin must be able to assign a gene to themselves.
+    const cc = read("lib/genes/controlCenter.ts");
+    const body = cc.slice(cc.indexOf("export async function getAssignableReviewers"));
+    expect(body).toMatch(/\.eq\("active", true\)/);
+    expect(body).not.toMatch(/\.eq\("role"/);
+  });
+
+  it("the picker shows each person's real role", () => {
+    // It previously labelled every candidate "Reviewer", which misrepresents
+    // who you are handing work to when that person is an admin.
+    const dialog = read("components/review/genes/AssignReviewerDialog.tsx");
+    expect(dialog).toMatch(/\{r\.role\}/);
+    expect(dialog).not.toMatch(/>Reviewer<\/span>/);
+  });
+
+  it("the personal queue is reachable by every role that can be assigned", () => {
+    // Hiding it from admins left them able to self-assign with nowhere to see
+    // the result.
+    const shell = read("components/review/AdminShell.tsx");
+    const line = shell.split("\n").find((l) => l.includes('"Assigned to me"')) ?? "";
+    expect(line).toMatch(/requires: \["genes\.review\.assigned"\]/);
+    expect(line).not.toMatch(/hideIf/);
+  });
+});

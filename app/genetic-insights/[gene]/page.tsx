@@ -81,6 +81,21 @@ function readableDraftText(draft: GenePageDraft): string {
 // untouched — only the on-page section is gone — so it can be reinstated by
 // rendering GeneArticles again without regenerating anything.
 
+/** Human-readable review date. Uses UTC explicitly: this renders on the
+ *  server, and letting it follow the server's locale would make the date
+ *  drift for readers depending on where the page happened to be rendered. */
+function formatReviewDate(iso: string | null): string | undefined {
+  if (!iso) return undefined;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export default async function GenePage({ params }: { params: { gene: string } }) {
 
   // ---- Branch A: a human-reviewed, PUBLISHED Supabase version exists ----------
@@ -127,7 +142,14 @@ export default async function GenePage({ params }: { params: { gene: string } })
             {/* Universal caregiver/accessibility guidance, shown once here so
                 the generator no longer writes it into every gene's prose. */}
             <GeneSharedGuidance />
-            <GeneFooter lastReviewed="published, human-reviewed version" />
+            {/* Real values from the published version, not a fixed phrase.
+                Every gene previously claimed the same thing regardless of who
+                reviewed it or when — on pages whose credibility rests on a
+                human having checked the medical content. */}
+            <GeneFooter
+              lastReviewed={formatReviewDate(published.publishedAt)}
+              reviewer={published.reviewerName ?? undefined}
+            />
           </div>
         </article>
       </div>

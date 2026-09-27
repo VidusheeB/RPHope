@@ -166,7 +166,7 @@ export default function AssignReviewerDialog({
                       >
                         <span>
                           <span className="block text-sm font-semibold text-ink">{r.displayName}</span>
-                          <span className="block text-xs text-ink/60">Reviewer</span>
+                          <span className="block text-xs capitalize text-ink/60">{r.role}</span>
                         </span>
                         <span className="text-xs text-ink/60">
                           {r.activeGenes} active {r.activeGenes === 1 ? "gene" : "genes"}
