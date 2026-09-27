@@ -30,8 +30,10 @@ export type PublicationDetail = AwaitingPublication & {
 };
 
 /** Rebuild the camelCase draft shape from the snake_case row. Mirrors
- *  serializeDraft() in app/review/actions.ts, in the other direction. */
-function rowToDraft(row: Record<string, unknown>): GenePageDraft {
+ *  serializeDraft() in app/review/actions.ts, in the other direction.
+ *  Exported for the legacy publish path, where a draft approved before 0026
+ *  has no snapshot and the live row is the approved content. */
+export function rowToDraft(row: Record<string, unknown>): GenePageDraft {
   return {
     summaryCard: row.summary_card,
     whatThisGeneMeans: row.what_this_gene_means,

@@ -25,8 +25,15 @@ import {
 import type { GeneBucket, GeneControlRow, AssignableReviewer } from "@/lib/genes/controlCenter";
 import type { QueueSummary, GenerationStatus } from "@/lib/genes/generationQueue";
 
-const TABS: { id: GeneBucket | "all"; label: string }[] = [
+type TabId = GeneBucket | "all" | "mine";
+
+// "Assigned to me" is deliberately a FILTER, not a bucket. A gene assigned to
+// you is still In Review; ownership is a different axis from workflow state,
+// and making it a bucket would remove those genes from the queue everyone
+// else reads.
+const TABS: { id: TabId; label: string }[] = [
   { id: "all", label: "All" },
+  { id: "mine", label: "Assigned to me" },
   { id: "needs_generation", label: "Needs Generation" },
   { id: "unassigned", label: "Unassigned" },
   { id: "in_review", label: "In Review" },
@@ -72,17 +79,19 @@ export default function GeneControlCenter({
   initialQueue,
   canGenerate,
   canAssign,
+  viewerId,
 }: {
   initialRows: GeneControlRow[];
   reviewers: AssignableReviewer[];
   initialQueue: QueueSummary;
   canGenerate: boolean;
   canAssign: boolean;
+  viewerId: string;
 }) {
   const router = useRouter();
   const [rows, setRows] = useState(initialRows);
   const [queue, setQueue] = useState(initialQueue);
-  const [tab, setTab] = useState<GeneBucket | "all">("all");
+  const [tab, setTab] = useState<TabId>("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<{ slugs: string[]; isAll: boolean } | null>(null);
@@ -175,15 +184,19 @@ export default function GeneControlCenter({
 
   // ---- Derived ------------------------------------------------------------
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: rows.length };
+    const c: Record<string, number> = {
+      all: rows.length,
+      mine: rows.filter((r) => r.assignedReviewerId === viewerId).length,
+    };
     for (const r of rows) c[r.bucket] = (c[r.bucket] ?? 0) + 1;
     return c;
-  }, [rows]);
+  }, [rows, viewerId]);
 
-  const visible = useMemo(
-    () => (tab === "all" ? rows : rows.filter((r) => r.bucket === tab)),
-    [rows, tab]
-  );
+  const visible = useMemo(() => {
+    if (tab === "all") return rows;
+    if (tab === "mine") return rows.filter((r) => r.assignedReviewerId === viewerId);
+    return rows.filter((r) => r.bucket === tab);
+  }, [rows, tab, viewerId]);
 
   // Only genes the server would actually accept can be selected — this mirrors
   // the server-side eligibility rule so the UI can't offer a run that will
@@ -350,7 +363,8 @@ export default function GeneControlCenter({
         <nav className="-mb-px flex flex-wrap gap-1" aria-label="Gene workflow">
           {TABS.map((t) => {
             const count = counts[t.id] ?? 0;
-            if (t.id === "failed" && count === 0) return null;
+            // Hide empty optional tabs so the bar reflects real work.
+            if ((t.id === "failed" || t.id === "mine") && count === 0) return null;
             const current = tab === t.id;
             return (
               <button
@@ -480,6 +494,15 @@ export default function GeneControlCenter({
                   >
                     Assign reviewer
                   </button>
+                )}
+
+                {r.assignedReviewerId === viewerId && r.draftId && r.bucket === "in_review" && (
+                  <Link
+                    href={reviewHref(`/${r.draftId}`)}
+                    className="h-8 rounded-md bg-forest px-2.5 text-xs font-semibold leading-8 text-white hover:bg-forest/90"
+                  >
+                    Continue review
+                  </Link>
                 )}
 
                 {r.bucket === "awaiting_publication" && r.draftId && (

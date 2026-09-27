@@ -11,8 +11,15 @@
 import { getReviewerSession } from "@/lib/reviewer/session";
 import { can } from "@/lib/reviewer/permissions";
 import { getServiceSupabase } from "@/lib/supabaseAdmin";
-import { approveReviewAction, publishAction, requestChangesAction, type ActionResult } from "@/app/review/actions";
+import {
+  approveReviewAction,
+  publishAction,
+  requestChangesAction,
+  submitReviewAction,
+  type ActionResult,
+} from "@/app/review/actions";
 import type { GenePageDraft } from "@/lib/geneResearch/types";
+import { rowToDraft } from "@/lib/genes/publicationQueue";
 
 /**
  * Publish the reviewer-approved version.
@@ -41,33 +48,59 @@ export async function publishApprovedVersionAction(
 
   const { data: draft } = await service
     .from("gene_page_drafts")
-    .select("review_status, submitted_content")
+    // select("*") so the legacy fallback below can rebuild the draft shape
+    // from the live columns when no snapshot exists.
+    .select("*")
     .eq("id", draftId)
     .maybeSingle();
   if (!draft) return { ok: false, error: "Draft not found." };
 
   // Stale-tab guard: another admin may have published or sent this back while
   // this screen was open. Fail cleanly rather than double-publishing.
+  if (draft.review_status === "rejected") {
+    return { ok: false, error: "This gene was rejected. Reopen it before publishing." };
+  }
+
+  // Prefer the immutable snapshot taken when the reviewer submitted (0026).
+  //
+  // When there is none, fall back to the live draft rather than refusing.
+  // A draft approved BEFORE 0026 existed has no snapshot by definition, and a
+  // draft still in review has not produced one yet. Refusing both would make a
+  // guarantee introduced for future work retroactively block completed work
+  // and self-review alike.
+  //
+  // publishAction independently re-reads the snapshot and prefers it, so the
+  // content passed here is only ever used when there genuinely isn't one.
+  const approved =
+    (draft.submitted_content as GenePageDraft | null) ?? rowToDraft(draft as Record<string, unknown>);
+
+  // WALK WHATEVER TRANSITIONS ARE OUTSTANDING.
+  //
+  // An admin reviewing a gene assigned to themselves is doing all three jobs —
+  // review, approve, publish — and previously only the last button was
+  // offered, gated on an approval nobody was going to perform. Pressing
+  // Publish now carries out each remaining step in order, through the same
+  // hardened actions, so every transition is gated and audited exactly as it
+  // would be if three different people had done it.
   if (draft.review_status !== "submitted_for_approval" && draft.review_status !== "approved") {
-    return {
-      ok: false,
-      error: "This gene is no longer awaiting publication — another administrator may have acted on it. Refresh to see its current state.",
-    };
+    if (!can(session.profile, "genes.submit")) {
+      return { ok: false, error: "This gene hasn't been submitted for review yet." };
+    }
+    const submitted = await submitReviewAction({
+      draftId,
+      content: approved,
+      // The admin ticked the review confirmation in the editor before this
+      // button became available; this is that same attestation.
+      confirmationChecked: true,
+    });
+    if (!submitted.ok) return submitted;
   }
 
-  const approved = (draft.submitted_content as GenePageDraft | null) ?? null;
-  if (!approved) {
-    return {
-      ok: false,
-      error:
-        "No approved version is on file for this gene, so there is nothing to publish safely. Send it back to the reviewer to re-approve.",
-    };
+  if (!can(session.profile, "genes.approve")) {
+    return { ok: false, error: "This gene needs an administrator's approval before it can be published." };
   }
-
-  if (draft.review_status === "submitted_for_approval") {
-    const approval = await approveReviewAction({ draftId, content: approved });
-    if (!approval.ok) return approval;
-  }
+  const approval = await approveReviewAction({ draftId, content: approved });
+  if (!approval.ok) return approval;
 
   return publishAction({
     draftId,

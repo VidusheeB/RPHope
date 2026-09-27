@@ -29,6 +29,7 @@ export default async function GenesPage() {
       initialQueue={queue}
       canGenerate={can(session.profile, "genes.generate")}
       canAssign={can(session.profile, "genes.assign")}
+      viewerId={session.userId}
     />
   );
 }

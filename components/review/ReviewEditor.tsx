@@ -21,11 +21,11 @@ import type { DraftReviewStatus } from "@/lib/reviewer/dashboardStatus";
 import {
   saveDraftAction,
   resolveFlagAction,
-  publishAction,
   submitReviewAction,
   approveReviewAction,
   requestChangesAction,
 } from "@/app/review/actions";
+import { publishApprovedVersionAction } from "@/app/review/(dashboard)/genes/[draftId]/publish/actions";
 import { replyTicketAction } from "@/app/review/ticketActions";
 import { normalizeSentencedText, NARRATIVE_SECTION_KEYS } from "@/lib/geneResearch/types";
 import type { GenePageDraft, SourceCitation } from "@/lib/geneResearch/types";
@@ -145,6 +145,10 @@ export default function ReviewEditor(props: {
     ...flagResolutionInput,
     canPublish: props.canPublish,
     reviewStatus: props.reviewStatus,
+    // Publishing performs the outstanding approval for anyone who holds
+    // genes.approve, so the "hasn't been approved yet" blocker would be
+    // telling them to wait for themselves. Every CONTENT check still applies.
+    adminOverride: props.canApprove,
   });
   const approvalReadiness = evaluateApprovalReadiness({
     ...flagResolutionInput,
@@ -224,12 +228,14 @@ export default function ReviewEditor(props: {
 
   async function publish() {
     setPublishMsg(null);
+    // Save first: the publish path reads the draft from the database, so any
+    // unsaved edit would otherwise be silently left out of what goes live.
     if (dirty || saveState !== "saved") await doSave();
-    const res = await publishAction({
-      draftId: props.draftId,
-      content,
-      confirmationChecked: confirmChecked,
-    });
+    // Carries out whatever review/approval steps are still outstanding before
+    // publishing. An admin reviewing their own assignment is doing all three
+    // jobs, and was previously stopped at a blocker naming an approval nobody
+    // else was going to perform.
+    const res = await publishApprovedVersionAction(props.draftId);
     if (res.ok) {
       setPublishMsg(`Published. Live at ${res.data?.publishedUrl}`);
       router.refresh();

@@ -61,3 +61,53 @@ describe("the snapshot cannot be forged", () => {
     expect(sql).toMatch(/comment on column gene_page_drafts\.submitted_content/);
   });
 });
+
+describe("an admin reviewing their own assignment can publish it", () => {
+  const src = read("app/review/(dashboard)/genes/[draftId]/publish/actions.ts");
+
+  it("carries out the outstanding review and approval steps", () => {
+    // Carin self-assigns a gene, reviews it, and is then doing all three jobs.
+    // Previously only Publish was offered, gated on an approval nobody else
+    // was going to perform, so the button sat disabled saying "This draft
+    // hasn't been approved yet" — naming a state without naming who changes it.
+    expect(src).toMatch(/submitReviewAction/);
+    expect(src).toMatch(/approveReviewAction/);
+    expect(src).toMatch(/publishAction/);
+  });
+
+  it("each step still goes through its own hardened action", () => {
+    // Not a bypass: every transition is gated and audited exactly as if three
+    // different people had performed it.
+    expect(src).toMatch(/if \(!can\(session\.profile, "genes\.submit"\)\)/);
+    expect(src).toMatch(/if \(!can\(session\.profile, "genes\.approve"\)\)/);
+    expect(src).toMatch(/can\(session\.profile, "genes\.publish"\)/);
+  });
+
+  it("the editor does not show an approval blocker to someone who can approve", () => {
+    const editor = read("components/review/ReviewEditor.tsx");
+    expect(editor).toMatch(/adminOverride: props\.canApprove/);
+  });
+
+  it("the editor saves before publishing", () => {
+    // The publish path reads the draft from the database, so an unsaved edit
+    // would otherwise be silently left out of what goes live.
+    const editor = read("components/review/ReviewEditor.tsx");
+    const body = editor.slice(editor.indexOf("async function publish()"));
+    expect(body.slice(0, 400)).toMatch(/await doSave\(\)/);
+  });
+});
+
+describe("Assigned to me is a filter, not a workflow bucket", () => {
+  const cc = read("components/review/genes/GeneControlCenter.tsx");
+
+  it("filters the same rows rather than removing them from their queue", () => {
+    // A gene assigned to you is still In Review. Making ownership a bucket
+    // would take it out of the queue everyone else reads.
+    expect(cc).toMatch(/tab === "mine"/);
+    expect(cc).toMatch(/r\.assignedReviewerId === viewerId/);
+  });
+
+  it("hides itself when nothing is assigned to you", () => {
+    expect(cc).toMatch(/t\.id === "failed" \|\| t\.id === "mine"/);
+  });
+});

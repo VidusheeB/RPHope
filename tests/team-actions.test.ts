@@ -94,12 +94,16 @@ describe("assignment is not restricted to reviewers", () => {
     expect(dialog).not.toMatch(/>Reviewer<\/span>/);
   });
 
-  it("the personal queue is reachable by every role that can be assigned", () => {
-    // Hiding it from admins left them able to self-assign with nowhere to see
-    // the result.
+  it("everyone who can be assigned has a route to their own genes", () => {
+    // Two routes on purpose, because the audiences differ: a reviewer gets a
+    // nav item (it is their whole job), while someone with the full Genes
+    // console gets an "Assigned to me" TAB there rather than a second nav
+    // entry leading to gene work. What must never happen again is an admin
+    // being able to self-assign with nowhere to see the result.
     const shell = read("components/review/AdminShell.tsx");
-    const line = shell.split("\n").find((l) => l.includes('"Assigned to me"')) ?? "";
-    expect(line).toMatch(/requires: \["genes\.review\.assigned"\]/);
-    expect(line).not.toMatch(/hideIf/);
+    expect(shell).toMatch(/label: "My Genes"/);
+    const cc = read("components/review/genes/GeneControlCenter.tsx");
+    expect(cc).toMatch(/label: "Assigned to me"/);
+    expect(cc).toMatch(/r\.assignedReviewerId === viewerId/);
   });
 });
