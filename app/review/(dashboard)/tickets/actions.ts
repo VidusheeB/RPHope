@@ -18,6 +18,25 @@ import type { TicketStatus, TicketType } from "@/lib/reviewer/tickets";
 import type { ActionResult } from "@/app/review/actions";
 
 /**
+ * Turn a database error into something a person can act on.
+ *
+ * Postgres messages are written for whoever wrote the schema, not for the
+ * person holding the mouse. "stack depth limit exceeded" reached the reply box
+ * verbatim and told an admin nothing about what had happened or what to do.
+ * The raw text still goes to the server log, where it belongs.
+ */
+function friendlyDbError(error: { message: string }, fallback: string): string {
+  console.error("[tickets]", error.message);
+  if (/stack depth|infinite recursion/i.test(error.message)) {
+    return "Something went wrong saving that. The team has been notified — please try again shortly.";
+  }
+  if (/row-level security|permission denied/i.test(error.message)) {
+    return "You don't have permission to do that.";
+  }
+  return fallback;
+}
+
+/**
  * Start a conversation — general, or attached to a gene.
  *
  * draftId is optional: a null one is a general question. 0027 made the column
@@ -54,7 +73,7 @@ export async function startConversationAction(input: {
     })
     .select("id")
     .single();
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: friendlyDbError(error, "Couldn't start that ticket.") };
 
   await notifyAdmins({
     actor: session.userId,
@@ -99,7 +118,7 @@ export async function replyAction(input: {
     body: input.body.trim(),
     internal_note: input.internalNote ?? false,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: friendlyDbError(error, "Couldn't post that reply.") };
 
   // Notify the other side. An internal note is admin-to-admin by definition,
   // so it must never reach the person who opened the conversation.
@@ -173,7 +192,7 @@ export async function updateConversationAction(input: {
   if (!Object.keys(patch).length) return { ok: true };
 
   const { error } = await service.from("review_tickets").update(patch).eq("id", input.conversationId);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: friendlyDbError(error, "Couldn't update that ticket.") };
 
   await logAudit({
     actor: session.userId,

@@ -38,6 +38,18 @@ const CLAIM_BUDGET_MS = 3 * 60 * 1000;
  *  requeue doesn't reclaim a job that is actually progressing. */
 const HEARTBEAT_MS = 30 * 1000;
 
+/** Flatten the pipeline's structured rejection reasons into one readable
+ *  line. Capped so a gene rejected for twenty missing sources doesn't write a
+ *  wall of text into a queue row an admin reads at a glance. */
+function formatRejectReasons(reasons: { code: string; detail: string }[]): string {
+  if (!reasons.length) return "no reason recorded";
+  const shown = reasons
+    .slice(0, 3)
+    .map((r) => `${r.code.replace(/_/g, " ")}: ${r.detail}`)
+    .join("; ");
+  return reasons.length > 3 ? `${shown} (+${reasons.length - 3} more)` : shown;
+}
+
 /** Turn any thrown value into one short operator-facing sentence. The queue
  *  UI shows this next to a Retry button — model traces and stack dumps
  *  deliberately do not go in the database. */
@@ -93,7 +105,12 @@ export async function POST(req: Request) {
         // (unknown source id, failed retrieval, schema violation) — not a
         // crash. It still surfaces as Failed with a Retry, because the gene
         // has no draft and a human may want to try again.
-        await failJob(job.id, `Draft rejected: ${result.reasons.join("; ")}`);
+        // RejectReason is { code, detail } — joining the array stringified
+        // each one as "[object Object]", destroying the only explanation of
+        // why a gene was rejected on its way into the database. The code says
+        // WHICH governance rule refused it; the detail says what specifically
+        // tripped it.
+        await failJob(job.id, `Draft rejected — ${formatRejectReasons(result.reasons)}`);
         processed.push({ gene: job.geneSymbol, outcome: "rejected" });
       } else {
         await failJob(job.id, result.error);
