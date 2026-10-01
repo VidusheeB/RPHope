@@ -109,13 +109,34 @@ grant  execute on function public.publish_gene_version(uuid, text, jsonb, uuid, 
 
 -- Backfill versions published before this column existed, so pages that are
 -- already live stop showing an em dash.
+--
+-- CAREFUL WITH reviewed_by. gene_page_drafts.submitted_by is uuid, but
+-- reviewed_by is TEXT — it predates the portal, when it held a free-text
+-- reviewer name. publish_gene_version has written a uuid into it since 0003,
+-- so the column now holds uuid-shaped strings for anything published through
+-- the portal AND possibly real names for older CLI-era rows. A plain join
+-- fails outright with "operator does not exist: uuid = text", and an
+-- unguarded ::uuid cast would error on any row holding a name.
+--
+-- The CASE is what makes this safe: Postgres only evaluates the cast for rows
+-- whose value actually looks like a uuid, so a legacy name is skipped rather
+-- than crashing the migration.
 update gene_page_versions v
-   set reviewer_name = coalesce(rp_submitter.display_name, rp_approver.display_name)
-  from gene_page_drafts d
-  left join reviewer_profiles rp_submitter on rp_submitter.user_id = d.submitted_by
-  left join reviewer_profiles rp_approver  on rp_approver.user_id  = d.reviewed_by
- where v.source_draft_id = d.id
-   and v.reviewer_name is null;
+   set reviewer_name = coalesce(
+     (select rp.display_name
+        from gene_page_drafts d
+        join reviewer_profiles rp on rp.user_id = d.submitted_by
+       where d.id = v.source_draft_id),
+     (select rp.display_name
+        from gene_page_drafts d
+        join reviewer_profiles rp
+          on rp.user_id = case
+               when d.reviewed_by ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+               then d.reviewed_by::uuid
+             end
+       where d.id = v.source_draft_id)
+   )
+ where v.reviewer_name is null;
 
 -- The public page reads gene_page_versions with the ANON key, so the
 -- published-only select policy from 0003 already covers this column. No new
