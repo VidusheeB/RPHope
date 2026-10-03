@@ -18,12 +18,21 @@ export default async function ReviewDraftPage({ params }: { params: { draftId: s
   // admin-specific bypass needed here, the database already handles it.
   const draft = await getDraftForReview(params.draftId);
   if (!draft) notFound();
+  const seesAllGenes = can(session.profile, "genes.review.all");
+  const backHref = seesAllGenes ? reviewHref("/genes") : reviewHref("");
+  const backLabel = seesAllGenes ? "Genes" : "My Genes";
   const tickets = await getTicketsForDraft(params.draftId);
 
   return (
     <div>
-      <Link href={reviewHref("")} className="text-sm font-semibold text-forest underline">
-        ← Dashboard
+      {/* Back to wherever this gene actually lives for this person: the Genes
+          console for an admin, their own queue for a reviewer. "Dashboard"
+          named neither, and pointed at a page admins shouldn't be on. */}
+      <Link
+        href={backHref}
+        className="text-sm font-semibold text-forest underline"
+      >
+        ← {backLabel}
       </Link>
       <h1 className="mt-3 font-display text-3xl font-medium text-forest">
         {draft.geneSymbol}

@@ -94,13 +94,28 @@ export async function publishApprovedVersionAction(
       confirmationChecked: true,
     });
     if (!submitted.ok) return submitted;
+    // Submitting moved it to submitted_for_approval; reflect that locally so
+    // the approval decision below is made on current state.
+    draft.review_status = "submitted_for_approval";
   }
 
-  if (!can(session.profile, "genes.approve")) {
-    return { ok: false, error: "This gene needs an administrator's approval before it can be published." };
+  // Approve only what is actually awaiting approval.
+  //
+  // This previously ran unconditionally. A draft that was already `approved` —
+  // including one left that way by an earlier publish attempt that failed at
+  // the last step — would be sent to approveReviewAction, which requires
+  // `submitted_for_approval` and refused with "this draft hasn't been
+  // submitted for approval yet". The result was a dead end that got WORSE with
+  // each retry: the first click advanced the state, and every click after that
+  // was rejected for being in the state the first click created.
+  const status = draft.review_status as string;
+  if (status !== "approved") {
+    if (!can(session.profile, "genes.approve")) {
+      return { ok: false, error: "This gene needs an administrator's approval before it can be published." };
+    }
+    const approval = await approveReviewAction({ draftId, content: approved });
+    if (!approval.ok) return approval;
   }
-  const approval = await approveReviewAction({ draftId, content: approved });
-  if (!approval.ok) return approval;
 
   return publishAction({
     draftId,

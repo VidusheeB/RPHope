@@ -138,3 +138,35 @@ describe("there is exactly one snake_case -> draft mapper", () => {
     }
   });
 });
+
+describe("retrying a publish does not get worse each time", () => {
+  const src = read("app/review/(dashboard)/genes/[draftId]/publish/actions.ts");
+
+  it("does not re-approve a draft that is already approved", () => {
+    // The first click advanced unreviewed -> submitted -> approved, then
+    // failed at the RPC. Every click after that was refused for being in the
+    // state the first click had created: approveReviewAction requires
+    // submitted_for_approval, so an already-approved draft got "this draft
+    // hasn't been submitted for approval yet" forever.
+    expect(src).toMatch(/if \(status !== "approved"\)/);
+  });
+
+  it("re-reads state after submitting, rather than trusting the earlier read", () => {
+    expect(src).toMatch(/draft\.review_status = "submitted_for_approval"/);
+  });
+});
+
+describe("the publish RPC keeps its table aliases", () => {
+  it("every WHERE on gene_page_versions is aliased", () => {
+    // `returns table (… gene_slug text)` makes gene_slug a PL/pgSQL variable
+    // that collides with the column, giving "column reference gene_slug is
+    // ambiguous". 0014 fixed it; 0032 rewrote the function from the 0003 copy
+    // and silently threw the fix away. 0034 restores it WITH reviewer_name.
+    const sql = read("supabase/migrations/0034_restore_publish_alias_and_reviewer_name.sql");
+    expect(sql).toMatch(/from public\.gene_page_versions v\b/);
+    expect(sql).toMatch(/where v\.gene_slug = p_gene_slug/);
+    expect(sql).not.toMatch(/where gene_slug = p_gene_slug/);
+    // ...and still records the reviewer.
+    expect(sql).toMatch(/reviewer_name/);
+  });
+});
