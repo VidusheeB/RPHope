@@ -12,7 +12,18 @@
 // Without NCBI_API_KEY the documented limit is 3 req/sec (333ms/request); we
 // space calls at 400ms to leave margin. With a key, NCBI allows 10 req/sec.
 
-const MIN_INTERVAL_MS = process.env.NCBI_API_KEY ? 110 : 400;
+// Under test these waits are pure dead time: what is being verified is the
+// retry LOGIC — how many attempts happen, and how the final error propagates —
+// never the wall-clock duration. Sleeping the real schedule put one test at
+// 15.6s against a 20s limit, so it passed alone and failed whenever anything
+// else was running, which is the worst kind of flake: it looks like a
+// regression in whatever you changed last.
+const IS_TEST = process.env.NODE_ENV === "test";
+
+const MIN_INTERVAL_MS = IS_TEST ? 0 : process.env.NCBI_API_KEY ? 110 : 400;
+
+/** Base backoff; doubles each attempt (1s -> 2s -> 4s in production). */
+const BASE_BACKOFF_MS = IS_TEST ? 1 : 1000;
 
 let lastCallAt = 0;
 
@@ -53,7 +64,7 @@ export async function ncbiFetch(url: string, init?: RequestInit): Promise<Respon
       if (attempt === MAX_ATTEMPTS) throw err;
     }
     // 1s, 2s, 4s — long enough for a rate-limit window to roll over.
-    await new Promise((r) => setTimeout(r, 1000 * 2 ** (attempt - 1)));
+    await new Promise((r) => setTimeout(r, BASE_BACKOFF_MS * 2 ** (attempt - 1)));
   }
   throw lastError ?? new Error("NCBI request failed after retries");
 }

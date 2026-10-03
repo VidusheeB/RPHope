@@ -19,7 +19,7 @@ import {
   type ActionResult,
 } from "@/app/review/actions";
 import type { GenePageDraft } from "@/lib/geneResearch/types";
-import { rowToDraft } from "@/lib/genes/publicationQueue";
+import { draftRowToContent } from "@/lib/reviewer/data";
 
 /**
  * Publish the reviewer-approved version.
@@ -72,7 +72,7 @@ export async function publishApprovedVersionAction(
   // publishAction independently re-reads the snapshot and prefers it, so the
   // content passed here is only ever used when there genuinely isn't one.
   const approved =
-    (draft.submitted_content as GenePageDraft | null) ?? rowToDraft(draft as Record<string, unknown>);
+    (draft.submitted_content as GenePageDraft | null) ?? draftRowToContent(draft as Record<string, unknown>);
 
   // WALK WHATEVER TRANSITIONS ARE OUTSTANDING.
   //

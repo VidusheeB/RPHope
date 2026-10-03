@@ -5,6 +5,11 @@
 // or `genes.publish` (to act on it) first.
 
 import { getServiceSupabase } from "@/lib/supabaseAdmin";
+// The canonical snake_case -> GenePageDraft mapper. A second copy of this
+// lived here and silently omitted gene, reviewStatus and generatedAt, so a
+// draft rebuilt from it failed schema validation at publish time with
+// "data must have required property 'gene'". One mapper, one place.
+import { draftRowToContent } from "@/lib/reviewer/data";
 import type { GenePageDraft } from "@/lib/geneResearch/types";
 
 export type AwaitingPublication = {
@@ -28,28 +33,6 @@ export type PublicationDetail = AwaitingPublication & {
   liveContent: GenePageDraft | null;
   currentlyPublishedVersion: number | null;
 };
-
-/** Rebuild the camelCase draft shape from the snake_case row. Mirrors
- *  serializeDraft() in app/review/actions.ts, in the other direction.
- *  Exported for the legacy publish path, where a draft approved before 0026
- *  has no snapshot and the live row is the approved content. */
-export function rowToDraft(row: Record<string, unknown>): GenePageDraft {
-  return {
-    summaryCard: row.summary_card,
-    whatThisGeneMeans: row.what_this_gene_means,
-    howItMayAffectVision: row.how_it_may_affect_vision,
-    whatIsKnown: row.what_is_known,
-    whatIsUncertain: row.what_is_uncertain,
-    whatYouCanDoNext: row.what_you_can_do_next,
-    questionsForClinician: row.questions_for_clinician,
-    forFamilyAndCaregivers: row.for_family_and_caregivers,
-    treatmentAndResearch: row.treatment_and_research,
-    clinicalTrialSummary: row.clinical_trial_summary,
-    researchCards: row.research_cards,
-    sources: row.sources,
-    reviewFlags: row.review_flags,
-  } as unknown as GenePageDraft;
-}
 
 /** Everything waiting on an administrator, newest approval first. */
 export async function getAwaitingPublication(): Promise<AwaitingPublication[]> {
@@ -126,7 +109,7 @@ export async function getPublicationDetail(draftId: string): Promise<Publication
     .maybeSingle();
 
   const snapshot = (row.submitted_content as GenePageDraft | null) ?? null;
-  const live = rowToDraft(row);
+  const live = draftRowToContent(row);
 
   return {
     draftId: draft.id,

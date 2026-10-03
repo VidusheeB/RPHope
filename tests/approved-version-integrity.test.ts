@@ -111,3 +111,30 @@ describe("Assigned to me is a filter, not a workflow bucket", () => {
     expect(cc).toMatch(/t\.id === "failed" \|\| t\.id === "mine"/);
   });
 });
+
+describe("there is exactly one snake_case -> draft mapper", () => {
+  it("the publish path uses draftRowToContent, not a local copy", () => {
+    // A second mapper in publicationQueue.ts omitted gene, reviewStatus and
+    // generatedAt. Nothing caught it until publish ran schema validation and
+    // refused with "data must have required property 'gene'" — after the
+    // admin had already ticked the review confirmation.
+    const publishActions = read("app/review/(dashboard)/genes/[draftId]/publish/actions.ts");
+    expect(publishActions).toMatch(/draftRowToContent/);
+    expect(publishActions).not.toMatch(/rowToDraft/);
+  });
+
+  it("no duplicate mapper survives anywhere", () => {
+    for (const f of ["lib/genes/publicationQueue.ts", "app/review/(dashboard)/genes/[draftId]/publish/actions.ts"]) {
+      expect(read(f)).not.toMatch(/function rowToDraft/);
+    }
+  });
+
+  it("the canonical mapper supplies every schema-required top-level field", () => {
+    // These three are exactly what the duplicate dropped.
+    const data = read("lib/reviewer/data.ts");
+    const body = data.slice(data.indexOf("export function draftRowToContent"));
+    for (const field of ["gene:", "reviewStatus:", "generatedAt:"]) {
+      expect(body.slice(0, 1200)).toContain(field);
+    }
+  });
+});
