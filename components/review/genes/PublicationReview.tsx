@@ -1,114 +1,103 @@
 "use client";
 
-// Admin "Review & Publish" screen.
+// The final step before a gene page goes live.
 //
-// Shows the EXACT version the reviewer approved — not the live draft — because
-// that is what publication will make public. Where the two differ, the
-// difference is surfaced rather than hidden: an administrator publishing
-// medical content should never be surprised by what went live.
+// It concludes TWO DIFFERENT KINDS OF REVIEW, and says which it is:
 //
-// There is deliberately no editing here. Publishing is not an editing
-// opportunity; an administrator who wants changes sends it back, which starts
-// a fresh review and produces a fresh approved snapshot.
+//   * OWN REVIEW — an admin reviewed a gene themselves and pressed "Complete
+//     review and publish" in the editor. Nobody else is involved, so there is
+//     nothing to approve and nobody to send it back to. This screen is simply
+//     the last look: the finished page, then Publish.
+//
+//   * SOMEONE ELSE'S REVIEW — a reviewer submitted their work for publication.
+//     The admin is now judging that work, so the screen leads with the review
+//     itself (flags raised, how each was dispositioned, the reviewer's notes,
+//     open tickets) and offers Request changes alongside Publish.
+//
+// In both cases the content is rendered with PreviewTab — the SAME components
+// the public gene page uses — rather than a hand-drawn approximation. A
+// preview that differs from the real page is worse than no preview, because it
+// teaches you to approve something you have not actually seen.
+//
+// No editing happens here. Publishing is the moment you stop changing things;
+// "Back to review" returns to the editor if something needs fixing.
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { reviewHref, publicHref } from "@/lib/reviewer/paths";
-import StatusBadge from "@/components/review/ui/StatusBadge";
+import PreviewTab from "@/components/review/gene-admin/PreviewTab";
 import {
-  publishApprovedVersionAction,
+  publishOwnReviewAction,
+  publishSubmittedReviewAction,
   requestChangesFromScreenAction,
 } from "@/app/review/(dashboard)/genes/[draftId]/publish/actions";
 import type { PublicationDetail } from "@/lib/genes/publicationQueue";
+import type { Article } from "@/components/site/GeneArticles";
+import type { FlagResolutionStatus } from "@/lib/reviewer/publishGate";
 
 function formatWhen(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "";
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
-/** Render one content section's text, whatever shape it is in. The draft
- *  schema nests prose under differing keys per section, so this reads the
- *  common ones rather than assuming a single shape. */
-function sectionText(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (Array.isArray(value)) return value.map(sectionText).filter(Boolean).join("\n\n");
-  if (value && typeof value === "object") {
-    const o = value as Record<string, unknown>;
-    for (const key of ["text", "body", "content", "summary"]) {
-      if (typeof o[key] === "string") return o[key] as string;
-    }
-    const parts = Object.values(o).map(sectionText).filter(Boolean);
-    if (parts.length) return parts.join("\n\n");
-  }
-  return "";
-}
-
-const SECTIONS: { key: string; label: string }[] = [
-  { key: "summaryCard", label: "Summary" },
-  { key: "whatThisGeneMeans", label: "What this gene means" },
-  { key: "howItMayAffectVision", label: "How it may affect vision" },
-  { key: "whatIsKnown", label: "What is known" },
-  { key: "whatIsUncertain", label: "What is uncertain" },
-  { key: "whatYouCanDoNext", label: "What you can do next" },
-  { key: "questionsForClinician", label: "Questions for a clinician" },
-  { key: "forFamilyAndCaregivers", label: "For family and caregivers" },
-  { key: "treatmentAndResearch", label: "Treatment and research" },
-  { key: "clinicalTrialSummary", label: "Clinical trials" },
-];
+// Typed against the real enum, so adding a status is a compile error here
+// rather than a silently unlabelled row. An earlier draft of this map used
+// guessed keys that matched none of the real statuses.
+const STATUS_LABEL: Record<FlagResolutionStatus, string> = {
+  unresolved: "Unresolved",
+  wording_confirmed: "Wording confirmed",
+  edited_and_resolved: "Edited and resolved",
+  not_applicable: "Not applicable",
+};
 
 export default function PublicationReview({
   detail,
+  articles,
+  isOwnReview,
   canPublish,
-  canApprove,
+  canRequestChanges,
 }: {
   detail: PublicationDetail;
+  articles: Article[];
+  /** True when the viewer is concluding their OWN review rather than
+   *  dispositioning someone else's. Changes the framing and controls. */
+  isOwnReview: boolean;
   canPublish: boolean;
-  canApprove: boolean;
+  canRequestChanges: boolean;
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [requesting, setRequesting] = useState(false);
   const [note, setNote] = useState("");
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busy, setBusy] = useState<"publish" | "changes" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<string | null>(null);
-
-  const content = (detail.content ?? {}) as Record<string, unknown>;
-  const live = (detail.liveContent ?? {}) as Record<string, unknown>;
-
-  // Does the live draft differ from what was approved? Only meaningful when a
-  // snapshot exists; without one we have nothing to compare against.
-  const drifted =
-    detail.hasApprovedSnapshot &&
-    SECTIONS.some((s) => sectionText(content[s.key]) !== sectionText(live[s.key]));
-
-  const sources = Array.isArray(content.sources) ? (content.sources as unknown[]) : [];
+  const [published, setPublished] = useState(false);
 
   async function doPublish() {
     setBusy("publish");
     setError(null);
-    const res = await publishApprovedVersionAction(detail.draftId);
+    // Two different reviews end here, so two different server paths: an own
+    // review publishes directly; someone else's submission is approved (if
+    // it isn't already) and then published.
+    const res = isOwnReview
+      ? await publishOwnReviewAction(detail.draftId)
+      : await publishSubmittedReviewAction(detail.draftId);
     setBusy(null);
     setConfirming(false);
     if (!res.ok) {
-      setError(res.blockers?.length ? res.blockers.join(" ") : res.error);
+      setError(res.blockers?.length ? [res.error, ...res.blockers].join(" ") : res.error);
       return;
     }
-    setDone(`${detail.geneSymbol} published.`);
+    setPublished(true);
     router.refresh();
   }
 
   async function doRequestChanges() {
     if (!note.trim()) {
-      setError("Explain what needs to change so the reviewer knows what to do.");
+      setError("Say what needs to change, so the reviewer knows what to do.");
       return;
     }
     setBusy("changes");
@@ -119,196 +108,199 @@ export default function PublicationReview({
       setError(res.error);
       return;
     }
-    setRequesting(false);
-    setNote("");
-    setDone(`Sent back to ${detail.approvedByName ?? "the reviewer"}.`);
-    router.refresh();
+    router.push(reviewHref("/genes"));
+  }
+
+  const liveUrl = publicHref(`/genetic-insights/${detail.geneSlug}`);
+
+  if (published) {
+    return (
+      <div className="mx-auto max-w-2xl py-10 text-center">
+        <h1 className="font-display text-2xl font-semibold text-forest">{detail.geneSymbol} is live</h1>
+        <p className="mt-2 text-sm text-ink/70">
+          The page is now public on RP Hope
+          {detail.currentlyPublishedVersion ? `, replacing version ${detail.currentlyPublishedVersion}` : ""}.
+        </p>
+        <div className="mt-6 flex justify-center gap-3">
+          <a
+            href={liveUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="h-10 rounded-md bg-forest px-4 text-sm font-semibold leading-10 text-white hover:bg-forest/90"
+          >
+            View the live page
+          </a>
+          <Link
+            href={reviewHref("/genes")}
+            className="h-10 rounded-md border border-ink/20 px-4 text-sm font-semibold leading-10 text-ink/80 hover:bg-ink/[0.04]"
+          >
+            Back to Genes
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <Link
-        href={reviewHref("/genes")}
+        href={isOwnReview ? reviewHref(`/${detail.draftId}`) : reviewHref("/genes")}
         className="text-sm font-semibold text-ink/60 underline-offset-2 hover:text-forest hover:underline"
       >
-        ← Genes
+        {isOwnReview ? "← Back to review" : "← Genes"}
       </Link>
 
-      <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-forest">{detail.geneSymbol}</h1>
-          <p className="mt-1 text-sm text-ink/60">
-            Approved by {detail.approvedByName ?? "a reviewer"} · {formatWhen(detail.approvedAt)}
-          </p>
-        </div>
-        <StatusBadge status="Awaiting Publication" />
+      <div className="mt-3">
+        <h1 className="font-display text-2xl font-semibold text-forest">{detail.geneSymbol}</h1>
+        <p className="mt-1 text-sm text-ink/65">
+          {isOwnReview
+            ? "Final check. This is exactly what the public will see — scroll to the bottom to publish."
+            : `Submitted for publication by ${detail.approvedByName ?? "a reviewer"}${
+                detail.approvedAt ? ` · ${formatWhen(detail.approvedAt)}` : ""
+              }`}
+        </p>
       </div>
 
-      {done && (
-        <p role="status" className="mt-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-          {done}{" "}
-          <Link href={publicHref(`/genetic-insights/${detail.geneSlug}`)} className="font-semibold underline">
-            View the live page
-          </Link>
-        </p>
+      {/* The review behind this version — shown when judging someone else's
+          work, since that is the thing being decided on. Omitted for an own
+          review: the admin just did it, and repeating it back is noise. */}
+      {!isOwnReview && (
+        <section className="mt-6 rounded-xl border border-ink/10 bg-white p-5">
+          <h2 className="text-base font-semibold text-ink">The review</h2>
+          <dl className="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+            <div>
+              <dt className="text-ink/55">Flags resolved</dt>
+              <dd className="font-semibold text-ink">
+                {detail.resolvedFlagCount} of {detail.flagCount}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ink/55">Open tickets</dt>
+              <dd className={`font-semibold ${detail.openTicketCount ? "text-orange-800" : "text-ink"}`}>
+                {detail.openTicketCount}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ink/55">Currently live</dt>
+              <dd className="font-semibold text-ink">
+                {detail.currentlyPublishedVersion ? `Version ${detail.currentlyPublishedVersion}` : "Never published"}
+              </dd>
+            </div>
+          </dl>
+
+          {detail.reviewNotes.length > 0 && (
+            <ul className="mt-4 space-y-2 border-t border-ink/10 pt-4">
+              {detail.reviewNotes.map((n, i) => (
+                <li key={i} className="text-sm">
+                  <p className="text-ink/80">{n.flag}</p>
+                  <p className="mt-0.5 text-xs">
+                    <span className="font-semibold text-ink">
+                      {STATUS_LABEL[n.status as FlagResolutionStatus] ?? n.status}
+                    </span>
+                    {n.note && <span className="text-ink/65"> — “{n.note}”</span>}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       )}
 
-      {/* Integrity notices — the reason this screen exists. */}
-      {!detail.hasApprovedSnapshot && (
-        <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          <strong>No approved snapshot on file.</strong> This gene was submitted before the portal
-          began recording the exact approved version, so we can&apos;t prove what the reviewer signed
-          off on. Send it back to be re-approved before publishing.
-        </p>
-      )}
-      {drifted && (
-        <p className="mt-4 rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-orange-900">
-          <strong>The draft has changed since it was approved.</strong> Publishing will make the{" "}
-          <em>approved</em> version live, shown below — not the current draft.
-        </p>
-      )}
-
-      {/* Version context */}
-      <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-2 rounded-xl border border-ink/10 bg-white px-5 py-4 text-sm">
-        <div>
-          <dt className="text-ink/55">Currently live</dt>
-          <dd className="font-semibold text-ink">
-            {detail.currentlyPublishedVersion ? `Version ${detail.currentlyPublishedVersion}` : "Never published"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-ink/55">Will publish as</dt>
-          <dd className="font-semibold text-ink">
-            Version {(detail.currentlyPublishedVersion ?? 0) + 1}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-ink/55">Sources cited</dt>
-          <dd className="font-semibold text-ink">{sources.length}</dd>
-        </div>
-      </dl>
-
-      {/* The approved content */}
-      <section className="mt-6 space-y-5">
-        <h2 className="text-base font-semibold text-ink">The approved version</h2>
-        {SECTIONS.map((s) => {
-          const text = sectionText(content[s.key]);
-          if (!text) return null;
-          return (
-            <article key={s.key} className="rounded-xl border border-ink/10 bg-white p-5">
-              <h3 className="text-sm font-bold uppercase tracking-wide text-ink/50">{s.label}</h3>
-              <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink">{text}</div>
-            </article>
-          );
-        })}
-
-        {sources.length > 0 && (
-          <article className="rounded-xl border border-ink/10 bg-white p-5">
-            <h3 className="text-sm font-bold uppercase tracking-wide text-ink/50">Sources</h3>
-            <ol className="mt-2 space-y-1.5 text-sm text-ink/80">
-              {sources.map((raw, i) => {
-                const src = raw as Record<string, unknown>;
-                const title = typeof src.title === "string" ? src.title : `Source ${i + 1}`;
-                const url = typeof src.url === "string" ? src.url : null;
-                return (
-                  <li key={i}>
-                    {url ? (
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-forest underline-offset-2 hover:underline"
-                      >
-                        {title}
-                      </a>
-                    ) : (
-                      title
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          </article>
+      {/* The page itself, rendered with the public site's own components. */}
+      <section className="mt-6">
+        {detail.content ? (
+          <PreviewTab
+            draft={detail.content}
+            geneSlug={detail.geneSlug}
+            articles={articles}
+            hasPublishedVersion={Boolean(detail.currentlyPublishedVersion)}
+          />
+        ) : (
+          <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
+            This gene has no content to preview.
+          </p>
         )}
       </section>
 
       {error && (
-        <p role="alert" className="mt-5 rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
+        <p role="alert" className="mt-6 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
           {error}
         </p>
       )}
 
-      {/* Actions */}
-      <div className="sticky bottom-0 mt-8 flex flex-wrap items-center gap-3 border-t border-ink/10 bg-cream/95 py-4 backdrop-blur">
-        {canPublish && (
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            disabled={busy !== null || !detail.hasApprovedSnapshot}
-            className="h-10 rounded-md bg-forest px-4 text-sm font-semibold text-white hover:bg-forest/90 disabled:opacity-40"
-          >
-            {busy === "publish" ? "Publishing…" : "Publish"}
-          </button>
-        )}
-        {canApprove && (
-          <button
-            type="button"
-            onClick={() => setRequesting((v) => !v)}
-            disabled={busy !== null}
-            className="h-10 rounded-md border border-ink/20 px-4 text-sm font-semibold text-ink/80 hover:bg-ink/[0.04] disabled:opacity-40"
-          >
-            Request changes
-          </button>
-        )}
-        <Link
-          href={reviewHref(`/admin/genes/${detail.draftId}`)}
-          className="text-sm font-semibold text-ink/60 underline-offset-2 hover:text-forest hover:underline"
-        >
-          Open full record
-        </Link>
-      </div>
+      {/* Reached by scrolling past the whole page, on purpose. */}
+      <section className="mt-8 rounded-xl border border-ink/10 bg-white p-5">
+        <h2 className="text-base font-semibold text-ink">
+          {isOwnReview ? "Publish this page" : "Decide on this review"}
+        </h2>
+        <p className="mt-1 text-sm text-ink/65">
+          {detail.currentlyPublishedVersion
+            ? `Publishing replaces version ${detail.currentlyPublishedVersion}, which is kept in history.`
+            : "This will be the first published version of this gene."}
+        </p>
 
-      {requesting && (
-        <div className="mt-4 rounded-xl border border-ink/10 bg-white p-5">
-          <label htmlFor="change-note" className="block text-sm font-semibold text-ink">
-            What needs to be updated?
-          </label>
-          <p className="mt-0.5 text-xs text-ink/55">
-            {detail.approvedByName ?? "The reviewer"} will see this, and regains edit access.
-          </p>
-          <textarea
-            id="change-note"
-            rows={4}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="mt-2 w-full rounded-md border border-ink/15 p-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-forest"
-          />
-          <div className="mt-3 flex justify-end gap-2">
+        <div className="mt-4 flex flex-wrap gap-3">
+          {canPublish && (
             <button
               type="button"
-              onClick={() => setRequesting(false)}
-              className="h-9 rounded-md border border-ink/20 px-3 text-sm font-semibold text-ink/70 hover:bg-ink/[0.04]"
+              onClick={() => setConfirming(true)}
+              disabled={busy !== null || !detail.content}
+              className="h-10 rounded-md bg-forest px-5 text-sm font-semibold text-white hover:bg-forest/90 disabled:opacity-40"
             >
-              Cancel
+              {busy === "publish" ? "Publishing…" : "Publish"}
             </button>
+          )}
+          {/* You cannot send your own review back to yourself. */}
+          {!isOwnReview && canRequestChanges && (
             <button
               type="button"
-              onClick={doRequestChanges}
+              onClick={() => setRequesting((v) => !v)}
               disabled={busy !== null}
-              className="h-9 rounded-md bg-forest px-3 text-sm font-semibold text-white hover:bg-forest/90 disabled:opacity-50"
+              className="h-10 rounded-md border border-ink/20 px-5 text-sm font-semibold text-ink/80 hover:bg-ink/[0.04] disabled:opacity-40"
             >
-              {busy === "changes" ? "Sending…" : "Send back"}
+              Request changes
             </button>
-          </div>
+          )}
         </div>
-      )}
+
+        {requesting && (
+          <div className="mt-4">
+            <label htmlFor="change-note" className="block text-sm font-semibold text-ink">
+              What needs to be updated?
+            </label>
+            <p className="mt-0.5 text-xs text-ink/55">
+              {detail.approvedByName ?? "The reviewer"} will see this and can edit the gene again.
+            </p>
+            <textarea
+              id="change-note"
+              rows={4}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="mt-2 w-full rounded-md border border-ink/15 p-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-forest"
+            />
+            <div className="mt-3 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setRequesting(false)}
+                className="h-9 rounded-md border border-ink/20 px-3 text-sm font-semibold text-ink/70 hover:bg-ink/[0.04]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={doRequestChanges}
+                disabled={busy !== null}
+                className="h-9 rounded-md bg-forest px-3 text-sm font-semibold text-white hover:bg-forest/90 disabled:opacity-50"
+              >
+                {busy === "changes" ? "Sending…" : "Send back"}
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
 
       {confirming && (
-        <PublishConfirm
-          geneSymbol={detail.geneSymbol}
-          onCancel={() => setConfirming(false)}
-          onConfirm={doPublish}
-        />
+        <PublishConfirm geneSymbol={detail.geneSymbol} onCancel={() => setConfirming(false)} onConfirm={doPublish} />
       )}
     </div>
   );
@@ -346,8 +338,7 @@ function PublishConfirm({
           Publish {geneSymbol}?
         </h2>
         <p className="mt-2 text-sm text-ink/75">
-          This approved version will become the live gene page on RP Hope. The version currently
-          published is kept in history.
+          This page will go live on RP Hope immediately.
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <button

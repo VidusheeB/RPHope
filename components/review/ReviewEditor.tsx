@@ -11,10 +11,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { reviewHref } from "@/lib/reviewer/paths";
 import {
   evaluateSubmissionReadiness,
-  evaluateApprovalReadiness,
-  evaluateAdminPublishReadiness,
   type FlagResolutionStatus,
 } from "@/lib/reviewer/publishGate";
 import type { DraftReviewStatus } from "@/lib/reviewer/dashboardStatus";
@@ -22,10 +21,7 @@ import {
   saveDraftAction,
   resolveFlagAction,
   submitReviewAction,
-  approveReviewAction,
-  requestChangesAction,
 } from "@/app/review/actions";
-import { publishApprovedVersionAction } from "@/app/review/(dashboard)/genes/[draftId]/publish/actions";
 import { replyTicketAction } from "@/app/review/ticketActions";
 import { normalizeSentencedText, NARRATIVE_SECTION_KEYS } from "@/lib/geneResearch/types";
 import type { GenePageDraft, SourceCitation } from "@/lib/geneResearch/types";
@@ -100,8 +96,7 @@ export default function ReviewEditor(props: {
   const [highlightedSentence, setHighlightedSentence] = useState<SentenceLocation | null>(null);
   const [focusedSection, setFocusedSection] = useState<string | undefined>(undefined);
   const [tickets, setTickets] = useState<TicketRow[]>(props.initialTickets);
-  const [requestChangesOpen, setRequestChangesOpen] = useState(false);
-  const [changesNote, setChangesNote] = useState("");
+  const [busy, setBusy] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Best-guess sentence each AI review flag concerns, so "Go to flagged
@@ -141,20 +136,15 @@ export default function ReviewEditor(props: {
     ...flagResolutionInput,
     isAssignedReviewer: true, // server re-verifies; page only loads if assigned or admin
   });
-  const publishReadiness = evaluateAdminPublishReadiness({
+  // What is wrong with the CONTENT, with no workflow-state requirements mixed
+  // in. An admin is told "a cited source is missing", never "this hasn't been
+  // approved yet" — approval is not something they are waiting on.
+  const contentBlockers = evaluateSubmissionReadiness({
     ...flagResolutionInput,
-    canPublish: props.canPublish,
-    reviewStatus: props.reviewStatus,
-    // Publishing performs the outstanding approval for anyone who holds
-    // genes.approve, so the "hasn't been approved yet" blocker would be
-    // telling them to wait for themselves. Every CONTENT check still applies.
-    adminOverride: props.canApprove,
-  });
-  const approvalReadiness = evaluateApprovalReadiness({
-    ...flagResolutionInput,
-    canApprove: props.canApprove,
-    reviewStatus: props.reviewStatus,
-  });
+    isAssignedReviewer: true,
+    confirmationChecked: true,
+  }).blockers;
+
 
   const doSave = useCallback(async () => {
     setSaveState("saving");
@@ -226,48 +216,21 @@ export default function ReviewEditor(props: {
     }
   }
 
-  async function publish() {
+  /**
+   * Admin ending: save the review, then open the final preview.
+   *
+   * Deliberately does NOT publish from here. The admin should see the
+   * finished page before it goes live, and publishing from a form full of
+   * editing controls is how you ship something you never actually looked at.
+   */
+  async function completeReviewAndPublish() {
     setPublishMsg(null);
-    // Save first: the publish path reads the draft from the database, so any
-    // unsaved edit would otherwise be silently left out of what goes live.
+    setBusy(true);
     if (dirty || saveState !== "saved") await doSave();
-    // Carries out whatever review/approval steps are still outstanding before
-    // publishing. An admin reviewing their own assignment is doing all three
-    // jobs, and was previously stopped at a blocker naming an approval nobody
-    // else was going to perform.
-    const res = await publishApprovedVersionAction(props.draftId);
-    if (res.ok) {
-      setPublishMsg(`Published. Live at ${res.data?.publishedUrl}`);
-      router.refresh();
-    } else {
-      setPublishMsg([res.error, ...(res.blockers ?? [])].join(" — "));
-    }
+    setBusy(false);
+    router.push(reviewHref(`/genes/${props.draftId}/publish`));
   }
 
-  async function approve() {
-    setPublishMsg(null);
-    if (dirty || saveState !== "saved") await doSave();
-    const res = await approveReviewAction({ draftId: props.draftId, content });
-    if (res.ok) {
-      setPublishMsg("Approved. You can now publish.");
-      router.refresh();
-    } else {
-      setPublishMsg([res.error, ...(res.blockers ?? [])].join(" — "));
-    }
-  }
-
-  async function sendRequestChanges() {
-    setPublishMsg(null);
-    const res = await requestChangesAction({ draftId: props.draftId, note: changesNote });
-    if (res.ok) {
-      setPublishMsg("Sent back to the reviewer with your note.");
-      setChangesNote("");
-      setRequestChangesOpen(false);
-      router.refresh();
-    } else {
-      setPublishMsg(res.error);
-    }
-  }
 
   async function replyToTicket(ticketId: string, body: string) {
     if (!body.trim()) return;
@@ -448,7 +411,22 @@ export default function ReviewEditor(props: {
         </p>
       )}
 
-      {/* Submit (reviewer) / Approve & Publish (admin) */}
+      {/*
+        TWO DIFFERENT REVIEWS, TWO DIFFERENT ENDINGS.
+
+        A REVIEWER's review ends by handing the work to someone else — that is
+        the whole point of the role, so their action is "Submit for
+        publication" and their involvement stops there.
+
+        An ADMIN's review ends with the page being live. There is nobody to
+        hand to, so approval would be them agreeing with themselves. Their
+        action opens the final preview, and publishing happens there, having
+        seen exactly what the public will see.
+
+        These used to be one control with branches bolted on, which is how an
+        admin ended up blocked behind an approval step meant for a different
+        workflow entirely.
+      */}
       <section className="rounded-lg border border-forest/20 bg-forest/5 p-4">
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" checked={confirmChecked} onChange={(e) => setConfirmChecked(e.target.checked)} className="mt-1" />
@@ -459,69 +437,44 @@ export default function ReviewEditor(props: {
         </label>
 
         <div className="mt-4 flex flex-wrap gap-3">
-          {!props.canApprove && (
+          {props.canPublish ? (
+            <button
+              onClick={completeReviewAndPublish}
+              disabled={!confirmChecked || contentBlockers.length > 0 || busy}
+              className="rounded bg-forest px-5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? "Saving…" : "Complete review and publish"}
+            </button>
+          ) : (
             <button
               onClick={submit}
               disabled={!submissionReadiness.canProceed || reviewerLocked}
               className="rounded bg-forest px-5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Submit review
-            </button>
-          )}
-          {props.canApprove && props.reviewStatus === "submitted_for_approval" && (
-            <button
-              onClick={approve}
-              disabled={!approvalReadiness.canProceed}
-              className="rounded bg-forest px-5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Approve
-            </button>
-          )}
-          {props.canApprove && (props.reviewStatus === "submitted_for_approval" || props.reviewStatus === "changes_requested") && (
-            <button
-              onClick={() => setRequestChangesOpen(true)}
-              className="rounded border border-ink/25 px-5 py-2 font-semibold text-ink"
-            >
-              Request changes
-            </button>
-          )}
-          {props.canPublish && (
-            <button
-              onClick={publish}
-              disabled={!publishReadiness.canProceed}
-              title={props.reviewStatus !== "approved" ? "Approve the review first" : undefined}
-              className="rounded bg-forest px-5 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Publish
+              Submit for publication
             </button>
           )}
         </div>
 
-        {!props.canApprove && !reviewerLocked && submissionReadiness.blockers.length > 0 && (
+        {props.canPublish && (
+          <p className="mt-2 text-xs text-ink/60">
+            You&apos;ll see a preview of the finished page before anything goes live.
+          </p>
+        )}
+
+        {props.canPublish && contentBlockers.length > 0 && (
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-ink/70">
+            {contentBlockers.map((b) => (
+              <li key={b}>{b}</li>
+            ))}
+          </ul>
+        )}
+
+        {!props.canPublish && !reviewerLocked && submissionReadiness.blockers.length > 0 && (
           <div className="mt-3 text-sm text-ink/70">
             <p className="font-semibold">Remaining before you can submit:</p>
             <ul className="mt-1 list-disc pl-5">
               {submissionReadiness.blockers.map((b, i) => (
-                <li key={i}>{b}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {props.canApprove && props.reviewStatus === "submitted_for_approval" && approvalReadiness.blockers.length > 0 && (
-          <div className="mt-3 text-sm text-ink/70">
-            <p className="font-semibold">Remaining before you can approve:</p>
-            <ul className="mt-1 list-disc pl-5">
-              {approvalReadiness.blockers.map((b, i) => (
-                <li key={i}>{b}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {props.canPublish && publishReadiness.blockers.length > 0 && (
-          <div className="mt-3 text-sm text-ink/70">
-            <p className="font-semibold">Remaining before publishing:</p>
-            <ul className="mt-1 list-disc pl-5">
-              {publishReadiness.blockers.map((b, i) => (
                 <li key={i}>{b}</li>
               ))}
             </ul>
@@ -555,53 +508,6 @@ export default function ReviewEditor(props: {
         onCreated={() => router.refresh()}
       />
 
-      {requestChangesOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4"
-          role="presentation"
-          onClick={() => setRequestChangesOpen(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Request changes"
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl"
-          >
-            <h2 className="font-display text-lg font-medium text-ink">Request changes</h2>
-            <p className="mt-1 text-sm text-ink/60">
-              Sends this draft back to {props.geneSymbol}&apos;s reviewer with your explanation — required.
-            </p>
-            <label htmlFor="changes-note" className="sr-only">
-              What needs to change
-            </label>
-            <textarea
-              id="changes-note"
-              autoFocus
-              value={changesNote}
-              onChange={(e) => setChangesNote(e.target.value)}
-              rows={4}
-              placeholder="What needs to change before this can be approved?"
-              className="mt-3 w-full rounded border border-ink/20 p-3"
-            />
-            <div className="mt-3 flex gap-2">
-              <button
-                onClick={sendRequestChanges}
-                disabled={!changesNote.trim()}
-                className="rounded bg-forest px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Send back with note
-              </button>
-              <button
-                onClick={() => setRequestChangesOpen(false)}
-                className="rounded border border-ink/20 px-4 py-2 text-sm font-semibold text-ink"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

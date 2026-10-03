@@ -62,38 +62,73 @@ describe("the snapshot cannot be forged", () => {
   });
 });
 
-describe("an admin reviewing their own assignment can publish it", () => {
-  const src = read("app/review/(dashboard)/genes/[draftId]/publish/actions.ts");
+describe("an admin's review and a reviewer's review are different processes", () => {
+  const editor = read("components/review/ReviewEditor.tsx");
+  const actions = read("app/review/(dashboard)/genes/[draftId]/publish/actions.ts");
 
-  it("carries out the outstanding review and approval steps", () => {
-    // Carin self-assigns a gene, reviews it, and is then doing all three jobs.
-    // Previously only Publish was offered, gated on an approval nobody else
-    // was going to perform, so the button sat disabled saying "This draft
-    // hasn't been approved yet" — naming a state without naming who changes it.
-    expect(src).toMatch(/submitReviewAction/);
-    expect(src).toMatch(/approveReviewAction/);
-    expect(src).toMatch(/publishAction/);
+  it("each role gets one ending, named for what their review concludes", () => {
+    // A reviewer hands work to someone else; an admin's review ends with the
+    // page live. One control with branches bolted on is how an admin ended up
+    // blocked behind an approval step meant for a different workflow.
+    expect(editor).toMatch(/Complete review and publish/);
+    expect(editor).toMatch(/Submit for publication/);
   });
 
-  it("each step still goes through its own hardened action", () => {
-    // Not a bypass: every transition is gated and audited exactly as if three
-    // different people had performed it.
-    expect(src).toMatch(/if \(!can\(session\.profile, "genes\.submit"\)\)/);
-    expect(src).toMatch(/if \(!can\(session\.profile, "genes\.approve"\)\)/);
-    expect(src).toMatch(/can\(session\.profile, "genes\.publish"\)/);
+  it("the admin's button opens the preview — it does NOT publish from the editor", () => {
+    // Publishing from a form full of editing controls is how you ship
+    // something you never actually looked at.
+    const fn = editor.slice(editor.indexOf("async function completeReviewAndPublish"));
+    const body = fn.slice(0, fn.indexOf("\n  }\n"));
+    expect(body).toMatch(/router\.push\(reviewHref\(`\/genes\/\$\{props\.draftId\}\/publish`\)\)/);
+    expect(body).not.toMatch(/publishAction|publishOwnReviewAction|publishSubmittedReviewAction/);
   });
 
-  it("the editor does not show an approval blocker to someone who can approve", () => {
-    const editor = read("components/review/ReviewEditor.tsx");
-    expect(editor).toMatch(/adminOverride: props\.canApprove/);
+  it("the editor saves before handing off to the preview", () => {
+    // The preview reads from the database; an unsaved edit would otherwise be
+    // missing from both the preview and what gets published.
+    const fn = editor.slice(editor.indexOf("async function completeReviewAndPublish"));
+    expect(fn.slice(0, 400)).toMatch(/await doSave\(\)/);
   });
 
-  it("the editor saves before publishing", () => {
-    // The publish path reads the draft from the database, so an unsaved edit
-    // would otherwise be silently left out of what goes live.
-    const editor = read("components/review/ReviewEditor.tsx");
-    const body = editor.slice(editor.indexOf("async function publish()"));
-    expect(body.slice(0, 400)).toMatch(/await doSave\(\)/);
+  it("the editor shows an admin content problems, never a workflow state", () => {
+    // "This draft hasn't been approved yet" was shown to an admin who was not
+    // waiting on anyone. Approval is not something their review waits for.
+    expect(editor).toMatch(/contentBlockers/);
+    expect(editor).not.toMatch(/publishReadiness/);
+    expect(editor).not.toMatch(/approvalReadiness/);
+  });
+
+  it("an own review publishes directly, with no fabricated submit or approve", () => {
+    // Walking submit -> approve recorded "Carin submitted" and "Carin
+    // approved" — two events that never happened as distinct acts.
+    const own = actions.slice(
+      actions.indexOf("export async function publishOwnReviewAction"),
+      actions.indexOf("export async function publishSubmittedReviewAction")
+    );
+    expect(own).toMatch(/adminOverride: true/);
+    expect(own).not.toMatch(/approveReviewAction|submitReviewAction/);
+  });
+
+  it("an own review cannot be used to publish someone else's submission", () => {
+    const own = actions.slice(actions.indexOf("export async function publishOwnReviewAction"));
+    expect(own).toMatch(/submittedBy && submittedBy !== session\.userId/);
+  });
+
+  it("adminOverride skips ONLY the approval requirement, never content checks", () => {
+    // The reason an own review can safely use it. An earlier comment claimed
+    // it skipped content checks; it never did.
+    const gate = read("lib/reviewer/publishGate.ts");
+    const fn = gate.slice(gate.indexOf("export function evaluateAdminPublishReadiness"));
+    const body = fn.slice(0, fn.indexOf("\n}\n"));
+    expect(body).toMatch(/const blockers = baseContentBlockers\(input\)/);
+    expect(body).toMatch(/input\.reviewStatus !== "approved" && !input\.adminOverride/);
+  });
+
+  it("a reviewer's submission is approved only if it isn't already", () => {
+    // A draft left approved by a failed attempt must be publishable on retry,
+    // not refused for being in the state that attempt created.
+    const sub = actions.slice(actions.indexOf("export async function publishSubmittedReviewAction"));
+    expect(sub).toMatch(/if \(status !== "approved"\)/);
   });
 });
 
@@ -151,9 +186,6 @@ describe("retrying a publish does not get worse each time", () => {
     expect(src).toMatch(/if \(status !== "approved"\)/);
   });
 
-  it("re-reads state after submitting, rather than trusting the earlier read", () => {
-    expect(src).toMatch(/draft\.review_status = "submitted_for_approval"/);
-  });
 });
 
 describe("the publish RPC keeps its table aliases", () => {

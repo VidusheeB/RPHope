@@ -1,12 +1,21 @@
 "use server";
 
-// Publication actions for the admin review-and-publish screen.
+// Publication actions. There are TWO, because there are two different reviews
+// a publication can conclude, and they are not the same process:
 //
-// Thin wrappers over the existing, already-hardened publishAction /
-// requestChangesAction / approveReviewAction rather than a parallel
-// implementation: those own the atomic RPC, the readiness gate, notifications
-// and the audit trail, and duplicating any of that is how the two paths would
-// drift apart.
+//   publishOwnReviewAction        — an admin reviewed the gene themselves.
+//   publishSubmittedReviewAction  — an admin is dispositioning a reviewer's
+//                                   submitted work.
+//
+// These used to be one action that walked submit -> approve -> publish for
+// everyone. For an admin's own review that meant fabricating two events that
+// never happened as distinct acts ("Carin submitted", "Carin approved"), and
+// any step failing left the draft in an intermediate state that the next
+// attempt then refused — so retrying got worse every time.
+//
+// Both delegate the actual write to publishAction, which owns the atomic RPC,
+// the content checks, notifications and the audit trail. Neither duplicates
+// any of that.
 
 import { getReviewerSession } from "@/lib/reviewer/session";
 import { can } from "@/lib/reviewer/permissions";
@@ -15,116 +24,110 @@ import {
   approveReviewAction,
   publishAction,
   requestChangesAction,
-  submitReviewAction,
   type ActionResult,
 } from "@/app/review/actions";
 import type { GenePageDraft } from "@/lib/geneResearch/types";
 import { draftRowToContent } from "@/lib/reviewer/data";
 
-/**
- * Publish the reviewer-approved version.
- *
- * The existing gate requires a draft to be `approved` before it can be
- * published, and approval is a separate admin step. From the publication
- * screen an administrator has a single "Publish" button, so this walks both
- * transitions in order — approve, then publish — instead of reaching for the
- * adminOverride escape hatch, which would skip the content checks that
- * approval performs.
- *
- * Content is NOT accepted from the caller. publishAction reads the immutable
- * snapshot taken when the reviewer submitted (see 0026), so what goes live is
- * what was reviewed.
- */
-export async function publishApprovedVersionAction(
+type PublishResult = ActionResult<{ publishedUrl: string; versionId: string }>;
+
+async function loadDraft(
   draftId: string
-): Promise<ActionResult<{ publishedUrl: string; versionId: string }>> {
+): Promise<{ ok: true; draft: Record<string, unknown> } | { ok: false; error: string }> {
+  const service = getServiceSupabase();
+  if (!service) return { ok: false, error: "Server not configured." };
+  const { data: draft } = await service
+    .from("gene_page_drafts")
+    .select("*")
+    .eq("id", draftId)
+    .maybeSingle();
+  if (!draft) return { ok: false, error: "Draft not found." };
+  return { ok: true, draft: draft as Record<string, unknown> };
+}
+
+/**
+ * An admin concluding their OWN review.
+ *
+ * No approval step, because approval would be the admin agreeing with
+ * themselves. This publishes directly with adminOverride — which, verified in
+ * publishGate.ts, removes ONLY the "must already be approved" requirement.
+ * Every content check (flags resolved, sources cited, verification, no
+ * blocking tickets) still runs exactly as it does for anyone else.
+ *
+ * The publish RPC then records the admin as reviewer and leaves the draft
+ * `approved`, so the end state matches what actually happened: one person
+ * reviewed it and published it.
+ */
+export async function publishOwnReviewAction(draftId: string): Promise<PublishResult> {
   const session = await getReviewerSession();
   if (!session || !can(session.profile, "genes.publish")) {
     return { ok: false, error: "You don't have permission to publish." };
   }
 
-  const service = getServiceSupabase();
-  if (!service) return { ok: false, error: "Server not configured." };
+  const loaded = await loadDraft(draftId);
+  if (!loaded.ok) return { ok: false, error: loaded.error };
+  const { draft } = loaded;
 
-  const { data: draft } = await service
-    .from("gene_page_drafts")
-    // select("*") so the legacy fallback below can rebuild the draft shape
-    // from the live columns when no snapshot exists.
-    .select("*")
-    .eq("id", draftId)
-    .maybeSingle();
-  if (!draft) return { ok: false, error: "Draft not found." };
-
-  // Stale-tab guard: another admin may have published or sent this back while
-  // this screen was open. Fail cleanly rather than double-publishing.
-  if (draft.review_status === "rejected") {
-    return { ok: false, error: "This gene was rejected. Reopen it before publishing." };
-  }
-
-  // Prefer the immutable snapshot taken when the reviewer submitted (0026).
-  //
-  // When there is none, fall back to the live draft rather than refusing.
-  // A draft approved BEFORE 0026 existed has no snapshot by definition, and a
-  // draft still in review has not produced one yet. Refusing both would make a
-  // guarantee introduced for future work retroactively block completed work
-  // and self-review alike.
-  //
-  // publishAction independently re-reads the snapshot and prefers it, so the
-  // content passed here is only ever used when there genuinely isn't one.
-  const approved =
-    (draft.submitted_content as GenePageDraft | null) ?? draftRowToContent(draft as Record<string, unknown>);
-
-  // WALK WHATEVER TRANSITIONS ARE OUTSTANDING.
-  //
-  // An admin reviewing a gene assigned to themselves is doing all three jobs —
-  // review, approve, publish — and previously only the last button was
-  // offered, gated on an approval nobody was going to perform. Pressing
-  // Publish now carries out each remaining step in order, through the same
-  // hardened actions, so every transition is gated and audited exactly as it
-  // would be if three different people had done it.
-  if (draft.review_status !== "submitted_for_approval" && draft.review_status !== "approved") {
-    if (!can(session.profile, "genes.submit")) {
-      return { ok: false, error: "This gene hasn't been submitted for review yet." };
-    }
-    const submitted = await submitReviewAction({
-      draftId,
-      content: approved,
-      // The admin ticked the review confirmation in the editor before this
-      // button became available; this is that same attestation.
-      confirmationChecked: true,
-    });
-    if (!submitted.ok) return submitted;
-    // Submitting moved it to submitted_for_approval; reflect that locally so
-    // the approval decision below is made on current state.
-    draft.review_status = "submitted_for_approval";
-  }
-
-  // Approve only what is actually awaiting approval.
-  //
-  // This previously ran unconditionally. A draft that was already `approved` —
-  // including one left that way by an earlier publish attempt that failed at
-  // the last step — would be sent to approveReviewAction, which requires
-  // `submitted_for_approval` and refused with "this draft hasn't been
-  // submitted for approval yet". The result was a dead end that got WORSE with
-  // each retry: the first click advanced the state, and every click after that
-  // was rejected for being in the state the first click created.
-  const status = draft.review_status as string;
-  if (status !== "approved") {
-    if (!can(session.profile, "genes.approve")) {
-      return { ok: false, error: "This gene needs an administrator's approval before it can be published." };
-    }
-    const approval = await approveReviewAction({ draftId, content: approved });
-    if (!approval.ok) return approval;
+  // Refuse to treat someone else's submission as your own review. That work
+  // deserves to be judged as theirs, with Request changes available.
+  const submittedBy = (draft.submitted_by as string | null) ?? null;
+  if (submittedBy && submittedBy !== session.userId) {
+    return {
+      ok: false,
+      error: "This gene was submitted by another reviewer. Review it as their submission instead.",
+    };
   }
 
   return publishAction({
     draftId,
-    content: approved,
+    content: draftRowToContent(draft),
     confirmationChecked: true,
+    adminOverride: true,
   });
 }
 
-/** Send a submitted gene back to its reviewer with an explanation. */
+/**
+ * An admin publishing a REVIEWER'S submitted work.
+ *
+ * Approval is a real decision here — one person accepting another's review —
+ * so it runs, but only if it has not already happened. A draft left `approved`
+ * by an earlier attempt that failed at the final step must be publishable on
+ * retry, not refused for being in the state that attempt created.
+ *
+ * Content is not taken from the caller: publishAction reads the immutable
+ * snapshot the reviewer submitted (0026), so what goes live is what they
+ * reviewed. The live row is only a fallback for drafts approved before
+ * snapshots existed, which RLS had kept read-only to their reviewer.
+ */
+export async function publishSubmittedReviewAction(draftId: string): Promise<PublishResult> {
+  const session = await getReviewerSession();
+  if (!session || !can(session.profile, "genes.publish")) {
+    return { ok: false, error: "You don't have permission to publish." };
+  }
+
+  const loaded = await loadDraft(draftId);
+  if (!loaded.ok) return { ok: false, error: loaded.error };
+  const { draft } = loaded;
+
+  const status = draft.review_status as string;
+  if (status !== "submitted_for_approval" && status !== "approved") {
+    return {
+      ok: false,
+      error: "This gene hasn't been submitted for publication. Refresh to see its current state.",
+    };
+  }
+
+  const approved = (draft.submitted_content as GenePageDraft | null) ?? draftRowToContent(draft);
+
+  if (status !== "approved") {
+    const approval = await approveReviewAction({ draftId, content: approved });
+    if (!approval.ok) return approval;
+  }
+
+  return publishAction({ draftId, content: approved, confirmationChecked: true });
+}
+
+/** Send a reviewer's submission back to them with an explanation. */
 export async function requestChangesFromScreenAction(
   draftId: string,
   note: string

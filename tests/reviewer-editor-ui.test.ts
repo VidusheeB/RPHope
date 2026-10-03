@@ -19,11 +19,23 @@ describe("gene review workspace — per-sentence verification control removed (s
 
 });
 
-describe("Request changes — restored as a modal per RP Hope Admin Phase 1 (static)", () => {
-  it("opens a dialog rather than an always-visible inline section", () => {
-    expect(src).toMatch(/requestChangesAction/);
-    expect(src).toMatch(/requestChangesOpen/);
-    expect(src).toMatch(/role="dialog"/);
+describe("Request changes lives on the publication screen, not the editor (static)", () => {
+  it("is offered where an admin judges someone else's submission", () => {
+    // Sending work back is a decision about ANOTHER person's review, so it
+    // belongs beside that review's summary and the rendered preview — not in
+    // the editor, where it was reachable while editing your own work.
+    const screen = require("node:fs").readFileSync(
+      require("node:path").join(process.cwd(), "components/review/genes/PublicationReview.tsx"),
+      "utf8"
+    );
+    expect(screen).toMatch(/requestChangesFromScreenAction/);
+    // ...and never for your own review: you cannot send work back to yourself.
+    expect(screen).toMatch(/!isOwnReview && canRequestChanges/);
+  });
+
+  it("the editor no longer carries a request-changes flow", () => {
+    expect(src).not.toMatch(/requestChangesAction/);
+    expect(src).not.toMatch(/requestChangesOpen/);
   });
 });
 

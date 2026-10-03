@@ -26,12 +26,23 @@ export type AwaitingPublication = {
   hasApprovedSnapshot: boolean;
 };
 
+export type ReviewNote = { flag: string; status: string; note: string | null };
+
 export type PublicationDetail = AwaitingPublication & {
   /** Exactly what will go live. Read from the snapshot when present. */
   content: GenePageDraft | null;
   /** The live draft, for comparison when the two differ. */
   liveContent: GenePageDraft | null;
   currentlyPublishedVersion: number | null;
+  /** Who submitted this for publication, if anyone yet. Lets the screen tell
+   *  an admin finishing their OWN review apart from an admin dispositioning
+   *  someone else's — two different jobs that need different controls. */
+  submittedById: string | null;
+  /** The review that produced this version, summarised for the admin. */
+  flagCount: number;
+  resolvedFlagCount: number;
+  reviewNotes: ReviewNote[];
+  openTicketCount: number;
 };
 
 /** Everything waiting on an administrator, newest approval first. */
@@ -111,6 +122,27 @@ export async function getPublicationDetail(draftId: string): Promise<Publication
   const snapshot = (row.submitted_content as GenePageDraft | null) ?? null;
   const live = draftRowToContent(row);
 
+  // The review behind this version: which AI flags were raised, how each was
+  // dispositioned, and what the reviewer wrote about it. This is what an admin
+  // needs to judge someone else's work without re-reading every sentence.
+  const flags = Array.isArray(row.review_flags) ? (row.review_flags as string[]) : [];
+  const [{ data: resolutions }, { data: tickets }] = await Promise.all([
+    service
+      .from("review_flag_resolutions")
+      .select("flag_index, status, reviewer_note")
+      .eq("draft_id", draftId),
+    service.from("review_tickets").select("status").eq("draft_id", draftId),
+  ]);
+  const byIndex = new Map((resolutions ?? []).map((r) => [r.flag_index, r]));
+  const reviewNotes: ReviewNote[] = flags.map((flag, i) => {
+    const r = byIndex.get(i);
+    return { flag, status: r?.status ?? "unresolved", note: r?.reviewer_note ?? null };
+  });
+  const resolvedFlagCount = reviewNotes.filter((n) => n.status !== "unresolved").length;
+  const openTicketCount = (tickets ?? []).filter(
+    (t) => t.status !== "resolved" && t.status !== "closed"
+  ).length;
+
   return {
     draftId: draft.id,
     geneSlug: draft.gene_slug,
@@ -123,5 +155,10 @@ export async function getPublicationDetail(draftId: string): Promise<Publication
     content: snapshot ?? live,
     liveContent: live,
     currentlyPublishedVersion: currentVersion?.version_number ?? null,
+    submittedById: draft.submitted_by,
+    flagCount: flags.length,
+    resolvedFlagCount,
+    reviewNotes,
+    openTicketCount,
   };
 }
