@@ -146,7 +146,7 @@ export function StatusCard({
 }) {
   return (
     <div className="rounded-xl border border-ink/12 bg-white p-5 shadow-sm">
-      <p className="text-xs font-bold uppercase tracking-[0.09em] text-gold">{lead}</p>
+      <p className="text-xs font-bold uppercase tracking-[0.09em] text-gold-label">{lead}</p>
       <h2 className="mt-1 font-display text-xl font-medium text-ink">{title}</h2>
       <div className="mt-2 text-[0.95rem] text-ink/90">{children}</div>
     </div>

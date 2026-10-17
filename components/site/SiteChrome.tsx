@@ -23,7 +23,11 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const isReviewApp = REVIEW_APP_MODE || Boolean(pathname?.startsWith("/review"));
 
-  if (isReviewApp) return <>{children}</>;
+  // theme-portal keeps the portal on its ORIGINAL green/gold palette — the
+  // public site was recoloured (2026-10-17), the portal deliberately wasn't.
+  // `contents` so the wrapper adds no box and can't disturb the portal layout;
+  // the CSS variables still inherit through it. See app/globals.css.
+  if (isReviewApp) return <div className="theme-portal contents">{children}</div>;
 
   return (
     <>

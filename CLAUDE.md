@@ -249,11 +249,18 @@ aging / lower-digital-literacy users. It must not fight an active screen reader.
 The rebuilt site uses a warm research-hub palette (NOT the original Wix teal/maroon —
 that lives only in the archived `StaticDemoOriginal/`). Tokens live in `tailwind.config.ts`.
 
-- Primary — **forest** `#234b43` (dark teal/green; nav, buttons, headings, accents)
-- Accent — **gold** `#cf9f4e` (icons, hero italic phrase `gold.soft` `#ecdca6`)
+- **Recolor (owner decision, 2026-10-17) — PUBLIC SITE ONLY:** green → blue, gold → yellow, purple →
+  green; no purple anywhere on rp-hope.org. Token *names* were kept to avoid touching ~500 class usages,
+  so on the public site `forest` is blue and `lilac` is green. The **Team Portal keeps its original
+  palette** (its red/yellow/green carry status meaning) — tokens are CSS variables in `app/globals.css`
+  (`:root` = public, `.theme-portal` = portal, applied in `SiteChrome.tsx`). Change colours there.
+  The portal's gene preview uses `.theme-public` so it still matches the live page.
+- Primary — **forest** `#0b3445` (deep blue; nav, buttons, headings, accents). Was `#234b43` green.
+- Accent — **gold** `#fad40d` (yellow; icons, hero italic phrase `gold.soft` `#fde97a`). Was `#cf9f4e`.
+  ⚠️ Yellow fails contrast on white (~1.5:1) — use it only on dark-blue surfaces or as decoration.
 - Background — **cream** `#f4f1e9` (page), `#f6f3ec` (header/sections), `#eae5d8` (tan card)
 - Ink (headings/footer) — `#1e1c19`
-- Soft tinted cards — mint `#e3eee4`, butter `#f6efd1`, lilac `#e9e7f4`
+- Soft tinted cards — mint `#e1ecf2` (now light blue), butter `#f6efd1`, lilac `#e3eee4` (now light green)
 - Heading font — **Fraunces** (serif, with italic) via `next/font`
 - Body font — **Mulish** (sans) via `next/font`
 - Logo/social/eye images — `/public/home/`, gene thumbnails — `/public/genes/`
@@ -264,7 +271,7 @@ that lives only in the archived `StaticDemoOriginal/`). Tokens live in `tailwind
 
 New version (live app at repo root):
 - `/` — redesigned homepage (Hero, Choose Your Path, Genetic Insights preview, Research,
-  Events & Community, Donation)
+  Donation; Events & Community removed 2026-10-17)
 - `/genetic-insights` — gene library (Supabase-backed grid + AI assistant + inheritance filter)
 - `/genetic-insights/[gene]` — gene detail (at-a-glance table, circular Face of RP, Brief
   Description, In the News, disclaimer). 51/66 genes have real content.
@@ -376,7 +383,7 @@ Archived original-site clone (reference only, excluded from build): `StaticDemoO
 ### Features built
 - **Homepage** — Hero (dark teal overlay, serif + gold italic), "Personalize my experience" →
   `/my-pathway`, "I know what I'm looking for" → `/explore`, Choose Your Path, gene preview,
-  Research-made-understandable, Events & Community, Donation. Components in `components/site/`.
+  Research-made-understandable, Donation (Events & Community section removed 2026-10-17; component kept in `components/site/EventsCommunity.tsx`). Components in `components/site/`.
 - **My RP Pathway → "Your RP Hope Journey"** (`app/my-pathway/`, `components/site/PathwayJourney.tsx`
   + `PathwayStopCard.tsx`) — rebuilt from a recommendation grid into a guided, ordered **website
   tour**. A 7-question quiz (role, starting point, gene status, conditional **gene selector** shown

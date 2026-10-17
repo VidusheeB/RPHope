@@ -1,8 +1,8 @@
 // Small uppercase section label with a hairline underline — the recurring
 // "editorial" device across the site (replaces the old emoji pills).
 //
-// Accessibility: on light (cream) sections the *text* is forest for contrast and
-// the gold (#cf9f4e) shows only as the underline rule (decorative, so no
+// Accessibility: on light (white) sections the *text* is forest for contrast and
+// the yellow (#fad40d) shows only as the underline rule (decorative, so no
 // contrast requirement).
 //
 // On dark grounds the text is WHITE, not gold. The only dark-tone use is the

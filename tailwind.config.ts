@@ -5,15 +5,27 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // New brand (Figma direction) — warm research-hub palette
+        // Brand palette. Values are CSS variables (RGB channels) defined in
+        // app/globals.css, because the public site and the Team Portal use
+        // DIFFERENT colours under the same token names:
+        //   - public site (:root / .theme-public) — owner decision 2026-10-17:
+        //     green became blue #0b3445, gold became yellow #fad40d, and purple
+        //     became green (so `forest` is blue and `lilac` is green there).
+        //   - Team Portal (.theme-portal, set in SiteChrome) — the original
+        //     green/gold/lilac, kept on purpose: its red/yellow/green colours
+        //     carry status meaning for reviewers.
+        // Change colours in globals.css, not here.
         forest: {
-          DEFAULT: "#234b43", // deep teal/forest — primary
-          dark: "#1a3a34",
-          deep: "#16322d",
+          DEFAULT: "rgb(var(--c-forest) / <alpha-value>)",
+          dark: "rgb(var(--c-forest-dark) / <alpha-value>)",
+          deep: "rgb(var(--c-forest-deep) / <alpha-value>)",
         },
         gold: {
-          DEFAULT: "#cf9f4e", // warm gold accent (icons, links)
-          soft: "#ecdca6", // pale gold for hero italic phrase
+          DEFAULT: "rgb(var(--c-gold) / <alpha-value>)",
+          soft: "rgb(var(--c-gold-soft) / <alpha-value>)",
+          // small accent label text on WHITE cards — yellow can't be read on
+          // white, so the public site uses blue here; the portal keeps gold.
+          label: "rgb(var(--c-gold-label) / <alpha-value>)",
         },
         cream: {
           DEFAULT: "#f4f1e9", // page background
@@ -22,9 +34,12 @@ const config: Config = {
         },
         ink: "#1e1c19", // near-black headings / footer
         // soft tinted cards
-        mint: "#e3eee4",
+        mint: "rgb(var(--c-mint) / <alpha-value>)",
         butter: "#f6efd1",
-        lilac: "#e9e7f4",
+        lilac: {
+          DEFAULT: "rgb(var(--c-lilac) / <alpha-value>)",
+          ink: "rgb(var(--c-lilac-ink) / <alpha-value>)", // text on a lilac tag
+        },
         // ---- legacy tokens (keep so the older replica pages still render) ----
         teal: { DEFAULT: "#234b43", dark: "#16322d" },
         maroon: { DEFAULT: "#8a1c1c", dark: "#6f1616" },

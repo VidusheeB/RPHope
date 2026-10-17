@@ -24,7 +24,7 @@ export default function StoryCard({ name, excerpt, tag, href, externalHref, sour
   const inner = (
     <>
       {tag && (
-        <span className="self-start rounded-full bg-lilac px-3 py-1 text-xs font-bold text-[#5b51a3]">
+        <span className="self-start rounded-full bg-lilac px-3 py-1 text-xs font-bold text-lilac-ink">
           {tag}
         </span>
       )}

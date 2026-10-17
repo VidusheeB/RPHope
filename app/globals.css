@@ -6,6 +6,41 @@
   color-scheme: light;
 }
 
+/* ---- Brand colours (consumed by tailwind.config.ts as rgb(var(--c-*))) ----
+   Public site (rp-hope.org) — owner decision 2026-10-17: green -> blue #0b3445,
+   gold -> yellow #fad40d, purple -> green. Token names are historical.
+   .theme-public re-applies these inside the portal's live-page previews. */
+:root,
+.theme-public {
+  --c-forest: 11 52 69; /* #0b3445 blue — white on it 13.2:1 */
+  --c-forest-dark: 8 42 56; /* #082a38 */
+  --c-forest-deep: 6 31 42; /* #061f2a */
+  --c-gold: 250 212 13; /* #fad40d yellow — dark surfaces only, fails on white */
+  --c-gold-soft: 253 233 122; /* #fde97a */
+  --c-gold-label: 11 52 69; /* blue: accent labels on white cards */
+  --c-mint: 225 236 242; /* #e1ecf2 pale blue */
+  --c-lilac: 227 238 228; /* #e3eee4 pale green (was purple) */
+  --c-lilac-ink: 31 90 50; /* #1f5a32 green text on it, ~6.9:1 */
+  --focus-outline: #0b3445;
+  --focus-halo: 0 0 0 2px #fad40d;
+}
+
+/* Team Portal — the ORIGINAL palette, unchanged on purpose (its colours carry
+   status meaning). Applied by components/site/SiteChrome.tsx on /review/*. */
+.theme-portal {
+  --c-forest: 35 75 67; /* #234b43 */
+  --c-forest-dark: 26 58 52; /* #1a3a34 */
+  --c-forest-deep: 22 50 45; /* #16322d */
+  --c-gold: 207 159 78; /* #cf9f4e */
+  --c-gold-soft: 236 220 166; /* #ecdca6 */
+  --c-gold-label: 207 159 78; /* #cf9f4e */
+  --c-mint: 227 238 228; /* #e3eee4 */
+  --c-lilac: 233 231 244; /* #e9e7f4 */
+  --c-lilac-ink: 91 81 163; /* #5b51a3 */
+  --focus-outline: #cf9f4e;
+  --focus-halo: none;
+}
+
 html {
   font-size: 100%;
   scroll-behavior: smooth;
@@ -19,8 +54,11 @@ body {
 
 /* Visible focus on every interactive element (WCAG 2.4.7) */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 3px solid #cf9f4e;
+  /* Public: two-tone (blue outline shows on white, yellow halo on the dark-blue
+     bands). Portal: its original single gold outline. See the vars above. */
+  outline: 3px solid var(--focus-outline);
   outline-offset: 2px;
+  box-shadow: var(--focus-halo);
   border-radius: 4px;
 }
 

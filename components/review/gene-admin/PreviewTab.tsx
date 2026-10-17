@@ -65,7 +65,9 @@ export default function PreviewTab({
       </div>
 
       <div
-        className={`mx-auto mt-6 overflow-x-auto rounded-lg border border-ink/10 bg-cream ${
+        // theme-public: this preview must look exactly like the live page, so it
+        // uses the public site's colours even though it sits inside the portal.
+        className={`theme-public mx-auto mt-6 overflow-x-auto rounded-lg border border-ink/10 bg-cream ${
           viewport === "mobile" ? "max-w-[26rem]" : "max-w-full"
         }`}
       >

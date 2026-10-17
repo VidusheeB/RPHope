@@ -11,7 +11,7 @@ export type GeneCardData = {
 const tagStyles: Record<GeneCardData["tagTone"], string> = {
   mint: "bg-mint text-forest",
   butter: "bg-butter text-[#8a6d1f]",
-  lilac: "bg-lilac text-[#5b51a3]",
+  lilac: "bg-lilac text-lilac-ink",
 };
 
 export default function GeneCard({ data }: { data: GeneCardData }) {
