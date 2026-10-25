@@ -29,7 +29,7 @@ import {
 import type { GenePageDraft } from "@/lib/geneResearch/types";
 import { draftRowToContent } from "@/lib/reviewer/data";
 
-type PublishResult = ActionResult<{ publishedUrl: string; versionId: string }>;
+type PublishResult = ActionResult<{ publishedUrl: string; versionId: string; unchanged: boolean }>;
 
 async function loadDraft(
   draftId: string
@@ -57,6 +57,10 @@ async function loadDraft(
  * The publish RPC then records the admin as reviewer and leaves the draft
  * `approved`, so the end state matches what actually happened: one person
  * reviewed it and published it.
+ *
+ * Content is the current draft row, not `submitted_content`: an own review
+ * has no other reviewer's approval to protect, and preferring an old snapshot
+ * silently threw away the admin's newer edits.
  */
 export async function publishOwnReviewAction(draftId: string): Promise<PublishResult> {
   const session = await getReviewerSession();
@@ -83,6 +87,9 @@ export async function publishOwnReviewAction(draftId: string): Promise<PublishRe
     content: draftRowToContent(draft),
     confirmationChecked: true,
     adminOverride: true,
+    // Publish what the admin is looking at (the draft row, read above), not
+    // a snapshot from an earlier submission of their own.
+    ownReview: true,
   });
 }
 

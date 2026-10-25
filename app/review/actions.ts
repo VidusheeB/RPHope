@@ -344,7 +344,12 @@ export async function publishAction(input: {
   content: GenePageDraft;
   confirmationChecked: boolean;
   adminOverride?: boolean;
-}): Promise<ActionResult<{ publishedUrl: string; versionId: string }>> {
+  /** An admin concluding their OWN review: publish `content` (read from the
+   *  draft row server-side by the caller), not an earlier submission
+   *  snapshot. The snapshot protects someone ELSE's approval from later
+   *  edits; it must not override the admin's own edits to their own review. */
+  ownReview?: boolean;
+}): Promise<ActionResult<{ publishedUrl: string; versionId: string; unchanged: boolean }>> {
   const session = await getReviewerSession();
   if (!session) return { ok: false, error: "Not signed in." };
   // genes.publish already folds in the can_publish restriction (see
@@ -374,7 +379,11 @@ export async function publishAction(input: {
   // would break the one guarantee this whole review pipeline exists to make.
   // Falling back to the posted content covers drafts submitted before 0026
   // added the column, and admin-override publishes of never-submitted drafts.
-  const approvedContent = (draft.submitted_content as GenePageDraft | null) ?? input.content;
+  // An own review skips the snapshot: any snapshot there is the admin's own
+  // earlier submission, and preferring it silently discarded their later edits.
+  const approvedContent = input.ownReview
+    ? input.content
+    : ((draft.submitted_content as GenePageDraft | null) ?? input.content);
 
   const { data: assignment } = await service
     .from("draft_assignments")
@@ -427,6 +436,16 @@ export async function publishAction(input: {
     .eq("id", input.draftId);
   if (saveErr) return { ok: false, error: `Could not save latest edits: ${saveErr.message}` };
 
+  // What is live right now. If the RPC hands back this same id, it published
+  // nothing — the content was already live — and the admin must be told so
+  // rather than shown a success that changed nothing (0035).
+  const { data: livePrior } = await service
+    .from("gene_page_versions")
+    .select("id")
+    .eq("gene_slug", draft.gene_slug)
+    .eq("status", "published")
+    .maybeSingle();
+
   // 2. ATOMIC publish. All of {lock, archive prior published, insert new
   //    immutable published, update draft state, complete assignment} happen in
   //    ONE Postgres transaction inside publish_gene_version(); on any failure
@@ -448,6 +467,18 @@ export async function publishAction(input: {
     return { ok: false, error: `Publish failed: ${rpcErr?.message ?? "no version returned"}` };
   }
 
+  const unchanged = livePrior?.id === published.version_id;
+  if (unchanged) {
+    return {
+      ok: true,
+      data: {
+        publishedUrl: `/genetic-insights/${published.gene_slug}`,
+        versionId: published.version_id,
+        unchanged: true,
+      },
+    };
+  }
+
   // 3. Only now that the transaction has committed, revalidate the public route.
   revalidatePath(`/genetic-insights/${published.gene_slug}`);
 
@@ -467,7 +498,11 @@ export async function publishAction(input: {
 
   return {
     ok: true,
-    data: { publishedUrl: `/genetic-insights/${published.gene_slug}`, versionId: published.version_id },
+    data: {
+      publishedUrl: `/genetic-insights/${published.gene_slug}`,
+      versionId: published.version_id,
+      unchanged: false,
+    },
   };
 }
 
@@ -711,7 +746,7 @@ export async function assignDraftAction(input: {
 
   const { data: draft } = await ctx.service
     .from("gene_page_drafts")
-    .select("gene_symbol, first_opened_at")
+    .select("gene_symbol, first_opened_at, review_status")
     .eq("id", input.draftId)
     .maybeSingle();
   if (!draft) return { ok: false, error: "Draft not found." };
@@ -755,6 +790,27 @@ export async function assignDraftAction(input: {
     { onConflict: "draft_id,reviewer_id" }
   );
   if (error) return { ok: false, error: error.message };
+
+  // Assigning an APPROVED draft (usually one already live) starts a new
+  // review round. Left `approved`, the draft kept its old submission
+  // snapshot: the reviewer was locked out of editing it (RLS), and the
+  // publish screen offered to publish the OLD approval — which then changed
+  // nothing on the live page. Content and the live version are untouched;
+  // only the stale approval is cleared, so the new round ends in a fresh
+  // submission and a fresh snapshot.
+  if (draft.review_status === "approved") {
+    const { error: reopenErr } = await ctx.service
+      .from("gene_page_drafts")
+      .update({
+        ...reopenStamp(ctx.session.userId),
+        review_status: "unreviewed",
+        submitted_content: null,
+        submitted_at: null,
+        submitted_by: null,
+      })
+      .eq("id", input.draftId);
+    if (reopenErr) return { ok: false, error: reopenErr.message };
+  }
 
   const assignedAt = new Date().toISOString();
   await notify({

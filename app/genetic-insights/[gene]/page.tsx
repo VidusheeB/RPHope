@@ -33,7 +33,18 @@ export function generateStaticParams() {
 // without a redeploy, while pages still benefit from static generation.
 export const revalidate = 3600;
 
-export function generateMetadata({ params }: { params: { gene: string } }): Metadata {
+export async function generateMetadata({ params }: { params: { gene: string } }): Promise<Metadata> {
+  // A published version is what the page renders, so it is what the search
+  // snippet describes. Reading only the legacy JSON told search engines a
+  // live page's summary was still "being prepared".
+  const published = await getPublishedGeneVersion(params.gene);
+  if (published) {
+    const summary = flattenAnySection(published.content.summaryCard);
+    return {
+      title: `${published.content.gene} | RP Hope`,
+      ...(summary ? { description: summary.slice(0, 155) } : {}),
+    };
+  }
   const gene = getGene(params.gene);
   if (gene) {
     return { title: `${gene.gene} | RP Hope`, description: gene.summary.slice(0, 155) };

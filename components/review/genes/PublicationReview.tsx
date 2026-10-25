@@ -74,7 +74,9 @@ export default function PublicationReview({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<"publish" | "changes" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [published, setPublished] = useState(false);
+  // "unchanged" = the publish went through but the live page already held this
+  // exact content, so nothing new went live. Shown as such, never as "is live".
+  const [published, setPublished] = useState<"new" | "unchanged" | null>(null);
 
   async function doPublish() {
     setBusy("publish");
@@ -82,16 +84,26 @@ export default function PublicationReview({
     // Two different reviews end here, so two different server paths: an own
     // review publishes directly; someone else's submission is approved (if
     // it isn't already) and then published.
-    const res = isOwnReview
-      ? await publishOwnReviewAction(detail.draftId)
-      : await publishSubmittedReviewAction(detail.draftId);
+    let res: Awaited<ReturnType<typeof publishOwnReviewAction>>;
+    try {
+      res = isOwnReview
+        ? await publishOwnReviewAction(detail.draftId)
+        : await publishSubmittedReviewAction(detail.draftId);
+    } catch {
+      // A thrown server action (crash, timeout, lost connection) used to leave
+      // the button stuck on "Publishing…" with no message at all.
+      res = {
+        ok: false,
+        error: "Publishing didn't complete. Nothing was changed on the live page — please try again.",
+      };
+    }
     setBusy(null);
     setConfirming(false);
     if (!res.ok) {
       setError(res.blockers?.length ? [res.error, ...res.blockers].join(" ") : res.error);
       return;
     }
-    setPublished(true);
+    setPublished(res.data?.unchanged ? "unchanged" : "new");
     router.refresh();
   }
 
@@ -102,7 +114,10 @@ export default function PublicationReview({
     }
     setBusy("changes");
     setError(null);
-    const res = await requestChangesFromScreenAction(detail.draftId, note);
+    const res = await requestChangesFromScreenAction(detail.draftId, note).catch(() => ({
+      ok: false as const,
+      error: "Sending this back didn't complete. Please try again.",
+    }));
     setBusy(null);
     if (!res.ok) {
       setError(res.error);
@@ -116,11 +131,25 @@ export default function PublicationReview({
   if (published) {
     return (
       <div className="mx-auto max-w-2xl py-10 text-center">
-        <h1 className="font-display text-2xl font-semibold text-forest">{detail.geneSymbol} is live</h1>
-        <p className="mt-2 text-sm text-ink/70">
-          The page is now public on RP Hope
-          {detail.currentlyPublishedVersion ? `, replacing version ${detail.currentlyPublishedVersion}` : ""}.
-        </p>
+        {published === "new" ? (
+          <>
+            <h1 className="font-display text-2xl font-semibold text-forest">{detail.geneSymbol} is live</h1>
+            <p className="mt-2 text-sm text-ink/70">
+              The page is now public on RP Hope
+              {detail.currentlyPublishedVersion ? `, replacing version ${detail.currentlyPublishedVersion}` : ""}.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="font-display text-2xl font-semibold text-forest">
+              Nothing changed on the live page
+            </h1>
+            <p className="mt-2 text-sm text-ink/70">
+              The live {detail.geneSymbol} page already shows this content, so no new version was
+              published.
+            </p>
+          </>
+        )}
         <div className="mt-6 flex justify-center gap-3">
           <a
             href={liveUrl}
